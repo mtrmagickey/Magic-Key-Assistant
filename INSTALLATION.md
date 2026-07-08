@@ -30,6 +30,23 @@ Desktop-class machine. 4 GB RAM minimum, 8 GB recommended. For local LLM inferen
 
 ---
 
+## Install — Windows Installer (.exe)
+
+Prefer a click-to-run experience over the command line? Magic Key Assistant ships as a
+standalone Windows tray executable, `MagicKeyAssistant.exe`, plus a matching
+`MagicKeyAssistant-Setup-<version>.exe` installer.
+
+- **Building or running the `.exe`:** follow the [Windows Installer Build Guide](docs/release/windows-installer.md).
+  It covers producing `dist/MagicKeyAssistant/MagicKeyAssistant.exe` with PyInstaller and packaging the
+  Inno Setup installer.
+- **What you get:** a Start Menu shortcut and a system-tray icon to start, stop, restart, open setup,
+  and launch the console — no terminal required after first run.
+
+The tray app is a lightweight controller; on first run it creates the virtual environment and opens the
+setup experience, exactly like the launcher below.
+
+---
+
 ## Install — One-Command Launcher (recommended)
 
 ```powershell
