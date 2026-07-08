@@ -1,0 +1,26 @@
+# ── Organisation Profile ──────────────────────────────────────────────
+# This file is created by the /setup wizard or can be edited manually.
+# It configures the assistant's identity and organisational context.
+#
+# Copy this file to org_profile.yaml and fill in your details:
+#   cp org_profile.example.yaml org_profile.yaml
+# ──────────────────────────────────────────────────────────────────────
+
+branding:
+  accent_color: '#5865F2'
+  bot_name: Magic Key Assistant   # Name your bot instance shows in Discord and the admin GUI
+
+mode: small   # solo | small | team
+
+org_name: My Company
+tagline: ''
+timezone: America/New_York
+
+# Optional — fill these in for better persona behaviour:
+# org:
+#   name: My Company
+#   industry: ''
+#   location: ''          # e.g. "Austin, Texas"
+#   region: ''            # e.g. "Southwest US"
+#   capabilities: []
+#   knowledge_topics: []

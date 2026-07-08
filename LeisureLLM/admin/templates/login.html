@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login — {{ bot_name }}</title>
+    <link rel="stylesheet" href="/static/fonts/inter.css">
+    <link rel="stylesheet" href="/static/tailwind.css?v=2">
+    <link rel="stylesheet" href="/static/style.css?v=5">
+    <script>
+    (function(){try{var c=sessionStorage.getItem('mk_theme');if(c){var t=JSON.parse(c),s=document.documentElement.style;function _h(x){return parseInt(x.slice(1,3),16)+','+parseInt(x.slice(3,5),16)+','+parseInt(x.slice(5,7),16);}if(t.ink)s.setProperty('--ink',_h(t.ink));if(t.canvas)s.setProperty('--canvas',_h(t.canvas));if(t.accent_a)s.setProperty('--a',_h(t.accent_a));if(t.accent_b)s.setProperty('--b',_h(t.accent_b));if(t.accent_c)s.setProperty('--c',_h(t.accent_c));}}catch(e){}})();
+    </script>
+    <script src="/static/lucide.min.js"></script>
+    <style>
+        .login-split {
+            min-height: 100vh;
+            display: grid;
+            grid-template-columns: 1fr;
+            align-items: center;
+            justify-items: center;
+            padding: 2rem;
+        }
+        @media (min-width: 960px) {
+            .login-split {
+                grid-template-columns: 1fr 1fr;
+                gap: 4rem;
+                padding: 3rem 5%;
+            }
+        }
+        .login-hero { display:none; }
+        @media (min-width: 960px) {
+            .login-hero {
+                display:flex;flex-direction:column;justify-content:center;
+                max-width:420px;
+            }
+        }
+        .login-form-col { max-width: 440px; width: 100%; }
+        body {
+            -webkit-font-smoothing: antialiased;
+            text-rendering: optimizeLegibility;
+        }
+        .login-copy {
+            color: rgba(226, 232, 240, 0.82);
+            line-height: 1.75;
+            max-width: 42ch;
+        }
+        .feature-item {
+            display: flex; gap: 14px; align-items: flex-start;
+            padding: 14px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.04);
+        }
+        .feature-item:last-child { border-bottom: none; }
+        .feature-icon {
+            width: 36px; height: 36px; border-radius: 10px;
+            display: flex; align-items: center; justify-content: center;
+            flex-shrink: 0;
+            background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(255,255,255,0.06);
+        }
+    </style>
+</head>
+<body class="min-h-screen text-gray-200">
+
+    <!-- Animated Background -->
+    <div class="bg-layer">
+        <div class="bg-gradient"></div>
+        <div class="orb orb-1"></div>
+        <div class="orb orb-2"></div>
+        <div class="orb orb-3"></div>
+        <div class="bokeh bokeh-1"></div>
+        <div class="bokeh bokeh-2"></div>
+        <div class="bokeh bokeh-3"></div>
+        <div class="bokeh bokeh-4"></div>
+        <div class="bokeh bokeh-5"></div>
+        <div class="light-ray"></div>
+        <div class="noise"></div>
+    </div>
+
+    <div class="login-split relative z-10">
+        <!-- Hero / Feature Highlights (visible on wider screens) -->
+        <div class="login-hero">
+            <div class="mb-8">
+                <div class="w-16 h-16 rounded-2xl bg-surface-elevated flex items-center justify-center shadow-lg mb-5 border border-white/5">
+                    <img src="/static/icon-192.png" alt="{{ bot_name }}" class="w-11 h-11 rounded-2xl object-cover shadow-sm">
+                </div>
+                <h1 class="text-3xl font-bold text-white mb-2 tracking-tight">{{ bot_name }}</h1>
+                <p class="login-copy text-sm">A private assistant that runs entirely on your machine. Your data never leaves this computer.</p>
+            </div>
+            <div>
+                <div class="feature-item">
+                    <div class="feature-icon"><i data-lucide="hard-drive" class="w-4 h-4 text-teal"></i></div>
+                    <div>
+                        <p class="text-sm text-white font-medium mb-0.5">100% Local</p>
+                        <p class="text-xs text-gray-400">Everything runs on your hardware. No cloud dependency.</p>
+                    </div>
+                </div>
+                <div class="feature-item">
+                    <div class="feature-icon"><i data-lucide="message-square" class="w-4 h-4 text-teal"></i></div>
+                    <div>
+                        <p class="text-sm text-white font-medium mb-0.5">Conversations &rarr; Work</p>
+                        <p class="text-xs text-gray-400">Talk naturally, and the assistant extracts action items, decisions, and follow-ups automatically.</p>
+                    </div>
+                </div>
+                <div class="feature-item">
+                    <div class="feature-icon"><i data-lucide="trending-up" class="w-4 h-4 text-teal"></i></div>
+                    <div>
+                        <p class="text-sm text-white font-medium mb-0.5">Gets Smarter Over Time</p>
+                        <p class="text-xs text-gray-400">Learns from what you teach it and fills its own knowledge gaps from real conversations.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Login Form -->
+        <div class="login-form-col">
+        <div class="glass p-8">
+            <div class="flex items-center gap-4 mb-6">
+                <div class="w-14 h-14 rounded-2xl bg-surface-elevated flex items-center justify-center shadow-lg">
+                    <img src="/static/icon-192.png" alt="{{ bot_name }}" class="w-10 h-10 rounded-2xl object-cover shadow-sm">
+                </div>
+                <div>
+                    <h1 class="text-2xl font-bold text-white">{{ bot_name }}</h1>
+                    <p class="text-gray-400 text-sm">Your Private AI Operations Assistant</p>
+                </div>
+            </div>
+
+            <p class="login-copy text-sm mb-4">
+                Welcome! This assistant runs entirely on your computer.
+                Your data never leaves this machine.
+            </p>
+            {% if bootstrap_required %}
+            <p class="login-copy text-sm mb-6">
+                Pick a username and password to get started. This is just for your local console &mdash; nothing is sent anywhere.
+            </p>
+            {% else %}
+            <p class="login-copy text-sm mb-6">
+                Sign in to your local console.
+            </p>
+            {% endif %}
+
+            <form id="loginForm" onsubmit="return handleLogin(event)">
+                <div class="mb-4">
+                    <label class="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">Username</label>
+                    <input type="text" id="usernameInput" placeholder="Enter your username"
+                           autocomplete="username" spellcheck="false"
+                           class="w-full bg-black/80 border border-white/15 rounded-xl px-4 py-3 text-sm text-white placeholder-white/40 focus:border-teal/40 focus:outline-none transition">
+                </div>
+                <div class="mb-4">
+                    <label class="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">Password</label>
+                    <div class="relative">
+                        <input type="password" id="passwordInput" placeholder="Enter your password"
+                               autocomplete="current-password" spellcheck="false"
+                               class="w-full bg-black/80 border border-white/15 rounded-xl px-4 py-3 text-sm text-white placeholder-white/40 focus:border-teal/40 focus:outline-none transition pr-20">
+                        <button type="button" id="toggleVisBtn" onclick="togglePasswordVisibility()"
+                                class="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-500 hover:text-teal-light transition w-9 h-9 rounded-lg border border-white/10 bg-black/35 flex items-center justify-center"
+                                title="Toggle visibility">
+                            <i data-lucide="eye" class="w-4 h-4"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div id="loginError" class="text-sm text-coral mb-4 hidden"></div>
+
+                <button type="submit" id="loginBtn" class="btn-glossy w-full py-3 text-sm tracking-wide {% if bootstrap_required %}hidden{% endif %}">
+                    <span class="relative z-10">Sign In</span>
+                </button>
+            </form>
+
+            {% if next %}
+            <input type="hidden" id="nextUrl" value="{{ next }}">
+            {% endif %}
+
+            {% if bootstrap_required %}
+            <input type="hidden" id="bootstrapTokenInput" value="">
+            <button type="button" id="bootstrapBtn" onclick="bootstrapAdmin()"
+                    class="btn-glossy w-full py-3 text-sm tracking-wide">
+                <span class="relative z-10">Create Account &amp; Get Started</span>
+            </button>
+            <p class="text-xs text-gray-600 text-center mt-3">This creates a local-only account on your machine.</p>
+            </div>
+            {% endif %}
+        </div>
+        </div><!-- /login-form-col -->
+    </div>
+
+    <script>
+    function togglePasswordVisibility() {
+        const inp = document.getElementById('passwordInput');
+        const btn = document.getElementById('toggleVisBtn');
+        if (inp.type === 'password') {
+            inp.type = 'text';
+            btn.innerHTML = '<i data-lucide="eye-off" class="w-4 h-4"></i>';
+            btn.title = 'Hide password';
+            if (typeof lucide !== 'undefined') lucide.createIcons();
+        } else {
+            inp.type = 'password';
+            btn.innerHTML = '<i data-lucide="eye" class="w-4 h-4"></i>';
+            btn.title = 'Show password';
+            if (typeof lucide !== 'undefined') lucide.createIcons();
+        }
+    }
+
+    /* Auto-fetch bootstrap token on first-run so user never sees it */
+    (function() {
+        const tokenInput = document.getElementById('bootstrapTokenInput');
+        if (!tokenInput) return;
+        fetch('/api/v1/auth/reveal-token').then(function(r) { return r.json(); }).then(function(d) {
+            if (d.success && d.token) tokenInput.value = d.token;
+        }).catch(function() {});
+    })();
+
+    async function bootstrapAdmin() {
+        const username = document.getElementById('usernameInput').value.trim();
+        const password = document.getElementById('passwordInput').value.trim();
+        const bootstrapTokenInput = document.getElementById('bootstrapTokenInput');
+        const errEl = document.getElementById('loginError');
+        errEl.classList.add('hidden');
+
+        const bootstrapToken = bootstrapTokenInput ? bootstrapTokenInput.value.trim() : '';
+        if (!username || !password) {
+            errEl.textContent = 'Pick a username and password to get started.';
+            errEl.classList.remove('hidden');
+            return;
+        }
+        if (!bootstrapToken) {
+            errEl.textContent = 'Could not retrieve setup token automatically. Check that you are accessing this page from the same computer the assistant is running on.';
+            errEl.classList.remove('hidden');
+            return;
+        }
+
+        const btn = document.getElementById('bootstrapBtn');
+        btn.querySelector('span').textContent = 'Creating\u2026';
+        btn.disabled = true;
+
+        try {
+            const resp = await fetch('/api/v1/auth/bootstrap', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json', 'X-CSRF-Protection': '1'},
+                body: JSON.stringify({
+                    bootstrap_token: bootstrapToken,
+                    username,
+                    password,
+                    display_name: null,
+                }),
+            });
+            const data = await resp.json();
+            if (data.success) {
+                const next = document.getElementById('nextUrl');
+                window.location.href = next ? next.value : '/';
+                return;
+            }
+            errEl.textContent = data.error || 'Account creation failed.';
+            errEl.classList.remove('hidden');
+        } catch (err) {
+            errEl.textContent = 'Network error: ' + err.message;
+            errEl.classList.remove('hidden');
+        } finally {
+            btn.querySelector('span').textContent = 'Create Account & Get Started';
+            btn.disabled = false;
+        }
+    }
+
+    async function handleLogin(e) {
+        e.preventDefault();
+        const username = document.getElementById('usernameInput').value.trim();
+        const password = document.getElementById('passwordInput').value.trim();
+        const errEl = document.getElementById('loginError');
+        errEl.classList.add('hidden');
+
+        if (!username || !password) {
+            errEl.textContent = 'Username and password are required.';
+            errEl.classList.remove('hidden');
+            return false;
+        }
+
+        const btn = document.getElementById('loginBtn');
+        btn.innerHTML = '<span class="relative z-10">Verifying…</span>';
+        btn.disabled = true;
+
+        try {
+            const resp = await fetch('/api/v1/auth/login', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json', 'X-CSRF-Protection': '1'},
+                body: JSON.stringify({ username, password }),
+            });
+            const data = await resp.json();
+            if (data.success) {
+                const next = document.getElementById('nextUrl');
+                window.location.href = next ? next.value : '/';
+            } else {
+                errEl.textContent = data.error || 'Invalid credentials.';
+                errEl.classList.remove('hidden');
+            }
+        } catch (err) {
+            errEl.textContent = 'Network error: ' + err.message;
+            errEl.classList.remove('hidden');
+        } finally {
+            btn.innerHTML = '<span class="relative z-10">Sign In</span>';
+            btn.disabled = false;
+        }
+        return false;
+    }
+    </script>
+    <script>document.addEventListener('DOMContentLoaded', function() { if (typeof lucide !== 'undefined') lucide.createIcons(); });</script>
+</body>
+</html>

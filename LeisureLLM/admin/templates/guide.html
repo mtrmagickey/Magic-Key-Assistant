@@ -1,0 +1,426 @@
+{% extends "base.html" %}
+{% block title %}Guide — {{ bot_name }}{% endblock %}
+
+{% block head %}
+<style>
+    /* ── Guide page typography & layout ─────────────────────────────── */
+    .guide-wrapper {
+        display: flex;
+        gap: 1.5rem;
+    }
+
+    /* Table of contents sidebar */
+    .guide-toc {
+        position: sticky;
+        top: 2rem;
+        align-self: flex-start;
+        min-width: 188px;
+        max-width: 208px;
+        max-height: calc(100vh - 4rem);
+        overflow-y: auto;
+        padding: 1rem;
+        flex-shrink: 0;
+        background: rgba(6,5,4,0.90);
+        border: 1px solid rgba(255,255,255,0.08);
+        border-radius: 14px;
+        backdrop-filter: blur(12px);
+    }
+    .guide-toc::-webkit-scrollbar { width: 3px; }
+    .guide-toc::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 3px; }
+    .guide-toc a {
+        display: block;
+        padding: 0.35rem 0.75rem;
+        font-size: 0.84rem;
+        font-weight: 500;
+        color: rgba(255,255,255,0.78);
+        text-decoration: none;
+        border-left: 2px solid transparent;
+        transition: all 0.2s ease;
+        line-height: 1.5;
+    }
+    .guide-toc a:hover { color: #fff; }
+    .guide-toc a.active {
+        color: #F4C3D6;
+        border-left-color: #F4C3D6;
+    }
+    .guide-toc a.depth-2 { padding-left: 1.5rem; font-size: 0.80rem; }
+
+    /* Article body */
+    .guide-content {
+        flex: 1;
+        min-width: 0;
+        max-width: 1120px;
+    }
+    .guide-body {
+        background: linear-gradient(135deg, rgba(6,5,4,0.95) 0%, rgba(8,6,5,0.93) 100%);
+        border: 1px solid rgba(255,255,255,0.09);
+        border-radius: 18px;
+        padding: 2.25rem 2.5rem;
+        backdrop-filter: blur(14px);
+        -webkit-backdrop-filter: blur(14px);
+        box-shadow:
+            0 1px 0 rgba(255,255,255,0.03) inset,
+            0 20px 50px rgba(0,0,0,0.25);
+    }
+
+    /* Markdown-rendered content styles */
+    .guide-body h1 { font-size: 1.85rem; font-weight: 700; color: #fff; margin: 2rem 0 1rem; padding-bottom: 0.55rem; border-bottom: 1px solid rgba(255,255,255,0.08); letter-spacing: -0.01em; }
+    .guide-body h1:first-child { margin-top: 0; }
+    .guide-body h2 { font-size: 1.4rem; font-weight: 600; color: #ede8e3; margin: 2rem 0 0.85rem; padding-bottom: 0.4rem; border-bottom: 1px solid rgba(255,255,255,0.05); }
+    .guide-body h3 { font-size: 1.14rem; font-weight: 600; color: #d8d2cc; margin: 1.5rem 0 0.55rem; }
+    .guide-body h4 { font-size: 0.98rem; font-weight: 600; color: #a8a098; margin: 1.2rem 0 0.45rem; }
+
+    .guide-body p { color: rgba(255,255,255,0.78); line-height: 1.75; margin: 0.8rem 0; font-size: 0.92rem; max-width: 88ch; }
+    .guide-body a { color: #F4C3D6; text-decoration: underline; text-underline-offset: 2px; }
+    .guide-body a:hover { color: #5fd4b9; }
+
+    .guide-body strong { color: rgba(255,255,255,0.9); font-weight: 600; }
+    .guide-body em { font-style: italic; color: rgba(255,255,255,0.6); }
+
+    .guide-body ul, .guide-body ol { padding-left: 1.35rem; margin: 0.85rem 0; color: rgba(255,255,255,0.78); font-size: 0.92rem; max-width: 88ch; }
+    .guide-body li { margin: 0.45rem 0; line-height: 1.72; }
+    .guide-body ul { list-style-type: disc; }
+    .guide-body ol { list-style-type: decimal; }
+
+    .guide-body blockquote {
+        border-left: 3px solid #F4C3D6;
+        padding: 0.5rem 1rem;
+        margin: 1rem 0;
+        background: rgba(244,195,214,0.05);
+        border-radius: 0 8px 8px 0;
+        color: rgba(255,255,255,0.72);
+        font-size: 0.92rem;
+        max-width: 92ch;
+    }
+
+    .guide-body hr {
+        border: none;
+        border-top: 1px solid rgba(255,255,255,0.08);
+        margin: 2rem 0;
+    }
+
+    /* Code blocks */
+    .guide-body pre {
+        background: rgba(4,3,2,0.94);
+        border: 1px solid rgba(255,255,255,0.10);
+        border-radius: 10px;
+        padding: 1rem 1.1rem;
+        overflow-x: auto;
+        margin: 1rem 0;
+        font-size: 0.78rem;
+        line-height: 1.6;
+    }
+    .guide-body pre code {
+        background: transparent;
+        padding: 0;
+        border-radius: 0;
+        color: #c7d2fe;
+        font-size: inherit;
+    }
+    .guide-body code {
+        background: rgba(255,255,255,0.08);
+        padding: 0.15rem 0.4rem;
+        border-radius: 4px;
+        font-size: 0.82rem;
+        color: #93c5fd;
+        font-family: 'Martian Mono', 'JetBrains Mono', 'Fira Code', monospace;
+    }
+
+    /* Tables */
+    .guide-body table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 1rem 0;
+        font-size: 0.82rem;
+    }
+    .guide-body thead th {
+        text-align: left;
+        padding: 0.6rem 0.8rem;
+        border-bottom: 2px solid rgba(244,195,214,0.3);
+        color: #F4C3D6;
+        font-weight: 600;
+        font-size: 0.8rem;
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+    }
+    .guide-body tbody td {
+        padding: 0.65rem 0.85rem;
+        border-bottom: 1px solid rgba(255,255,255,0.05);
+        color: rgba(255,255,255,0.65);
+        line-height: 1.5;
+    }
+    .guide-body tbody tr:hover td { background: rgba(255,255,255,0.02); }
+
+    .guide-body table {
+        display: block;
+        overflow-x: auto;
+        border-radius: 12px;
+        border: 1px solid rgba(255,255,255,0.08);
+        background: rgba(255,255,255,0.02);
+    }
+
+    /* Badge images — hide them (they render as broken images without network) */
+    .guide-body img[src*="shields.io"],
+    .guide-body img[src*="badge"] {
+        display: none;
+    }
+    .guide-body img {
+        max-width: 100%;
+        border-radius: 8px;
+        margin: 0.5rem 0;
+    }
+
+    /* ASCII diagrams — preserve formatting */
+    .guide-body pre code {
+        white-space: pre;
+    }
+
+    /* Quick-search filter */
+    .guide-search {
+        background: rgba(4,3,2,0.94);
+        border: 1px solid rgba(255,255,255,0.12);
+        color: #e5e5e5;
+        border-radius: 10px;
+        padding: 0.5rem 1rem;
+        width: 100%;
+        font-size: 0.85rem;
+        transition: border-color 0.2s ease;
+    }
+    .guide-search:focus {
+        outline: none;
+        border-color: rgba(244,195,214,0.4);
+        box-shadow: 0 0 0 3px rgba(244,195,214,0.1);
+    }
+    .guide-search::placeholder { color: rgba(255,255,255,0.40); }
+
+    /* Scroll-to-top button */
+    .scroll-top-btn {
+        position: fixed;
+        bottom: 2rem;
+        right: 2rem;
+        width: 40px;
+        height: 40px;
+        border-radius: 12px;
+        background: rgba(244,195,214,0.2);
+        border: 1px solid rgba(244,195,214,0.3);
+        color: #F4C3D6;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        z-index: 50;
+        font-size: 1.1rem;
+    }
+    .scroll-top-btn:hover { background: rgba(244,195,214,0.35); }
+    .scroll-top-btn.visible { display: flex; }
+
+    @media (max-width: 900px) {
+        .guide-toc { display: none; }
+        .guide-body { padding: 1.5rem; }
+    }
+    @media (max-width: 500px) {
+        .guide-wrapper { gap: 0.75rem; }
+        .guide-body { padding: 1rem; }
+    }
+
+    /* Doc switcher dropdown */
+    .doc-switcher {
+        position: relative;
+        display: inline-block;
+    }
+    .doc-switcher-btn {
+        background: rgba(6,5,4,0.94);
+        border: 1px solid rgba(255,255,255,0.12);
+        color: #e5e5e5;
+        border-radius: 10px;
+        padding: 0.45rem 1rem;
+        font-size: 0.82rem;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    .doc-switcher-btn:hover { border-color: rgba(244,195,214,0.3); }
+    .doc-switcher-menu {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        margin-top: 0.35rem;
+        background: rgba(15,15,20,0.97);
+        border: 1px solid rgba(255,255,255,0.1);
+        border-radius: 10px;
+        min-width: 200px;
+        padding: 0.35rem;
+        display: none;
+        z-index: 100;
+        backdrop-filter: blur(16px);
+        box-shadow: 0 8px 30px rgba(0,0,0,0.5);
+    }
+    .doc-switcher-menu.open { display: block; }
+    .doc-switcher-menu a {
+        display: block;
+        padding: 0.45rem 0.75rem;
+        font-size: 0.82rem;
+        color: rgba(255,255,255,0.6);
+        text-decoration: none;
+        border-radius: 6px;
+        transition: all 0.15s ease;
+    }
+    .doc-switcher-menu a:hover { background: rgba(255,255,255,0.05); color: #fff; }
+    .doc-switcher-menu a.active { color: #F4C3D6; background: rgba(244,195,214,0.08); }
+</style>
+{% endblock %}
+
+{% block content %}
+<header class="header-scrim flex justify-between items-center mb-6 reveal">
+    <div>
+        <h2 class="text-2xl font-semibold text-white mb-1 tracking-tight">Guide</h2>
+        <p class="text-sm text-secondary">Everything you need to know about {{ bot_name }} — searchable and always available</p>
+    </div>
+    <div class="flex items-center gap-3">
+        <!-- Doc switcher -->
+        <div class="doc-switcher">
+            <button class="doc-switcher-btn" onclick="this.nextElementSibling.classList.toggle('open')">
+                <i data-lucide="file-text" class="w-4 h-4 inline-block"></i> {{ current_doc_title }} <span style="font-size:0.6rem;opacity:0.5;">▼</span>
+            </button>
+            <div class="doc-switcher-menu" id="docMenu">
+                {% for d in doc_list %}
+                <a href="/guide?doc={{ d.slug }}" class="{% if d.active %}active{% endif %}">{{ d.title }}</a>
+                {% endfor %}
+            </div>
+        </div>
+        <div style="width: 220px;">
+            <input type="text" id="guideSearch" class="guide-search" placeholder="Search this page…" autocomplete="off">
+        </div>
+    </div>
+</header>
+
+{% if model_setup_guidance and model_setup_guidance.show_banner %}
+<section class="info-panel mb-6 reveal border-l-2 {{ model_setup_guidance.border_class }}">
+    <div class="p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div>
+            <p class="text-sm font-semibold text-white mb-0.5">{{ model_setup_guidance.title }}</p>
+            <p class="text-sm text-secondary">{{ model_setup_guidance.detail }}</p>
+        </div>
+        <a href="{{ model_setup_guidance.primary_href }}" class="px-3 py-2 rounded-lg border border-teal/30 text-sm text-teal hover:bg-teal/10 transition no-underline flex-shrink-0">{{ model_setup_guidance.primary_label }}</a>
+    </div>
+</section>
+{% elif model_setup_guidance and model_setup_guidance.state_key == 'phase1_saved' %}
+<section class="info-panel mb-6 reveal border-l-2 border-teal" style="opacity:0.7;">
+    <div class="p-4 flex items-center gap-3">
+        <i data-lucide="check-circle" class="w-4 h-4 text-teal flex-shrink-0"></i>
+        <p class="text-sm text-secondary">Your AI assistant is configured and ready to use. This guide is always available for reference.</p>
+    </div>
+</section>
+{% endif %}
+
+<div class="guide-wrapper reveal" style="animation-delay: .1s">
+    <!-- Table of Contents -->
+    <nav class="guide-toc" id="guideToc">
+        <div class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3 px-3">Contents</div>
+        <!-- populated by JS -->
+    </nav>
+
+    <!-- Guide Content -->
+    <div class="guide-content">
+        <article class="guide-body" id="guideBody">
+            {{ guide_html | safe }}
+        </article>
+    </div>
+</div>
+
+<button class="scroll-top-btn" id="scrollTopBtn" onclick="window.scrollTo({top:0,behavior:'smooth'})" title="Back to top">↑</button>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function() {
+    // ── Close doc switcher on outside click ──
+    document.addEventListener('click', function(e) {
+        const menu = document.getElementById('docMenu');
+        if (menu && !e.target.closest('.doc-switcher')) {
+            menu.classList.remove('open');
+        }
+    });
+    // ── Build TOC from headings ──
+    const body = document.getElementById('guideBody');
+    const toc = document.getElementById('guideToc');
+    const headings = body.querySelectorAll('h1, h2, h3');
+    const tocLinks = [];
+
+    headings.forEach((h, i) => {
+        // Create anchor ID
+        const id = 'section-' + i;
+        h.id = id;
+
+        const depth = parseInt(h.tagName[1]);
+        if (depth > 3) return;
+
+        const a = document.createElement('a');
+        a.href = '#' + id;
+        a.textContent = h.textContent;
+        if (depth >= 3) a.classList.add('depth-2');
+        a.addEventListener('click', function(e) {
+            e.preventDefault();
+            h.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        });
+        toc.appendChild(a);
+        tocLinks.push({ el: a, target: h });
+    });
+
+    // ── Highlight active TOC item on scroll ──
+    function updateActiveToc() {
+        let current = null;
+        for (const item of tocLinks) {
+            const rect = item.target.getBoundingClientRect();
+            if (rect.top <= 120) current = item;
+        }
+        tocLinks.forEach(item => item.el.classList.remove('active'));
+        if (current) current.el.classList.add('active');
+    }
+    window.addEventListener('scroll', updateActiveToc, { passive: true });
+    updateActiveToc();
+
+    // ── Scroll-to-top button ──
+    const scrollBtn = document.getElementById('scrollTopBtn');
+    window.addEventListener('scroll', function() {
+        scrollBtn.classList.toggle('visible', window.scrollY > 400);
+    }, { passive: true });
+
+    // ── Search / filter ──
+    const searchInput = document.getElementById('guideSearch');
+    let clearBtn = null;
+    searchInput.addEventListener('input', function() {
+        const query = this.value.toLowerCase().trim();
+        const sections = body.querySelectorAll('h1, h2, h3, p, li, td, blockquote, pre');
+
+        if (!query) {
+            // Reset — show everything
+            sections.forEach(el => {
+                el.style.display = '';
+                // Remove highlight
+                el.querySelectorAll('mark').forEach(m => m.replaceWith(m.textContent));
+            });
+            body.querySelectorAll('table, ul, ol, hr, blockquote').forEach(el => el.style.display = '');
+            return;
+        }
+
+        // Highlight matching text
+        sections.forEach(el => {
+            const text = el.textContent.toLowerCase();
+            if (text.includes(query)) {
+                el.style.display = '';
+                // Walk up to make sure parent containers are visible
+                let parent = el.parentElement;
+                while (parent && parent !== body) {
+                    parent.style.display = '';
+                    parent = parent.parentElement;
+                }
+            }
+        });
+    });
+})();
+</script>
+{% endblock %}

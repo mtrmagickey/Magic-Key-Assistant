@@ -1,0 +1,58 @@
+{
+  "pipeline": {
+    "name": "preset:quality",
+    "roles": {
+      "initial": {
+        "backend_name": "ollama",
+        "model": "qwen3:8b",
+        "temperature": 0.4,
+        "max_tokens": 4000,
+        "enabled": true,
+        "system_prompt_override": null,
+        "ollama_options": {
+          "num_ctx": 16384,
+          "repeat_penalty": 1.1,
+          "top_k": 40,
+          "top_p": 0.9,
+          "stop": [
+            "\n\nUser:",
+            "\n\nHuman:",
+            "---END---"
+          ],
+          "use_mmap": true,
+          "num_batch": 512
+        }
+      },
+      "critique": {
+        "backend_name": "ollama",
+        "model": "qwen3:8b",
+        "temperature": 0.2,
+        "max_tokens": 4000,
+        "enabled": true,
+        "system_prompt_override": null,
+        "ollama_options": {
+          "num_ctx": 16384,
+          "repeat_penalty": 1.1,
+          "top_k": 40,
+          "top_p": 0.9,
+          "stop": [
+            "\n\nUser:",
+            "\n\nHuman:",
+            "---END---"
+          ],
+          "use_mmap": true,
+          "num_batch": 512
+        }
+      }
+    },
+    "timeouts": {
+      "chat": 60.0,
+      "self_assessment": 15.0,
+      "conversation_mining": 20.0,
+      "enrichment": 120.0,
+      "health_check": 5.0,
+      "model_listing": 10.0,
+      "benchmark_per_model": 2700.0
+    }
+  }
+}

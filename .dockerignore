@@ -1,0 +1,45 @@
+.git
+.env
+__pycache__
+*.pyc
+*.pyo
+.pytest_cache
+.mypy_cache
+.ruff_cache
+LeisureLLM/venv312/
+LeisureLLM/chroma/
+LeisureLLM/chroma_v2/
+LeisureLLM/chroma_v3/
+LeisureLLM/chroma_v3_backup_openai/
+LeisureLLM/__pycache__/
+tests/__pycache__/
+_keep/
+*.db
+*.db-journal
+*.bak
+*.csv
+node_modules/
+
+# Instance-specific data — never bake into image
+LeisureLLM/.env
+LeisureLLM/config/org_profile.yaml
+LeisureLLM/prompts/operational_context.txt
+
+# Documentation & project meta
+docs/
+LeisureLLM/docs/
+LICENSE
+
+# Tests
+tests/
+
+# Installer / desktop artefacts
+installer.iss
+MagicKeyAssistant.spec
+build/
+dist/
+Website/
+_audit.py
+_dead_code.py
+_naming_check.py
+

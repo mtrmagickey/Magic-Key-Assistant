@@ -1,0 +1,708 @@
+{% extends "base.html" %}
+{% block title %}Automations — {{ bot_name }}{% endblock %}
+
+{% block head %}
+<style>
+    .persona-card {
+        background: linear-gradient(145deg, rgba(10,8,6,0.92) 0%, rgba(4,3,2,0.96) 100%);
+        border: 1px solid rgba(255,255,255,0.06);
+        border-radius: 20px;
+        backdrop-filter: blur(12px);
+        transition: all 0.3s ease;
+        overflow: hidden;
+    }
+    .persona-card:hover { border-color: rgba(255,255,255,0.12); }
+
+    .persona-header {
+        display: flex; align-items: center; gap: 1rem;
+        padding: 1.25rem 1.5rem;
+        cursor: pointer; user-select: none;
+        transition: background 0.2s ease;
+    }
+    .persona-header:hover { background: rgba(255,255,255,0.02); }
+
+    .persona-body { padding: 0 1.5rem 1.25rem; }
+
+    .persona-chevron {
+        transition: transform 0.3s ease;
+        color: rgba(255,255,255,0.55);
+        font-size: 0.75rem;
+    }
+    .persona-card.expanded .persona-chevron { transform: rotate(90deg); }
+
+    .job-row {
+        display: flex; align-items: center; gap: 1rem;
+        padding: 0.6rem 0.75rem;
+        border-radius: 10px;
+        transition: background 0.15s ease;
+    }
+    .job-row:hover { background: rgba(255,255,255,0.03); }
+
+    .toggle-sw {
+        position: relative; width: 44px; height: 24px;
+        background: rgba(255,255,255,0.08); border-radius: 24px;
+        cursor: pointer; transition: 0.3s;
+        border: 1px solid rgba(255,255,255,0.1);
+        box-shadow: inset 0 2px 4px rgba(0,0,0,0.3);
+        flex-shrink: 0;
+    }
+    .toggle-sw::after {
+        content: ''; position: absolute; height: 18px; width: 18px; left: 2px; bottom: 2px;
+        background: radial-gradient(circle at 40% 35%, rgba(255,255,255,0.95), rgba(200,200,200,0.7));
+        border-radius: 50%; transition: 0.3s;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.3), 0 1px 0 rgba(255,255,255,0.4) inset;
+    }
+    .toggle-sw.on { background: rgba(239,170,196,0.45); border-color: rgba(239,170,196,0.5); }
+    .toggle-sw.on::after {
+        transform: translateX(20px);
+        background: radial-gradient(circle at 40% 35%, rgb(61,191,160), rgb(30,122,99));
+        box-shadow: 0 2px 6px rgba(239,170,196,0.4), 0 1px 0 rgba(255,255,255,0.3) inset;
+    }
+
+    .prompt-editor { max-height: 0; overflow: hidden; transition: max-height 0.4s ease, opacity 0.3s ease; opacity: 0; }
+    .prompt-editor.open { max-height: 600px; opacity: 1; }
+
+    .field-row { display:flex; align-items:center; gap:1rem; margin-bottom:0.5rem; }
+    .field-row label { width:130px; font-size:.7rem; color:rgba(255,255,255,.4); text-transform:uppercase; letter-spacing:.04em; flex-shrink:0; }
+
+    .config-item {
+        background: linear-gradient(135deg, rgba(0,0,0,0.62) 0%, rgba(0,0,0,0.42) 100%);
+        border: 1px solid rgba(255,255,255,0.05);
+        border-radius: 12px;
+        transition: all 0.3s ease;
+    }
+    .config-item:hover {
+        border-color: rgba(239,170,196,0.2);
+        background: linear-gradient(135deg, rgba(239,170,196,0.05) 0%, rgba(0,0,0,0.3) 100%);
+    }
+
+    .section-divider { height:1px; background:linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.08) 50%, transparent 100%); margin: 2rem 0; }
+
+    .time-control {
+        display: flex; align-items: center; gap: 0.75rem;
+        padding: 0.875rem 1rem; border-radius: 14px;
+        background: rgba(6,5,4,0.93); border: 1px solid rgba(255,255,255,0.10);
+        transition: all 0.2s ease;
+    }
+    .time-control:hover { border-color: rgba(255,255,255,0.15); }
+    .time-control .tc-icon { font-size: 1.25rem; }
+    .time-control .tc-info { flex: 1; min-width: 0; }
+    .time-control .tc-label { font-size: 0.8125rem; color: #fff; font-weight: 500; }
+    .time-control .tc-desc { font-size: 0.6875rem; color: rgba(255,255,255,0.55); margin-top: 1px; }
+    .time-control input, .time-control select {
+        width: auto; padding: 0.375rem 0.625rem; font-size: 0.8125rem;
+        text-align: center; border-radius: 8px;
+    }
+    .time-control input[type="number"] { width: 56px; }
+    .time-control input[type="text"] { width: 100px; }
+    .time-control select { min-width: 100px; }
+</style>
+{% endblock %}
+
+{% block content %}
+<header class="header-scrim flex justify-between items-center mb-6 reveal">
+    <div>
+        <h2 class="text-2xl font-semibold text-white mb-1 tracking-tight">Automations</h2>
+        <p class="text-sm text-secondary">Everything the assistant does on its own — personas, routines, and scheduling</p>
+    </div>
+    <button onclick="saveAllSettings()" class="btn-glossy px-5 py-2.5 text-white font-semibold"><span class="relative z-10"><i data-lucide="save" class="w-4 h-4 inline-block"></i> Save All</span></button>
+</header>
+
+<!-- Stats Row -->
+<div class="grid grid-cols-3 gap-4 mb-6 reveal stagger-2">
+    <div class="stat-card">
+        <div class="stat-value" id="statTotal">—</div>
+        <div class="stat-label">Total Routines</div>
+        <div class="text-[10px] text-gray-600 mt-0.5">Scheduled tasks across all personas</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-value text-green-400" id="statEnabled">—</div>
+        <div class="stat-label">Personas Enabled</div>
+        <div class="text-[10px] text-gray-600 mt-0.5">Active autonomous agents</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-value text-blue-400" id="statManual">—</div>
+        <div class="stat-label">Can Run Now</div>
+        <div class="text-[10px] text-gray-600 mt-0.5">Ready to trigger manually</div>
+    </div>
+</div>
+
+<!-- Inline guide -->
+<div class="info-banner p-4 mb-6 reveal stagger-3">
+    <div class="flex items-start gap-3 relative z-10">
+        <div class="text-lg"><i data-lucide="lightbulb" class="w-4 h-4 text-gray-400"></i></div>
+        <div>
+            <p class="text-sm text-secondary">Each <strong class="text-white">persona</strong> is an autonomous agent with its own speciality. Toggle them on to let them work independently, or run their routines manually whenever you want. <strong class="text-white">Routine Timing</strong> controls when recurring jobs fire. <strong class="text-white">Noise Limits</strong> cap how much the assistant posts on its own so it never gets chatty.</p>
+        </div>
+    </div>
+</div>
+
+<!-- ───── Persona Cards ───── -->
+<div id="personaCards" class="space-y-4 reveal stagger-5">
+    <p class="text-gray-500 text-sm">Loading...</p>
+</div>
+
+<!-- ───── Workflow Module Gates ───── -->
+<div class="section-divider"></div>
+
+<section class="glass-card glow-card p-6 reveal stagger-6">
+    <div class="mb-5 relative z-10">
+        <h3 class="font-medium text-white flex items-center gap-2"><i data-lucide="toggle-left" class="w-4 h-4 text-coral"></i> Workflow Modules</h3>
+        <p class="text-xs text-gray-500 mt-1">Master switches that control which categories of jobs can run. Restart required after changes.</p>
+    </div>
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 relative z-10">
+        <div class="time-control">
+            <span class="tc-icon"><i data-lucide="briefcase" class="w-4 h-4"></i></span>
+            <div class="tc-info">
+                <div class="tc-label">Work</div>
+                <div class="tc-desc">Planning, meetings, closeouts</div>
+            </div>
+            <div class="toggle-sw on" id="toggle-mod-work" onclick="this.classList.toggle('on')"></div>
+        </div>
+        <div class="time-control">
+            <span class="tc-icon"><i data-lucide="brain" class="w-4 h-4"></i></span>
+            <div class="tc-info">
+                <div class="tc-label">Memory</div>
+                <div class="tc-desc">Knowledge refresh, curator, digest</div>
+            </div>
+            <div class="toggle-sw on" id="toggle-mod-memory" onclick="this.classList.toggle('on')"></div>
+        </div>
+        <div class="time-control">
+            <span class="tc-icon"><i data-lucide="trending-up" class="w-4 h-4"></i></span>
+            <div class="tc-info">
+                <div class="tc-label">Pipeline</div>
+                <div class="tc-desc">Rainmaker lead management</div>
+            </div>
+            <div class="toggle-sw on" id="toggle-mod-pipeline" onclick="this.classList.toggle('on')"></div>
+        </div>
+        <div class="time-control">
+            <span class="tc-icon"><i data-lucide="heart-pulse" class="w-4 h-4"></i></span>
+            <div class="tc-info">
+                <div class="tc-label">Health</div>
+                <div class="tc-desc">Steward checks, feedback loops</div>
+            </div>
+            <div class="toggle-sw on" id="toggle-mod-health" onclick="this.classList.toggle('on')"></div>
+        </div>
+        <div class="time-control">
+            <span class="tc-icon"><i data-lucide="globe" class="w-4 h-4"></i></span>
+            <div class="tc-info">
+                <div class="tc-label">Web Search</div>
+                <div class="tc-desc">Scout internet research &amp; crawls</div>
+            </div>
+            <div class="toggle-sw" id="toggle-mod-websearch" onclick="this.classList.toggle('on')"></div>
+        </div>
+        <div class="time-control">
+            <span class="tc-icon"><i data-lucide="user-check" class="w-4 h-4"></i></span>
+            <div class="tc-info">
+                <div class="tc-label">Past Clients</div>
+                <div class="tc-desc">Relationship nurture check-ins</div>
+            </div>
+            <div class="toggle-sw" id="toggle-mod-pastclients" onclick="this.classList.toggle('on')"></div>
+        </div>
+        <div class="time-control">
+            <span class="tc-icon"><i data-lucide="users" class="w-4 h-4"></i></span>
+            <div class="tc-info">
+                <div class="tc-label">Persona Meetings</div>
+                <div class="tc-desc">Roundtable discussions between personas</div>
+            </div>
+            <div class="toggle-sw" id="toggle-mod-meetings" onclick="this.classList.toggle('on')"></div>
+        </div>
+    </div>
+</section>
+
+<!-- ───── Timing & Limits ───── -->
+<div class="section-divider"></div>
+
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6 reveal stagger-7">
+    <!-- Routine Timing -->
+    <section class="glass-card glow-card p-6">
+        <div class="mb-5 relative z-10">
+            <h3 class="font-medium text-white flex items-center gap-2"><i data-lucide="clock" class="w-4 h-4 text-coral"></i> Routine Timing</h3>
+            <p class="text-xs text-gray-500 mt-1">When recurring routines run. Restart required for changes.</p>
+        </div>
+        <div class="space-y-3 relative z-10">
+            <div class="time-control">
+                <span class="tc-icon"><i data-lucide="sunrise" class="w-4 h-4"></i></span>
+                <div class="tc-info">
+                    <div class="tc-label">Morning Standup</div>
+                    <div class="tc-desc">Daily digest of yesterday's activity</div>
+                </div>
+                <div class="toggle-sw" id="toggle-standup" onclick="this.classList.toggle('on')"></div>
+                <input type="number" id="sched-standup-hour" min="0" max="23" value="9" class="text-center">
+                <span class="text-gray-500 text-xs">:</span>
+                <input type="number" id="sched-standup-min" min="0" max="59" value="0" class="text-center" style="width:56px">
+            </div>
+            <div class="time-control">
+                <span class="tc-icon"><i data-lucide="bar-chart-3" class="w-4 h-4"></i></span>
+                <div class="tc-info">
+                    <div class="tc-label">Weekly Summary</div>
+                    <div class="tc-desc">End-of-week wrap-up and progress report</div>
+                </div>
+                <div class="toggle-sw" id="toggle-weekly" onclick="this.classList.toggle('on')"></div>
+                <select id="sched-weekly-day">
+                    <option value="0">Mon</option>
+                    <option value="1">Tue</option>
+                    <option value="2">Wed</option>
+                    <option value="3">Thu</option>
+                    <option value="4" selected>Fri</option>
+                    <option value="5">Sat</option>
+                    <option value="6">Sun</option>
+                </select>
+                <input type="number" id="sched-weekly-hour" min="0" max="23" value="16" class="text-center">
+                <span class="text-gray-500 text-xs">:</span>
+                <input type="number" id="sched-weekly-min" min="0" max="59" value="0" class="text-center" style="width:56px">
+            </div>
+            <div class="time-control">
+                <span class="tc-icon"><i data-lucide="globe" class="w-4 h-4"></i></span>
+                <div class="tc-info">
+                    <div class="tc-label">Timezone</div>
+                    <div class="tc-desc">All schedule times use this zone</div>
+                </div>
+                <input type="text" id="sched-timezone" value="America/New_York" class="flex-1" style="width:160px" placeholder="America/New_York">
+            </div>
+        </div>
+    </section>
+
+    <!-- Noise Budget -->
+    <section class="glass-card p-6">
+        <div class="mb-5 relative z-10">
+            <h3 class="font-medium text-white flex items-center gap-2"><i data-lucide="volume-x" class="w-4 h-4 text-gold"></i> Noise Limits</h3>
+            <p class="text-xs text-gray-500 mt-1">Cap how much the assistant posts on its own</p>
+        </div>
+        <div class="space-y-3 relative z-10">
+            <div class="time-control">
+                <span class="tc-icon"><i data-lucide="mail" class="w-4 h-4"></i></span>
+                <div class="tc-info">
+                    <div class="tc-label">Max messages per day</div>
+                    <div class="tc-desc">Total autonomous posts across all routines</div>
+                </div>
+                <input type="number" id="wMaxMsgs" value="20" min="0" max="200" style="width:72px">
+            </div>
+            <div class="time-control">
+                <span class="tc-icon"><i data-lucide="moon" class="w-4 h-4"></i></span>
+                <div class="tc-info">
+                    <div class="tc-label">Quiet hours</div>
+                    <div class="tc-desc">No posts during this window</div>
+                </div>
+                <input type="text" id="wQuietHours" placeholder="22:00-08:00" style="width:120px">
+            </div>
+        </div>
+    </section>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const operationMode = '{{ operation_mode }}';
+let allJobs = [];
+let workflowData = {};
+
+// ── Persona definitions ─────────────────────────────────────────────
+const personas = [
+    { id: 'scout',       icon: '<i data-lucide="telescope" class="w-5 h-5"></i>', name: 'Scout',       color: 'blue',   desc: 'Web research and opportunity discovery',   promptKey: 'persona_scout',     promptHint: 'Researcher voice, evidence standards' },
+    { id: 'dreamer',     icon: '<i data-lucide="lightbulb" class="w-5 h-5"></i>', name: 'Dreamer',     color: 'purple', desc: 'Ideation and creative brainstorming',       promptKey: 'persona_dreamer',   promptHint: 'Creative energy, risk posture' },
+    { id: 'rainmaker',   icon: '<i data-lucide="badge-dollar-sign" class="w-5 h-5"></i>', name: 'Rainmaker',   color: 'yellow', desc: 'Lead management and pipeline growth',       promptKey: 'persona_rainmaker', promptHint: 'Business development tone' },
+    { id: 'steward',     icon: '<i data-lucide="shield" class="w-5 h-5"></i>', name: 'Steward',     color: 'green',  desc: 'System health and self-monitoring',         promptKey: 'persona_steward',   promptHint: 'Health-check rigor and diagnostics' },
+    { id: 'curator',     icon: '<i data-lucide="book-open" class="w-5 h-5"></i>', name: 'Curator',     color: 'amber',  desc: 'Corpus quality, auto-synthesis, knowledge expansion', promptKey: null, promptHint: null },
+    { id: 'coordinator', icon: '<i data-lucide="clipboard-list" class="w-5 h-5"></i>', name: 'Coordinator', color: 'pink',   desc: 'Meetings, planning, and team sync',         promptKey: null,                promptHint: null },
+    { id: 'core',        icon: '<i data-lucide="settings" class="w-5 h-5"></i>', name: 'Core',        color: 'gray',   desc: 'Essential system routines (always active)', promptKey: null,                promptHint: null },
+];
+
+function jobToPersona(j) {
+    if (/^scout/i.test(j.name) || j.name === 'daily_scout_search') return 'scout';
+    if (/^dreamer/i.test(j.name)) return 'dreamer';
+    if (/^rainmaker/i.test(j.name)) return 'rainmaker';
+    if (/^steward/i.test(j.name)) return 'steward';
+    if (/^curator/i.test(j.name)) return 'curator';
+    if (j.module === 'Persona meetings') return 'coordinator';
+    if (/meeting|planning|closeout|reflection|strategic|partners/i.test(j.name)) return 'coordinator';
+    return 'core';
+}
+
+// ── Data loading ────────────────────────────────────────────────────
+let personaConfig = {};
+let personaSections = {};
+
+async function loadAll() {
+    const [jobsData, wfData, cfgData] = await Promise.all([
+        apiCall('/api/v1/jobs'),
+        apiCall('/api/v1/org/workflows'),
+        apiCall('/api/v1/config/all'),
+    ]);
+    if (jobsData.success) allJobs = jobsData.jobs || [];
+    if (wfData.success && wfData.workflows) {
+        workflowData = wfData.workflows;
+        const wf = workflowData;
+        // Noise budget lives under health.noise_budget
+        const nb = (wf.health || {}).noise_budget || {};
+        document.getElementById('wMaxMsgs').value = nb.max_posts_per_day ?? 20;
+        const qStart = nb.quiet_hours_start ?? 20;
+        const qEnd = nb.quiet_hours_end ?? 7;
+        document.getElementById('wQuietHours').value = `${qStart}:00-${String(qEnd).padStart(2,'0')}:00`;
+        // Populate module gate toggles
+        setModToggle('toggle-mod-work',        (wf.work || {}).enabled !== false);
+        setModToggle('toggle-mod-memory',      (wf.memory || {}).enabled !== false);
+        setModToggle('toggle-mod-pipeline',    (wf.pipeline || {}).enabled !== false);
+        setModToggle('toggle-mod-health',      (wf.health || {}).enabled !== false);
+        setModToggle('toggle-mod-websearch',   ((wf.pipeline || {}).web_search || {}).enabled === true);
+        setModToggle('toggle-mod-pastclients', ((wf.pipeline || {}).past_clients || {}).enabled === true);
+        setModToggle('toggle-mod-meetings',    (wf.persona_meetings || {}).enabled === true);
+    }
+    if (cfgData.success) {
+        personaConfig = cfgData.config || {};
+        personaSections = cfgData.sections || {};
+        const sched = cfgData.config.schedule || {};
+        // Populate timing controls from config
+        const standupToggle = document.getElementById('toggle-standup');
+        if (sched.daily_standup_enabled) standupToggle.classList.add('on');
+        else standupToggle.classList.remove('on');
+        document.getElementById('sched-standup-hour').value = sched.daily_standup_hour ?? 9;
+        document.getElementById('sched-standup-min').value = sched.daily_standup_minute ?? 0;
+
+        const weeklyToggle = document.getElementById('toggle-weekly');
+        if (sched.weekly_summary_enabled !== false) weeklyToggle.classList.add('on');
+        else weeklyToggle.classList.remove('on');
+        document.getElementById('sched-weekly-day').value = sched.weekly_summary_day ?? 4;
+        document.getElementById('sched-weekly-hour').value = sched.weekly_summary_hour ?? 16;
+        document.getElementById('sched-weekly-min').value = 0;
+        document.getElementById('sched-timezone').value = sched.timezone || 'America/New_York';
+    }
+    renderPersonaCards();
+    updateStats();
+    loadPersonaPrompts();
+    if (typeof lucide !== 'undefined') lucide.createIcons();
+}
+
+// ── Stats ───────────────────────────────────────────────────────────
+function updateStats() {
+    document.getElementById('statTotal').textContent = allJobs.length;
+    // Count enabled personas (ones with toggles that are on)
+    let enabledCount = 0;
+    personas.forEach(p => {
+        if (p.id === 'core') return; // always on, not counted
+        if (personaConfig[p.id]?.enabled !== false) enabledCount++;
+    });
+    document.getElementById('statEnabled').textContent = enabledCount;
+    document.getElementById('statManual').textContent = allJobs.filter(j => j.manual_trigger).length;
+}
+
+// ── Friendly schedule ───────────────────────────────────────────────
+function friendlySchedule(s) {
+    if (!s) return '';
+    const m1 = s.match(/^(\d+)([hm])\/(\w+)(\d+-\d+)?/i);
+    if (m1) return `Every ${m1[1]}${m1[2]} (${m1[3]})`;
+    const dayTime = s.match(/(monday|tuesday|wednesday|thursday|friday|saturday|sunday)@(\d{1,2}:\d{2})/i);
+    if (dayTime) {
+        const d = dayTime[1]; return d.charAt(0).toUpperCase() + d.slice(1,3) + ' ' + dayTime[2];
+    }
+    const ordinal = s.match(/1st-(\w+)@(\d{1,2}:\d{2})/i);
+    if (ordinal) return '1st ' + ordinal[1].charAt(0).toUpperCase() + ordinal[1].slice(1,3) + ' ' + ordinal[2];
+    const dailyTime = s.match(/daily@(\d{1,2}:\d{2})/i);
+    if (dailyTime) return 'Daily ' + dailyTime[1];
+    const weekdays = s.match(/weekdays@(\d{1,2}:\d{2})/i);
+    if (weekdays) return 'Weekdays ' + weekdays[1];
+    if (/daily/i.test(s)) return 'Daily';
+    if (/hourly/i.test(s)) return 'Hourly';
+    return s;
+}
+
+// ── Render persona cards ────────────────────────────────────────────
+function renderPersonaCards() {
+    const container = document.getElementById('personaCards');
+
+    const jobsByPersona = {};
+    for (const j of allJobs) {
+        const p = jobToPersona(j);
+        (jobsByPersona[p] = jobsByPersona[p] || []).push(j);
+    }
+
+    container.innerHTML = personas.map(p => {
+        const pJobs = jobsByPersona[p.id] || [];
+        if (pJobs.length === 0) return '';
+
+        const hasConfig = personaSections[p.id] && personaSections[p.id].fields;
+        const pEnabled = personaConfig[p.id]?.enabled !== false;
+        const toggleOn = p.id === 'core' ? true : pEnabled;
+
+        const jobRows = pJobs.map(j => {
+            const lastRun = j.last_run
+                ? `<span class="text-xs ${j.last_status === 'completed' ? 'text-green-400' : j.last_status === 'failed' ? 'text-red-400' : 'text-gray-500'}">${new Date(j.last_run + (j.last_run.endsWith('Z') ? '' : 'Z')).toLocaleString()}</span>`
+                : '<span class="text-xs text-gray-600">never</span>';
+            const runBtn = j.manual_trigger
+                ? (operationMode === 'solo'
+                    ? `<span class="px-2 py-0.5 text-[10px] rounded bg-black/30 text-gray-600" title="Requires Discord bot">bot only</span>`
+                    : `<button onclick="event.stopPropagation(); runJob('${j.name}')" class="px-2 py-0.5 text-[10px] font-semibold rounded bg-teal/20 text-teal border border-teal/30 hover:bg-teal/30 transition">▶ Run</button>`)
+                : '';
+            return `
+                <div class="job-row group">
+                    <div class="w-1.5 h-1.5 rounded-full bg-${p.color}-400 flex-shrink-0"></div>
+                    <div class="flex-1 min-w-0">
+                        <span class="text-sm text-white">${j.name.replace(/_/g, ' ')}</span>
+                        <p class="text-[11px] text-gray-500 truncate">${j.description || ''}</p>
+                    </div>
+                    <span class="text-xs text-gray-400 whitespace-nowrap flex-shrink-0">${friendlySchedule(j.schedule)}</span>
+                    <div class="flex-shrink-0 w-28 text-right">${lastRun}</div>
+                    <div class="flex-shrink-0 w-14 text-right">${runBtn}</div>
+                </div>`;
+        }).join('');
+
+        // Persona config fields
+        let configHtml = '';
+        if (hasConfig) {
+            const fields = personaSections[p.id].fields;
+            const values = personaConfig[p.id] || {};
+            let fieldHtml = '';
+            for (const [fieldName, meta] of Object.entries(fields)) {
+                if (fieldName === 'enabled') continue;
+                const val = values[fieldName] ?? '';
+                const fid = `pcfg-${p.id}-${fieldName}`;
+                fieldHtml += `<div class="config-item p-3">
+                    <label class="block text-xs font-medium text-white mb-0.5">${meta.label}</label>
+                    <p class="text-[10px] text-gray-500 mb-1.5">${meta.description}</p>`;
+                if (meta.type === 'boolean') {
+                    fieldHtml += `<label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="${fid}" ${val ? 'checked' : ''} class="rounded accent-teal w-4 h-4"><span class="text-xs text-gray-300">${val ? 'On' : 'Off'}</span></label>`;
+                } else if (meta.type === 'number') {
+                    fieldHtml += `<input type="number" id="${fid}" value="${val}" class="w-full px-3 py-1.5 text-sm" ${meta.min !== undefined ? 'min="'+meta.min+'"' : ''} ${meta.max !== undefined ? 'max="'+meta.max+'"' : ''}>`;
+                } else if (meta.type === 'list') {
+                    fieldHtml += `<input type="text" id="${fid}" value="${Array.isArray(val) ? val.join(', ') : val}" class="w-full px-3 py-1.5 text-sm font-mono" placeholder="Comma-separated">`;
+                } else {
+                    fieldHtml += `<input type="text" id="${fid}" value="${val}" class="w-full px-3 py-1.5 text-sm">`;
+                }
+                fieldHtml += '</div>';
+            }
+            if (fieldHtml) {
+                configHtml = `
+                    <div class="mt-4 pt-4 border-t border-white/5">
+                        <p class="text-xs text-gray-400 mb-3 font-medium"><i data-lucide="settings" class="w-3 h-3 inline-block"></i> Configuration</p>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">${fieldHtml}</div>
+                    </div>`;
+            }
+        }
+
+        // Prompt editor
+        let promptHtml = '';
+        if (p.promptKey) {
+            promptHtml = `
+                <div class="mt-4 pt-4 border-t border-white/5">
+                    <button onclick="event.stopPropagation(); togglePromptEditor('${p.id}')" class="text-xs text-gray-400 hover:text-gray-300 transition cursor-pointer flex items-center gap-1">
+                        <i data-lucide="pen-line" class="w-3 h-3"></i> <span>Customize Prompt</span>
+                        <span class="text-[10px] text-gray-600 ml-1">— ${p.promptHint}</span>
+                    </button>
+                    <div id="prompt-editor-${p.id}" class="prompt-editor mt-3">
+                        <textarea id="prompt-${p.promptKey}" rows="8" class="w-full px-4 py-3 text-sm font-mono resize-y"></textarea>
+                        <div class="flex justify-between items-center mt-2">
+                            <span class="text-[10px] text-gray-600" id="prompt-${p.promptKey}-chars">0 chars</span>
+                            <button onclick="event.stopPropagation(); savePrompt('${p.promptKey}')" class="btn-glossy px-4 py-1.5 text-white text-xs font-medium"><span class="relative z-10">Save Prompt</span></button>
+                        </div>
+                    </div>
+                </div>`;
+        }
+
+        const toggleHtml = p.id !== 'core'
+            ? `<div class="toggle-sw ${toggleOn ? 'on' : ''}" id="toggle-${p.id}" onclick="event.stopPropagation(); togglePersonaEnabled('${p.id}')"></div>`
+            : '<span class="text-[10px] px-2 py-0.5 rounded bg-teal/20 text-teal">always on</span>';
+
+        return `
+            <div class="persona-card" id="card-${p.id}">
+                <div class="persona-header" onclick="togglePersonaCard('${p.id}')">
+                    <span class="persona-chevron">▶</span>
+                    <span class="text-2xl">${p.icon}</span>
+                    <div class="flex-1 min-w-0">
+                        <div class="flex items-center gap-2">
+                            <h3 class="text-sm font-semibold text-white">${p.name}</h3>
+                            <span class="text-xs text-gray-600">${pJobs.length} routine${pJobs.length !== 1 ? 's' : ''}</span>
+                        </div>
+                        <p class="text-xs text-gray-400">${p.desc}</p>
+                    </div>
+                    ${toggleHtml}
+                </div>
+                <div class="persona-body" style="display:none;" id="body-${p.id}">
+                    <div class="space-y-0.5">${jobRows}</div>
+                    ${configHtml}
+                    ${promptHtml}
+                </div>
+            </div>`;
+    }).join('');
+}
+
+// ── Card expand/collapse ────────────────────────────────────────────
+function togglePersonaCard(id) {
+    const card = document.getElementById(`card-${id}`);
+    const body = document.getElementById(`body-${id}`);
+    if (card.classList.contains('expanded')) {
+        card.classList.remove('expanded');
+        body.style.display = 'none';
+    } else {
+        card.classList.add('expanded');
+        body.style.display = 'block';
+    }
+}
+
+function togglePromptEditor(id) {
+    const editor = document.getElementById(`prompt-editor-${id}`);
+    editor.classList.toggle('open');
+}
+
+function togglePersonaEnabled(id) {
+    const toggle = document.getElementById(`toggle-${id}`);
+    toggle.classList.toggle('on');
+    updateStats();
+}
+
+// ── Run job ─────────────────────────────────────────────────────────
+async function runJob(name) {
+    showToast(`Triggering ${name.replace(/_/g, ' ')}…`);
+    const data = await apiCall(`/api/v1/jobs/${name}/run`, { method: 'POST' });
+    if (data.success) {
+        showToast(data.message || 'Triggered!');
+        setTimeout(() => loadAll(), 2000);
+    } else {
+        showToast(data.error || 'Failed', 'error');
+    }
+}
+
+// ── Persona prompts ─────────────────────────────────────────────────
+async function loadPersonaPrompts() {
+    for (const p of personas) {
+        if (!p.promptKey) continue;
+        try {
+            const data = await apiCall(`/api/v1/prompts/${p.promptKey}`);
+            if (data.success) {
+                const ta = document.getElementById(`prompt-${p.promptKey}`);
+                if (ta) { ta.value = data.content || ''; updatePromptCount(p.promptKey); }
+            }
+        } catch(e) {}
+    }
+}
+
+function updatePromptCount(key) {
+    const ta = document.getElementById(`prompt-${key}`);
+    const counter = document.getElementById(`prompt-${key}-chars`);
+    if (ta && counter) counter.textContent = `${ta.value.length} chars`;
+}
+
+async function savePrompt(key) {
+    const ta = document.getElementById(`prompt-${key}`);
+    if (!ta) return;
+    const data = await apiCall(`/api/v1/prompts/${key}`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content: ta.value })
+    });
+    if (data.success) showToast('Prompt saved!');
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    setTimeout(() => {
+        personas.forEach(p => {
+            if (!p.promptKey) return;
+            const ta = document.getElementById(`prompt-${p.promptKey}`);
+            if (ta) ta.addEventListener('input', () => updatePromptCount(p.promptKey));
+        });
+    }, 500);
+});
+
+// ── Helpers ──────────────────────────────────────────────────────────
+function setModToggle(id, on) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    if (on) el.classList.add('on'); else el.classList.remove('on');
+}
+function isModToggleOn(id) {
+    const el = document.getElementById(id);
+    return el ? el.classList.contains('on') : false;
+}
+
+// ── Save all ────────────────────────────────────────────────────────
+async function saveAllSettings() {
+    // 1. Merge GUI values into full existing YAML (preserves all untouched settings)
+    const wf = JSON.parse(JSON.stringify(workflowData));
+
+    // Personas global flag — on if any non-core persona toggle is on
+    let anyPersonaOn = false;
+    personas.forEach(p => {
+        if (p.id === 'core') return;
+        const toggle = document.getElementById(`toggle-${p.id}`);
+        if (toggle?.classList.contains('on')) anyPersonaOn = true;
+    });
+    if (!wf.personas) wf.personas = {};
+    wf.personas.enabled = anyPersonaOn;
+
+    // Module gates
+    if (!wf.work) wf.work = {};
+    wf.work.enabled = isModToggleOn('toggle-mod-work');
+
+    if (!wf.memory) wf.memory = {};
+    wf.memory.enabled = isModToggleOn('toggle-mod-memory');
+
+    if (!wf.pipeline) wf.pipeline = {};
+    wf.pipeline.enabled = isModToggleOn('toggle-mod-pipeline');
+    if (!wf.pipeline.web_search) wf.pipeline.web_search = {};
+    wf.pipeline.web_search.enabled = isModToggleOn('toggle-mod-websearch');
+    if (!wf.pipeline.past_clients) wf.pipeline.past_clients = {};
+    wf.pipeline.past_clients.enabled = isModToggleOn('toggle-mod-pastclients');
+
+    if (!wf.health) wf.health = {};
+    wf.health.enabled = isModToggleOn('toggle-mod-health');
+
+    if (!wf.persona_meetings) wf.persona_meetings = {};
+    wf.persona_meetings.enabled = isModToggleOn('toggle-mod-meetings');
+
+    // Noise budget
+    if (!wf.health.noise_budget) wf.health.noise_budget = {};
+    wf.health.noise_budget.max_posts_per_day = parseInt(document.getElementById('wMaxMsgs').value) || 20;
+    const qh = document.getElementById('wQuietHours').value || '';
+    const qhMatch = qh.match(/(\d{1,2}):\d{2}\s*-\s*(\d{1,2}):\d{2}/);
+    if (qhMatch) {
+        wf.health.noise_budget.quiet_hours_start = parseInt(qhMatch[1]);
+        wf.health.noise_budget.quiet_hours_end = parseInt(qhMatch[2]);
+    }
+
+    await apiCall('/api/v1/org/workflows', { method: 'POST', body: wf });
+    workflowData = wf;
+
+    // 2. Save persona config sections
+    for (const p of personas) {
+        if (!personaSections[p.id]?.fields) continue;
+        const values = {};
+        for (const [fieldName, meta] of Object.entries(personaSections[p.id].fields)) {
+            if (fieldName === 'enabled') {
+                const toggle = document.getElementById(`toggle-${p.id}`);
+                values.enabled = toggle?.classList.contains('on') ?? true;
+                continue;
+            }
+            const el = document.getElementById(`pcfg-${p.id}-${fieldName}`);
+            if (!el) continue;
+            if (meta.type === 'boolean') values[fieldName] = el.checked;
+            else if (meta.type === 'number') values[fieldName] = parseFloat(el.value) || 0;
+            else if (meta.type === 'list') values[fieldName] = el.value.split(',').map(v => v.trim()).filter(v => v);
+            else values[fieldName] = el.value;
+        }
+        await apiCall(`/api/v1/config/${p.id}`, {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ values })
+        });
+    }
+
+    // 3. Save schedule timing
+    const schedValues = {
+        daily_standup_enabled: document.getElementById('toggle-standup').classList.contains('on'),
+        daily_standup_hour: parseInt(document.getElementById('sched-standup-hour').value) || 9,
+        daily_standup_minute: parseInt(document.getElementById('sched-standup-min').value) || 0,
+        weekly_summary_enabled: document.getElementById('toggle-weekly').classList.contains('on'),
+        weekly_summary_day: parseInt(document.getElementById('sched-weekly-day').value) || 4,
+        weekly_summary_hour: parseInt(document.getElementById('sched-weekly-hour').value) || 16,
+        persona_meetings_enabled: isModToggleOn('toggle-mod-meetings'),
+        timezone: document.getElementById('sched-timezone').value || 'America/New_York',
+    };
+    await apiCall('/api/v1/config/schedule', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ values: schedValues })
+    });
+
+    showToast('All automation settings saved!');
+}
+
+// ── Init ────────────────────────────────────────────────────────────
+loadAll();
+</script>
+{% endblock %}

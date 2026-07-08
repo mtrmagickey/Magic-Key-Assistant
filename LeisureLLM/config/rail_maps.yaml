@@ -1,0 +1,135 @@
+# ──────────────────────────────────────────────────────────────
+# Rail Maps — Guided lifecycle tracks
+# ──────────────────────────────────────────────────────────────
+# Each map defines an ordered sequence of stages with:
+#   - name:             Stage name shown in the UI
+#   - required_outputs: Artifacts that must exist to mark complete
+#   - gate:             Forcing function — what must be true to advance
+#   - escalation_days:  Days before the stage triggers an escalation
+#
+# The setup wizard asks: "Are you starting something new, or
+# organizing something that already exists?" and selects the
+# corresponding rail map.
+#
+# Rail maps do NOT replace free-form rails — users can still
+# create custom rails with arbitrary stages.
+# ──────────────────────────────────────────────────────────────
+
+maps:
+
+  # ════════════════════════════════════════════════════════════
+  # LAUNCH — For teams creating something new
+  # Flow: Intent → Validate → Launch
+  # ════════════════════════════════════════════════════════════
+  launch:
+    label: "Launch a new venture or offering"
+    description: "For teams building something new — product, service, or initiative"
+    icon: "🚀"
+    stages:
+      - name: "Intent"
+        description: "Define what you're building, for whom, and why now"
+        required_outputs:
+          - "Intent doc (customer, offer, proof, constraint, timebox)"
+        gate:
+          artifact: "intent_doc"
+          min_count: 1
+        escalation_days: 5
+
+      - name: "Validate"
+        description: "Test assumptions before committing resources"
+        required_outputs:
+          - "Validation plan (3 hypotheses + 3 experiments)"
+        gate:
+          any_of:
+            - { artifact: "experiment", has_scheduled_date: true }
+            - { artifact: "decision", category: "pivot" }
+        escalation_days: 10
+
+      - name: "Launch"
+        description: "Ship it — outreach, pitch, demo, first customers"
+        required_outputs:
+          - "Pitch + demo script"
+          - "Lead list (20+ entries)"
+          - "7-day schedule with owners"
+        gate:
+          any_of:
+            - { artifact: "outreach", has_scheduled_date: true }
+            - { artifact: "experiment", has_scheduled_date: true }
+            - { artifact: "decision", category: "descope_or_pivot" }
+        escalation_days: 7
+
+  # ════════════════════════════════════════════════════════════
+  # STABILIZE — For teams systematizing existing operations
+  # Flow: Intake → Cadence → Continuity
+  # ════════════════════════════════════════════════════════════
+  stabilize:
+    label: "Systematize existing operations"
+    description: "For teams that already operate — bring order, rhythm, and durability"
+    icon: "⚙️"
+    stages:
+      - name: "Intake"
+        description: "Map your operation — people, commitments, recurring work, failure modes"
+        required_outputs:
+          - "Operations map v1 (what the operation is, who is involved, what repeats, what breaks)"
+          - "Stakeholder list"
+        gate:
+          all_of:
+            - { artifact: "obligation", min_count: 3 }
+            - { artifact: "stakeholder_list", min_count: 1 }
+        escalation_days: 7
+
+      - name: "Cadence"
+        description: "Establish weekly rhythm — meetings, reviews, escalation rules"
+        required_outputs:
+          - "Continuity baseline (top obligations, top SOPs, top risks)"
+          - "Cadence plan (weekly review, meeting discipline, escalation rules)"
+        gate:
+          all_of:
+            - { artifact: "obligation", has_frequency: true }
+            - { artifact: "sop", min_count: 1 }
+        escalation_days: 10
+
+      - name: "Continuity"
+        description: "Complete first review cycle and prove the system works"
+        required_outputs:
+          - "First review completed"
+          - "One SOP approved or exercised"
+        gate:
+          any_of:
+            - { artifact: "obligation", status: "completed" }
+            - { artifact: "sop", status: "approved" }
+        escalation_days: 14
+
+
+# ──────────────────────────────────────────────────────────────
+# Sidebar visibility in Launch Mode
+# ──────────────────────────────────────────────────────────────
+# Pages listed under 'core' are always visible.
+# Pages listed under 'advanced' are collapsed by default and
+# expand when the user clicks "Advanced" or completes Stage 1.
+#
+# This gating is cosmetic — all routes remain accessible via URL.
+# ──────────────────────────────────────────────────────────────
+sidebar:
+  core:
+    - { page: "dashboard",   label: "Dashboard",   icon: "📊", path: "/" }
+    - { page: "rails",       label: "Rails",       icon: "🛤️", path: "/rails" }
+    - { page: "actions",     label: "Actions",     icon: "✅", path: "/actions" }
+    - { page: "leads",       label: "Leads",       icon: "🎯", path: "/leads" }
+    - { page: "obligations", label: "Obligations", icon: "📋", path: "/obligations" }
+
+  advanced:
+    - { page: "analytics",   label: "Analytics",   icon: "📈", path: "/analytics" }
+    - { page: "decisions",   label: "Decisions",   icon: "⚖️",  path: "/decisions" }
+    - { page: "meetings",    label: "Meetings",    icon: "📝", path: "/meetings" }
+    - { page: "sops",        label: "SOPs",        icon: "📖", path: "/sops" }
+    - { page: "feedback",    label: "Feedback",    icon: "💬", path: "/feedback" }
+    - { page: "router",      label: "Model Router",icon: "🔀", path: "/router" }
+    - { page: "knowledge",   label: "Knowledge Base", icon: "📚", path: "/knowledge" }
+    - { page: "gaps",        label: "Knowledge Gaps", icon: "🧩", path: "/gaps" }
+
+  system:
+    - { page: "settings",    label: "Settings",    icon: "⚙️",  path: "/settings" }
+    - { page: "org",         label: "Organization",icon: "🏢", path: "/org" }
+    - { page: "jobs",        label: "Jobs",        icon: "⏱️", path: "/jobs" }
+    - { page: "explorer",    label: "Data Explorer",icon: "🗄️", path: "/explorer" }

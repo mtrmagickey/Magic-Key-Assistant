@@ -1,0 +1,1268 @@
+{% extends "base.html" %}
+{% block title %}Settings — {{ bot_name }}{% endblock %}
+
+{% block head %}
+<style>
+    /* Settings page — coral accent (matches base defaults, but page-specific components here) */
+    .secret-item, .config-item {
+        background: linear-gradient(135deg, rgba(8,6,5,0.93) 0%, rgba(4,3,2,0.96) 100%);
+        border: 1px solid rgba(255,255,255,0.08);
+        border-radius: 12px;
+        transition: all 0.3s ease;
+    }
+    .secret-item:hover, .config-item:hover {
+        border-color: rgba(225,57,67,0.25);
+        background: linear-gradient(135deg, rgba(225,57,67,0.06) 0%, rgba(6,5,4,0.94) 100%);
+    }
+
+    /* info-banner now defined globally in style.css */
+
+    .badge-coral { background: linear-gradient(135deg, rgba(225,57,67,0.25) 0%, rgba(225,57,67,0.1) 100%); border: 1px solid rgba(225,57,67,0.35); }
+    .badge-gold  { background: linear-gradient(135deg, rgba(131,120,27,0.25) 0%, rgba(131,120,27,0.1) 100%); border: 1px solid rgba(131,120,27,0.35); }
+    .badge-muted { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); }
+
+    input[type="text"], input[type="password"], input[type="number"], textarea, select {
+        background: rgba(4,3,2,0.94);
+        border: 1px solid rgba(225,57,67,0.18);
+        color: #e5e5e5;
+        border-radius: 10px;
+        transition: all 0.2s ease;
+    }
+    input:focus, textarea:focus, select:focus { outline: none; border-color: rgba(225,57,67,0.4); box-shadow: 0 0 0 3px rgba(225,57,67,0.1); }
+    select option { background: #1a1a1a; color: #e5e5e5; padding: 8px; }
+
+    .toggle-switch {
+        position: relative; width: 48px; height: 26px;
+        background: rgba(255,255,255,0.1); border-radius: 13px;
+        cursor: pointer; transition: all 0.3s ease;
+    }
+    .toggle-switch.active { background: linear-gradient(180deg, #F4C3D6 0%, #EFAAC4 100%); }
+    .toggle-switch::after {
+        content: ''; position: absolute; width: 22px; height: 22px;
+        background: white; border-radius: 50%; top: 2px; left: 2px;
+        transition: all 0.3s ease; box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    }
+    .toggle-switch.active::after { left: 24px; }
+
+    .btn-teal {
+        background: linear-gradient(180deg, #F4C3D6 0%, #EFAAC4 40%, #C8829E 100%);
+        border: none; border-radius: 10px;
+        box-shadow: 0 2px 8px rgba(239,170,196,0.3), 0 1px 0 rgba(255,255,255,0.2) inset;
+        transition: all 0.3s ease; position: relative; overflow: hidden;
+    }
+    .btn-teal::before { content:''; position:absolute; top:0; left:0; right:0; height:50%; background:linear-gradient(180deg,rgba(255,255,255,0.2) 0%,transparent 100%); border-radius:10px 10px 50% 50%; }
+    .btn-teal:hover { transform: translateY(-1px); box-shadow: 0 4px 16px rgba(239,170,196,0.4); }
+
+    .modal-backdrop { background: rgba(26,23,20,0.8); backdrop-filter: blur(8px); }
+    .modal-content {
+        position: relative; z-index: 10051; pointer-events: auto;
+        background: linear-gradient(145deg, rgba(43,38,34,0.95) 0%, rgba(35,30,26,0.98) 100%);
+        border: 1px solid rgba(225,57,67,0.2); border-radius: 20px;
+        box-shadow: 0 24px 64px rgba(0,0,0,0.6);
+    }
+
+    .section-card { transition: all 0.3s ease; }
+    .section-card:hover { transform: translateY(-1px); }
+
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+
+    /* ── Retrieval Log (embedded) ─────────────────────────────────── */
+    .rl-trace-item{display:flex;align-items:center;gap:1rem;padding:0.75rem 1rem;border-bottom:1px solid rgba(255,255,255,0.04);
+      cursor:pointer;transition:background .15s;}
+    .rl-trace-item:hover{background:rgba(255,255,255,0.03);}
+    .rl-trace-item.active{background:rgba(var(--a),0.06);border-left:3px solid rgba(var(--a),0.6);}
+    .rl-trace-query{flex:1;font-size:0.82rem;color:rgba(255,255,255,0.7);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+    .rl-trace-meta{display:flex;gap:0.6rem;align-items:center;font-size:0.65rem;color:rgba(255,255,255,0.25);font-family:'Martian Mono',monospace;}
+    .rl-detail-header{padding:1rem 1.25rem;border-bottom:1px solid rgba(255,255,255,0.06);}
+    .rl-detail-query{font-size:0.95rem;color:#fff;font-weight:500;margin-bottom:0.5rem;}
+    .rl-detail-stats{display:flex;gap:1rem;flex-wrap:wrap;}
+    .rl-detail-stat{font-size:0.65rem;color:rgba(255,255,255,0.3);font-family:'Martian Mono',monospace;}
+    .rl-detail-stat strong{color:rgba(255,255,255,0.6);}
+    .rl-stage{border:1px solid rgba(255,255,255,0.06);border-radius:0.5rem;margin:0.6rem 1rem;overflow:hidden;}
+    .rl-stage-header{display:flex;justify-content:space-between;align-items:center;padding:0.6rem 0.85rem;
+      background:rgba(255,255,255,0.02);cursor:pointer;transition:background .15s;}
+    .rl-stage-header:hover{background:rgba(255,255,255,0.04);}
+    .rl-stage-name{font-size:0.78rem;font-weight:600;color:rgba(255,255,255,0.7);display:flex;align-items:center;gap:0.5rem;}
+    .rl-stage-badge{font-size:0.6rem;padding:0.1rem 0.45rem;border-radius:5px;font-family:'Martian Mono',monospace;font-weight:500;}
+    .rl-badge-docs{background:rgba(99,102,241,0.12);color:rgb(129,140,248);}
+    .rl-badge-time{background:rgba(16,185,129,0.12);color:rgb(16,185,129);}
+    .rl-badge-skipped{background:rgba(245,158,11,0.12);color:rgb(245,158,11);}
+    .rl-stage-body{padding:0.75rem 0.85rem;display:none;border-top:1px solid rgba(255,255,255,0.04);}
+    .rl-stage.open .rl-stage-body{display:block;}
+    .rl-stage-chevron{transition:transform .2s;color:rgba(255,255,255,0.2);}
+    .rl-stage.open .rl-stage-chevron{transform:rotate(90deg);}
+    .rl-doc-preview{background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.04);border-radius:0.4rem;
+      padding:0.6rem 0.75rem;margin-bottom:0.4rem;font-size:0.75rem;}
+    .rl-doc-rank{font-size:0.6rem;font-weight:700;color:rgba(var(--a),0.6);margin-bottom:0.2rem;display:flex;justify-content:space-between;align-items:center;}
+    .rl-doc-content{color:rgba(255,255,255,0.5);line-height:1.5;white-space:pre-wrap;word-break:break-word;max-height:6rem;overflow-y:auto;}
+    .rl-doc-meta-pills{display:flex;flex-wrap:wrap;gap:0.3rem;margin-top:0.35rem;}
+    .rl-doc-meta-pill{font-size:0.58rem;padding:0.1rem 0.4rem;border-radius:4px;background:rgba(255,255,255,0.04);
+      color:rgba(255,255,255,0.3);font-family:'Martian Mono',monospace;}
+    .rl-detail-json{font-size:0.7rem;font-family:'Martian Mono',monospace;color:rgba(255,255,255,0.4);
+      background:rgba(0,0,0,0.2);border-radius:0.35rem;padding:0.6rem;line-height:1.5;
+      white-space:pre-wrap;word-break:break-word;max-height:12rem;overflow-y:auto;}
+    .rl-score-pill{font-size:0.62rem;padding:0.1rem 0.45rem;border-radius:5px;font-family:'Martian Mono',monospace;font-weight:600;}
+    .rl-score-good{background:rgba(16,185,129,0.12);color:rgb(16,185,129);}
+    .rl-score-ok{background:rgba(245,158,11,0.12);color:rgb(245,158,11);}
+    .rl-score-weak{background:rgba(239,68,68,0.12);color:rgb(239,68,68);}
+    .rl-split-layout{display:grid;grid-template-columns:380px 1fr;gap:0;height:calc(100vh - 16rem);min-height:400px;}
+    .rl-trace-list-panel{border-right:1px solid rgba(255,255,255,0.06);overflow-y:auto;}
+    .rl-trace-detail-panel{overflow-y:auto;}
+    .rl-empty-detail{display:flex;align-items:center;justify-content:center;height:100%;color:rgba(255,255,255,0.15);font-size:0.85rem;}
+    @media(max-width:900px){
+        .rl-split-layout{grid-template-columns:1fr;height:auto;}
+        .rl-trace-list-panel{max-height:300px;border-right:none;border-bottom:1px solid rgba(255,255,255,0.06);}
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<header class="header-scrim flex flex-wrap justify-between items-center gap-4 mb-6 reveal">
+    <div>
+        <h2 class="text-2xl font-semibold text-white mb-1 tracking-tight">Settings</h2>
+        <p class="text-sm text-secondary">Manage API keys, assistant behavior, and system configuration</p>
+    </div>
+    <div class="flex flex-wrap gap-3">
+        <button onclick="exportConfig()" class="px-4 py-2.5 btn-chrome font-medium flex items-center gap-1.5"><i data-lucide="file-output" class="w-3.5 h-3.5"></i> Export Settings</button>
+        <button onclick="document.getElementById('importInput').click()" class="px-4 py-2.5 btn-chrome font-medium flex items-center gap-1.5"><i data-lucide="file-input" class="w-3.5 h-3.5"></i> Import Settings</button>
+        <button onclick="exportAlphaLogs()" class="px-4 py-2.5 btn-chrome font-medium flex items-center gap-1.5"><i data-lucide="archive" class="w-3.5 h-3.5"></i> Export Logs</button>
+        <input type="file" id="importInput" accept=".json" onchange="importConfig(event)" class="hidden">
+    </div>
+</header>
+
+<!-- Tab Navigation -->
+<div class="flex gap-2 mb-6 reveal stagger-2 border-b border-white/10 pb-4 flex-wrap items-center">
+    <button onclick="showSettingsTab('secrets')" id="tab-secrets" class="px-5 py-2.5 rounded-lg font-medium text-coral bg-coral/15 transition-all flex items-center gap-1.5"><i data-lucide="key-round" class="w-4 h-4"></i> API Keys</button>
+    <button onclick="showSettingsTab('prompts')" id="tab-prompts" class="px-5 py-2.5 rounded-lg font-medium text-gray-400 hover:bg-white/5 transition-all flex items-center gap-1.5 dev-only-tab" style="display:none;"><i data-lucide="file-text" class="w-4 h-4"></i> AI Instructions</button>
+    <button onclick="showSettingsTab('llm')" id="tab-llm" class="px-5 py-2.5 rounded-lg font-medium text-gray-400 hover:bg-white/5 transition-all flex items-center gap-1.5"><i data-lucide="palette" class="w-4 h-4"></i> Response Style</button>
+    {% if operation_mode != 'solo' %}
+    <button onclick="showSettingsTab('discord')" id="tab-discord" class="px-5 py-2.5 rounded-lg font-medium text-gray-400 hover:bg-white/5 transition-all flex items-center gap-1.5"><i data-lucide="message-circle" class="w-4 h-4"></i> Discord</button>
+    {% endif %}
+    <button onclick="showSettingsTab('automation')" id="tab-automation" class="px-5 py-2.5 rounded-lg font-medium text-gray-400 hover:bg-white/5 transition-all flex items-center gap-1.5"><i data-lucide="zap" class="w-4 h-4"></i> Automation</button>
+    <button onclick="showSettingsTab('theme')" id="tab-theme" class="px-5 py-2.5 rounded-lg font-medium text-gray-400 hover:bg-white/5 transition-all flex items-center gap-1.5"><i data-lucide="paintbrush" class="w-4 h-4"></i> Theme</button>
+    <button onclick="showSettingsTab('retrieval')" id="tab-retrieval" class="px-5 py-2.5 rounded-lg font-medium text-gray-400 hover:bg-white/5 transition-all flex items-center gap-1.5"><i data-lucide="git-branch" class="w-4 h-4"></i> Retrieval Log</button>
+
+    <!-- Developer mode toggle — far right -->
+    <div class="ml-auto flex items-center gap-2">
+        <label class="text-xs text-gray-500 cursor-pointer select-none flex items-center gap-2" title="Show advanced tabs like AI Instructions">
+            <i data-lucide="code" class="w-3.5 h-3.5 text-gray-600"></i> Developer
+            <span class="toggle" style="transform:scale(0.85);">
+                <input type="checkbox" id="devModeToggle" onchange="toggleDevMode(this.checked)">
+                <span class="slider"></span>
+            </span>
+        </label>
+    </div>
+</div>
+
+<!-- ────────── Tab: API Keys ────────── -->
+<div id="content-secrets" class="tab-content active">
+    <div class="info-banner p-5 mb-6 reveal stagger-2">
+        <div class="flex items-start gap-4 relative z-10">
+            <div class="text-2xl"><i data-lucide="shield" class="w-6 h-6 text-coral"></i></div>
+            <div>
+                <h3 class="font-medium text-white mb-1">Secure Credential Storage</h3>
+                <p class="text-sm text-secondary mb-2">API keys are stored securely using OS keyring when available, or environment variables as fallback.</p>
+                <p class="text-xs text-gray-500">Storage: <code class="bg-black/30 px-1.5 py-0.5 rounded">{{ storage_info.storage_method }}</code></p>
+            </div>
+        </div>
+    </div>
+
+    {% for cat_id, cat_data in secrets_by_category.items() %}
+    <section class="glass-card glow-card p-6 mb-5 reveal">
+        <div class="flex items-center justify-between mb-5 relative z-10">
+            <h3 class="font-medium text-white flex items-center gap-2"><i data-lucide="key-round" class="w-4 h-4 text-coral"></i> {{ cat_data.name }}</h3>
+            <span class="badge-muted px-3 py-1 rounded-full text-gray-400 text-xs">{{ cat_data.secrets | length }} keys</span>
+        </div>
+        <p class="text-sm text-gray-500 mb-4 relative z-10">{{ cat_data.description }}</p>
+        <div class="space-y-3 relative z-10">
+            {% for secret in cat_data.secrets %}
+            <div class="secret-item p-4 flex items-center justify-between">
+                <div class="flex-1 min-w-0">
+                    <div class="flex items-center gap-3 mb-1">
+                        <span class="font-medium text-white">{{ secret.name }}</span>
+                        {% if secret.has_value %}
+                        <span class="badge px-2 py-0.5 rounded-full text-teal text-xs">● Set</span>
+                        {% else %}
+                        <span class="badge-muted px-2 py-0.5 rounded-full text-gray-500 text-xs">○ Not set</span>
+                        {% endif %}
+                    </div>
+                    <p class="text-sm text-gray-500 truncate">{{ secret.description }}</p>
+                    <p class="text-xs text-gray-600 font-mono mt-1">{{ secret.env_var }}</p>
+                </div>
+                <div class="flex items-center gap-2 ml-4">
+                    {% if secret.has_value %}
+                    <button onclick="testKey('{{ secret.key }}')" class="btn-teal px-3 py-2 text-sm text-white font-medium"><span class="relative z-10">Test</span></button>
+                    <button onclick="clearKey('{{ secret.key }}')" class="btn-outline px-3 py-2 text-sm">Clear</button>
+                    {% else %}
+                    <button onclick="showKeyInput('{{ secret.key }}', '{{ secret.name }}')" class="btn-glossy px-4 py-2 text-white text-sm font-medium"><span class="relative z-10">+ Add Key</span></button>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </section>
+    {% endfor %}
+</div>
+
+<!-- ────────── Tab: System Prompts ────────── -->
+<div id="content-prompts" class="tab-content">
+    <div class="info-banner p-5 mb-6 reveal">
+        <div class="flex items-start gap-4 relative z-10">
+            <div class="text-2xl"><i data-lucide="file-edit" class="w-6 h-6 text-coral"></i></div>
+            <div>
+                <h3 class="font-medium text-white mb-1">AI Instructions</h3>
+                <p class="text-sm text-secondary">Edit the personality, tone, and instructions that shape how the assistant behaves. Changes require assistant restart or <code class="bg-black/30 px-1.5 py-0.5 rounded">/reload</code>.</p>
+            </div>
+        </div>
+    </div>
+
+    <section class="glass-card glow-card p-6 mb-5 reveal">
+        <div class="flex items-center justify-between mb-4 relative z-10">
+            <h3 class="font-medium text-white flex items-center gap-2"><i data-lucide="bot" class="w-4 h-4 text-coral"></i> Main System Prompt</h3>
+            <div class="flex gap-2">
+                <button onclick="backupPrompt('system_prompt')" class="btn-outline px-3 py-1.5 text-xs flex items-center gap-1"><i data-lucide="save" class="w-3 h-3"></i> Backup</button>
+                <button onclick="resetPrompt('system_prompt')" class="text-xs text-gray-500 hover:text-coral transition-colors">Reset</button>
+            </div>
+        </div>
+        <p class="text-sm text-gray-500 mb-4 relative z-10">The primary personality and behavior instructions for {{ bot_name }}</p>
+        <div class="relative z-10">
+            <textarea id="prompt-system_prompt" rows="16" class="w-full px-4 py-3 bg-black/90 border border-white/15 rounded-lg text-gray-200 text-sm font-mono resize-y focus:border-coral/50 focus:outline-none"></textarea>
+            <div class="flex justify-between items-center mt-3">
+                <span class="text-xs text-gray-500" id="prompt-system_prompt-chars">0 characters</span>
+                <button onclick="savePrompt('system_prompt')" class="btn-glossy px-5 py-2 text-white font-medium"><span class="relative z-10">Save Prompt</span></button>
+            </div>
+        </div>
+    </section>
+
+    <section class="glass-card p-6 mb-5 reveal">
+        <div class="flex items-center justify-between mb-4 relative z-10">
+            <h3 class="font-medium text-white flex items-center gap-2"><i data-lucide="bar-chart-3" class="w-4 h-4 text-coral"></i> Operational Context</h3>
+            <div class="flex gap-2">
+                <button onclick="backupPrompt('operational_context')" class="btn-outline px-3 py-1.5 text-xs flex items-center gap-1"><i data-lucide="save" class="w-3 h-3"></i> Backup</button>
+            </div>
+        </div>
+        <p class="text-sm text-gray-500 mb-4 relative z-10">Business facts: rates, partners, portfolio, contracts — injected into conversations</p>
+        <div class="relative z-10">
+            <textarea id="prompt-operational_context" rows="12" class="w-full px-4 py-3 bg-black/90 border border-white/15 rounded-lg text-gray-200 text-sm font-mono resize-y focus:border-coral/50 focus:outline-none"></textarea>
+            <div class="flex justify-between items-center mt-3">
+                <span class="text-xs text-gray-500" id="prompt-operational_context-chars">0 characters</span>
+                <button onclick="savePrompt('operational_context')" class="btn-glossy px-5 py-2 text-white font-medium"><span class="relative z-10">Save Context</span></button>
+            </div>
+        </div>
+    </section>
+</div>
+
+<!-- ────────── Tab: LLM Tuning ────────── -->
+<div id="content-llm" class="tab-content">
+    <div class="info-banner p-5 mb-6 reveal">
+        <div class="flex items-start gap-4 relative z-10">
+            <div class="text-2xl"><i data-lucide="brain" class="w-6 h-6 text-coral"></i></div>
+            <div>
+                <h3 class="font-medium text-white mb-1">Response Style</h3>
+                <p class="text-sm text-secondary">Control how the assistant writes its replies. Lower creativity = more focused and predictable; higher = more varied and inventive.</p>
+            </div>
+        </div>
+    </div>
+
+    <section class="glass-card p-6 mb-5 reveal">
+        <div class="flex items-center justify-between mb-5 relative z-10">
+            <h3 class="font-medium text-white flex items-center gap-2"><i data-lucide="settings" class="w-4 h-4 text-coral"></i> Response Parameters</h3>
+            <button onclick="resetSection('llm_settings')" class="text-xs text-gray-500 hover:text-coral transition-colors">Reset to defaults</button>
+        </div>
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 relative z-10" id="llm_settings-fields"></div>
+        <div class="mt-6 pt-4 border-t border-white/5 flex justify-end relative z-10">
+            <button onclick="saveSection('llm_settings')" class="btn-glossy px-6 py-2.5 text-white font-semibold"><span class="relative z-10">Save LLM Settings</span></button>
+        </div>
+    </section>
+
+    <section class="glass-card p-6 reveal">
+        <h3 class="font-medium text-white flex items-center gap-2 mb-4 relative z-10"><i data-lucide="sliders" class="w-4 h-4 text-coral"></i> Quick Presets</h3>
+        <p class="text-sm text-gray-500 mb-4 relative z-10">Apply common configuration presets</p>
+        <div class="flex flex-wrap gap-3 relative z-10">
+            <button onclick="applyLLMPreset('precise')" class="btn-outline px-4 py-2 text-sm flex items-center gap-1.5"><i data-lucide="crosshair" class="w-3.5 h-3.5"></i> Precise</button>
+            <button onclick="applyLLMPreset('balanced')" class="btn-outline px-4 py-2 text-sm flex items-center gap-1.5"><i data-lucide="scale" class="w-3.5 h-3.5"></i> Balanced</button>
+            <button onclick="applyLLMPreset('creative')" class="btn-outline px-4 py-2 text-sm flex items-center gap-1.5"><i data-lucide="palette" class="w-3.5 h-3.5"></i> Creative</button>
+            <button onclick="applyLLMPreset('verbose')" class="btn-outline px-4 py-2 text-sm flex items-center gap-1.5"><i data-lucide="align-left" class="w-3.5 h-3.5"></i> Verbose</button>
+        </div>
+    </section>
+</div>
+
+<!-- ────────── Tab: Discord ────────── -->
+{% if operation_mode != 'solo' %}
+<div id="content-discord" class="tab-content">
+    <section class="glass-card p-6 mb-5 reveal">
+        <div class="flex items-center justify-between mb-5 relative z-10">
+            <h3 class="font-medium text-white flex items-center gap-2"><i data-lucide="message-circle" class="w-4 h-4 text-coral"></i> Discord Configuration</h3>
+            <button onclick="resetSection('discord')" class="text-xs text-gray-500 hover:text-coral transition-colors">Reset to defaults</button>
+        </div>
+        <p class="text-sm text-gray-500 mb-6 relative z-10">Configure Discord server and channel settings</p>
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 relative z-10" id="discord-fields"></div>
+        <div class="mt-6 pt-4 border-t border-white/5 flex justify-end relative z-10">
+            <button onclick="saveSection('discord')" class="btn-glossy px-6 py-2.5 text-white font-semibold"><span class="relative z-10">Save Discord Settings</span></button>
+        </div>
+    </section>
+
+    <section class="glass-card p-6 reveal">
+        <div class="flex items-center justify-between mb-5 relative z-10">
+            <h3 class="font-medium text-white flex items-center gap-2"><i data-lucide="users" class="w-4 h-4 text-coral"></i> Member Settings</h3>
+            <button onclick="resetSection('partners')" class="text-xs text-gray-500 hover:text-coral transition-colors">Reset to defaults</button>
+        </div>
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 relative z-10" id="partners-fields"></div>
+        <div class="mt-6 pt-4 border-t border-white/5 flex justify-end relative z-10">
+            <button onclick="saveSection('partners')" class="btn-glossy px-6 py-2.5 text-white font-semibold"><span class="relative z-10">Save Member Settings</span></button>
+        </div>
+    </section>
+</div>
+{% endif %}
+
+<!-- ────────── Tab: Automation ────────── -->
+<div id="content-automation" class="tab-content">
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
+        {% for section_id, section_label, section_icon in [
+            ('pm_automation',  'PM Automation',   'clipboard-list'),
+            ('action_items',   'Action Items',    'check-square'),
+            ('knowledge_gaps', 'Knowledge Gaps',  'crosshair'),
+        ] %}
+        <section class="glass-card p-6 reveal">
+            <div class="flex items-center justify-between mb-5 relative z-10">
+                <h3 class="font-medium text-white flex items-center gap-2"><i data-lucide="{{ section_icon }}" class="w-4 h-4 text-coral"></i> {{ section_label }}</h3>
+                <button onclick="resetSection('{{ section_id }}')" class="text-xs text-gray-500 hover:text-coral transition-colors">Reset</button>
+            </div>
+            <div class="space-y-3 relative z-10" id="{{ section_id }}-fields"></div>
+            <div class="mt-4 pt-4 border-t border-white/5 flex justify-end relative z-10">
+                <button onclick="saveSection('{{ section_id }}')" class="btn-glossy px-5 py-2 text-white font-medium"><span class="relative z-10">Save</span></button>
+            </div>
+        </section>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- Schedule settings have been moved to the Jobs page -->
+
+<!-- ────────── Tab: Theme ────────── -->
+<div id="content-theme" class="tab-content">
+    <div class="glass-card p-6 reveal max-w-2xl">
+        <div class="flex items-center justify-between mb-5 relative z-10">
+            <h3 class="font-medium text-white flex items-center gap-2"><i data-lucide="paintbrush" class="w-4 h-4 text-coral"></i> Colour Palette</h3>
+            <div class="flex gap-3">
+                <button onclick="randomTheme()" class="text-xs text-gray-500 hover:text-white transition-colors flex items-center gap-1"><i data-lucide="shuffle" class="w-3 h-3"></i> Random</button>
+                <button onclick="resetTheme()" class="text-xs text-gray-500 hover:text-coral transition-colors">Reset to Defaults</button>
+            </div>
+        </div>
+        <p class="text-xs text-gray-500 mb-5 relative z-10">Choose colours from curated palettes designed for each role. Each set maintains readability and visual hierarchy.</p>
+
+        <!-- Accessibility mode toggle -->
+        <div class="config-item p-3 mb-5 relative z-10 flex items-center gap-4">
+            <label class="relative inline-flex items-center cursor-pointer shrink-0">
+                <input type="checkbox" id="theme-accessibility" class="sr-only peer" onchange="toggleAccessibility()">
+                <div class="w-9 h-5 bg-white/10 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-coral/70"></div>
+            </label>
+            <div class="flex-1">
+                <label class="block text-sm font-medium text-white mb-0.5">Accessibility Mode</label>
+                <p class="text-xs text-gray-400">High-contrast two-colour scheme — guaranteed legibility for all users</p>
+            </div>
+        </div>
+
+        <!-- Hidden value inputs (used by save/load logic) -->
+        <input type="hidden" id="theme-ink" value="#2B2622">
+        <input type="hidden" id="theme-canvas" value="#F9DEA2">
+        <input type="hidden" id="theme-accent_a" value="#EFAAC4">
+        <input type="hidden" id="theme-accent_b" value="#7EA3CC">
+        <input type="hidden" id="theme-accent_c" value="#83781B">
+
+        <!-- Colour role pickers (rendered by JS) -->
+        <div class="space-y-4 relative z-10" id="theme-roles-container"></div>
+
+        <!-- Live preview -->
+        <div class="mt-5 p-4 rounded-xl border border-white/10 relative z-10" style="background:rgba(6,5,4,0.93);">
+            <p class="text-xs text-gray-500 mb-2">Preview</p>
+            <div class="flex gap-3 items-center mb-3">
+                <div id="strip-ink" class="w-10 h-10 rounded-lg border border-white/10" title="Ink"></div>
+                <div id="strip-canvas" class="w-10 h-10 rounded-lg border border-white/10" title="Canvas"></div>
+                <div id="strip-accent_a" class="w-10 h-10 rounded-lg border border-white/10" title="Accent A"></div>
+                <div id="strip-accent_b" class="w-10 h-10 rounded-lg border border-white/10" title="Accent B"></div>
+                <div id="strip-accent_c" class="w-10 h-10 rounded-lg border border-white/10" title="Accent C"></div>
+                <span class="ml-auto text-xs text-gray-400" id="preview-label">Custom palette</span>
+            </div>
+            <!-- Text legibility mock -->
+            <div id="text-mock" class="p-3 rounded-lg" style="font-size:13px;transition:all .2s;">
+                <span id="mock-heading" style="font-weight:600;">Heading</span>
+                <span class="mock-sep" style="margin:0 6px;opacity:0.3;">·</span>
+                <span id="mock-body">Body text</span>
+                <span class="mock-sep" style="margin:0 6px;opacity:0.3;">·</span>
+                <a id="mock-link" href="#" onclick="return false" style="text-decoration:underline;">Link</a>
+                <span class="mock-sep" style="margin:0 6px;opacity:0.3;">·</span>
+                <span id="mock-badge" style="padding:1px 8px;border-radius:4px;font-size:11px;">Badge</span>
+            </div>
+        </div>
+
+        <div class="mt-4 pt-4 border-t border-white/5 flex justify-end relative z-10">
+            <button onclick="saveTheme()" class="btn-glossy px-5 py-2 text-white font-medium"><span class="relative z-10">Save Theme</span></button>
+        </div>
+    </div>
+</div>
+
+<!-- ────────── Tab: Retrieval Log ────────── -->
+<div id="content-retrieval" class="tab-content">
+    <div class="glass-card glow-card overflow-hidden reveal">
+        <div class="flex items-center justify-between p-4 border-b border-white/5">
+            <div>
+                <h3 class="font-medium text-white flex items-center gap-2"><i data-lucide="git-branch" class="w-4 h-4 text-coral"></i> Retrieval Log</h3>
+                <p class="text-xs text-gray-500 mt-0.5">Trace every stage of the RAG pipeline</p>
+            </div>
+            <div class="flex gap-2">
+                <button class="text-xs px-3 py-1.5 rounded-lg border border-white/10 text-gray-400 hover:text-white transition" onclick="rlLoadTraces()">
+                    <i data-lucide="refresh-cw" class="w-3 h-3 inline-block mr-1" style="vertical-align:-2px;"></i>Refresh
+                </button>
+                <button class="text-xs px-3 py-1.5 rounded-lg border border-red-900/30 text-red-400/60 hover:text-red-400 transition" onclick="rlClearTraces()">
+                    <i data-lucide="trash-2" class="w-3 h-3 inline-block mr-1" style="vertical-align:-2px;"></i>Clear
+                </button>
+            </div>
+        </div>
+        <div class="rl-split-layout">
+            <div class="rl-trace-list-panel" id="rlTraceList">
+                <div class="p-6 text-center text-gray-600 text-sm">Switch to this tab to load traces</div>
+            </div>
+            <div class="rl-trace-detail-panel" id="rlTraceDetail">
+                <div class="rl-empty-detail">
+                    <div class="text-center">
+                        <i data-lucide="git-branch" class="w-8 h-8 mx-auto block mb-2" style="opacity:0.2;"></i>
+                        <p>Select a trace to inspect the pipeline</p>
+                        <p class="text-xs mt-1" style="color:rgba(255,255,255,0.1);">Ask a question in web chat, then refresh to see the trace</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Key Input Modal -->
+<div id="keyModal" class="fixed inset-0 modal-backdrop modal-overlay z-50 hidden items-center justify-center">
+    <div class="modal-content p-6 w-full max-w-md mx-4">
+        <div class="flex items-center justify-between mb-5">
+            <h3 class="text-lg font-semibold text-white" id="modalTitle">Add API Key</h3>
+            <button onclick="hideModal()" class="text-gray-400 hover:text-white text-xl" aria-label="Close">&times;</button>
+        </div>
+        <div class="space-y-4">
+            <div>
+                <label class="block text-sm text-gray-400 mb-2">API Key</label>
+                <input type="password" id="keyInput" class="w-full px-4 py-3 text-sm font-mono" placeholder="Enter your API key...">
+            </div>
+            <p class="text-xs text-gray-500"><i data-lucide="lock" class="w-3 h-3 inline"></i> Your key will be stored securely.</p>
+            <div class="flex gap-3 pt-2">
+                <button onclick="hideModal()" class="flex-1 btn-outline py-2.5 font-medium">Cancel</button>
+                <button onclick="saveKey()" class="flex-1 btn-glossy py-2.5 text-white font-semibold"><span class="relative z-10">Save Key</span></button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    let currentEnvVar = null;
+    let botConfig = {};
+    let configSections = {};
+
+    /* ───── Developer mode toggle ───── */
+    function toggleDevMode(on) {
+        localStorage.setItem('mk_dev_mode', on ? '1' : '0');
+        document.querySelectorAll('.dev-only-tab').forEach(el => el.style.display = on ? '' : 'none');
+        // If we're on the hidden tab, switch away
+        if (!on) {
+            const active = document.querySelector('.tab-content.active');
+            if (active && active.id === 'content-prompts') showSettingsTab('secrets');
+        }
+    }
+    // Restore developer mode state on load
+    (function() {
+        const devOn = localStorage.getItem('mk_dev_mode') === '1';
+        const toggle = document.getElementById('devModeToggle');
+        if (toggle) toggle.checked = devOn;
+        document.querySelectorAll('.dev-only-tab').forEach(el => el.style.display = devOn ? '' : 'none');
+    })();
+
+    document.addEventListener('DOMContentLoaded', async () => {
+        await loadConfig();
+    });
+
+    /* ───── Configuration loading / rendering ───── */
+
+    async function loadConfig() {
+        try {
+            const data = await apiCall('/api/v1/config/all');
+            if (data.success) {
+                botConfig = data.config;
+                configSections = data.sections;
+                renderAllSections();
+            }
+        } catch (e) {
+            console.error('Failed to load config:', e);
+            showToast('Failed to load configuration', 'error');
+        }
+    }
+
+    function renderAllSections() {
+        ['discord', 'partners', 'pm_automation', 'action_items',
+         'knowledge_gaps', 'llm_settings', 'schedule'].forEach(s => renderSectionFields(s));
+    }
+
+    function renderSectionFields(section) {
+        const container = document.getElementById(`${section}-fields`);
+        if (!container) return;
+        const meta = configSections[section];
+        const values = botConfig[section] || {};
+        if (!meta || !meta.fields) return;
+
+        let html = '';
+        for (const [fieldName, fieldMeta] of Object.entries(meta.fields)) {
+            if (fieldName === 'enabled' && ['scout', 'steward', 'dreamer', 'rainmaker'].includes(section)) continue;
+            const value = values[fieldName] ?? '';
+            const inputId = `${section}-${fieldName}`;
+
+            html += `<div class="config-item p-3">
+                <label class="block text-sm font-medium text-white mb-1">${fieldMeta.label}</label>
+                <p class="text-xs text-gray-500 mb-2">${fieldMeta.description}</p>`;
+
+            if (fieldMeta.type === 'boolean') {
+                const checked = value ? 'checked' : '';
+                html += `<label class="flex items-center gap-2 cursor-pointer">
+                    <input type="checkbox" id="${inputId}" ${checked} class="rounded accent-teal w-5 h-5">
+                    <span class="text-sm text-gray-300">${value ? 'Enabled' : 'Disabled'}</span>
+                </label>`;
+            } else if (fieldMeta.type === 'select') {
+                html += `<select id="${inputId}" class="w-full px-3 py-2 text-sm">`;
+                for (const opt of (fieldMeta.options || [])) {
+                    const selected = value === opt ? 'selected' : '';
+                    html += `<option value="${opt}" ${selected}>${opt}</option>`;
+                }
+                html += `</select>`;
+            } else if (fieldMeta.type === 'list') {
+                const listValue = Array.isArray(value) ? value.join(', ') : value;
+                html += `<input type="text" id="${inputId}" value="${listValue}" class="w-full px-3 py-2 text-sm font-mono" placeholder="Comma-separated values">`;
+            } else if (fieldMeta.type === 'number') {
+                const step = fieldMeta.step || 1;
+                const min = fieldMeta.min !== undefined ? `min="${fieldMeta.min}"` : '';
+                const max = fieldMeta.max !== undefined ? `max="${fieldMeta.max}"` : '';
+                html += `<input type="number" id="${inputId}" value="${value}" step="${step}" ${min} ${max} class="w-full px-3 py-2 text-sm">`;
+            } else {
+                html += `<input type="text" id="${inputId}" value="${value}" class="w-full px-3 py-2 text-sm">`;
+            }
+
+            html += `</div>`;
+        }
+        container.innerHTML = html;
+    }
+
+    function getFieldValues(section) {
+        const meta = configSections[section];
+        if (!meta || !meta.fields) return {};
+        const values = {};
+        for (const [fieldName, fieldMeta] of Object.entries(meta.fields)) {
+            const inputId = `${section}-${fieldName}`;
+            const el = document.getElementById(inputId);
+            if (!el) {
+                if (fieldName === 'enabled') {
+                    const toggle = document.getElementById(`toggle-${section}-enabled`);
+                    values[fieldName] = toggle?.classList.contains('active') ?? true;
+                }
+                continue;
+            }
+            if (fieldMeta.type === 'boolean') {
+                values[fieldName] = el.checked;
+            } else if (fieldMeta.type === 'list') {
+                values[fieldName] = el.value.split(',').map(v => {
+                    const trimmed = v.trim();
+                    return /^\d+$/.test(trimmed) ? parseInt(trimmed) : trimmed;
+                }).filter(v => v !== '');
+            } else if (fieldMeta.type === 'number') {
+                const step = fieldMeta.step || 1;
+                values[fieldName] = step < 1 ? (parseFloat(el.value) || 0) : (parseInt(el.value) || 0);
+            } else {
+                values[fieldName] = el.value;
+            }
+        }
+        return values;
+    }
+
+    /* ───── Section save / reset ───── */
+
+    async function saveSection(section) {
+        const values = getFieldValues(section);
+        const data = await apiCall(`/api/v1/config/${section}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ values })
+        });
+        if (data.success) {
+            showToast(`${section} settings saved!`);
+            botConfig[section] = { ...botConfig[section], ...values };
+        }
+    }
+
+    async function resetSection(section) {
+        if (!confirm(`Reset ${section} to defaults?`)) return;
+        const data = await apiCall(`/api/v1/config/${section}/reset`, { method: 'POST' });
+        if (data.success) { showToast('Reset to defaults!'); await loadConfig(); }
+    }
+
+    /* ───── Tab switching ───── */
+
+    function showSettingsTab(tab) {
+        document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+        document.getElementById(`content-${tab}`).classList.add('active');
+        document.querySelectorAll('[id^="tab-"]').forEach(btn => {
+            btn.classList.remove('text-coral', 'bg-coral/15');
+            btn.classList.add('text-gray-400');
+        });
+        const active = document.getElementById(`tab-${tab}`);
+        active.classList.add('text-coral', 'bg-coral/15');
+        active.classList.remove('text-gray-400');
+        if (tab === 'retrieval' && !rlLoaded) { rlLoadTraces(); rlLoaded = true; }
+        if (tab === 'prompts' && !promptsLoaded) { loadPrompts(); promptsLoaded = true; }
+    }
+
+    /* ───── Retrieval Log (embedded) ───── */
+    let rlAllTraces = [];
+    let rlLoaded = false;
+    let promptsLoaded = false;
+
+    async function rlLoadTraces() {
+        try {
+            const data = await apiCall('/api/v1/retrieval/traces?limit=50');
+            rlAllTraces = data.traces || [];
+            rlRenderList();
+        } catch(e) {
+            document.getElementById('rlTraceList').innerHTML =
+                `<div class="p-4 text-red-400 text-sm">${e.message || e}</div>`;
+        }
+    }
+
+    function rlRenderList() {
+        const el = document.getElementById('rlTraceList');
+        if (!rlAllTraces.length) {
+            el.innerHTML = `<div class="p-6 text-center text-gray-600 text-sm">
+                <i data-lucide="inbox" class="w-6 h-6 mx-auto block mb-2" style="opacity:0.2;"></i>
+                No traces yet — ask a question in web chat to generate one
+            </div>`;
+            lucide.createIcons();
+            return;
+        }
+        el.innerHTML = rlAllTraces.map((t, i) => {
+            const ms = t.summary?.total_ms ? `${Math.round(t.summary.total_ms)}ms` : '—';
+            const stages = t.summary?.stage_count || t.stages?.length || 0;
+            const time = new Date(t.started_at * 1000).toLocaleTimeString();
+            return `<div class="rl-trace-item" data-idx="${i}" onclick="rlSelectTrace(${i})">
+                <div class="rl-trace-query">${rlEsc(t.query)}</div>
+                <div class="rl-trace-meta">
+                    <span>${stages} stages</span>
+                    <span>${ms}</span>
+                    <span>${time}</span>
+                </div>
+            </div>`;
+        }).join('');
+    }
+
+    function rlSelectTrace(idx) {
+        document.querySelectorAll('.rl-trace-item').forEach(el => el.classList.remove('active'));
+        const items = document.querySelectorAll('.rl-trace-item');
+        if (items[idx]) items[idx].classList.add('active');
+        const t = rlAllTraces[idx];
+        if (t) rlRenderDetail(t);
+    }
+
+    function rlRenderDetail(t) {
+        const el = document.getElementById('rlTraceDetail');
+        const ms = t.summary?.total_ms ? `${Math.round(t.summary.total_ms)}ms` : '—';
+        const time = new Date(t.started_at * 1000).toLocaleString();
+
+        let summaryPills = '';
+        if (t.summary) {
+            const s = t.summary;
+            if (s.context_words !== undefined) summaryPills += `<span class="rl-detail-stat">Context: <strong>${s.context_words} words</strong></span>`;
+            if (s.pipeline_used !== undefined) summaryPills += `<span class="rl-detail-stat">Pipeline: <strong>${s.pipeline_used ? 'Yes' : 'Fallback'}</strong></span>`;
+            if (s.web_searched) summaryPills += `<span class="rl-detail-stat">Web: <strong>Yes</strong></span>`;
+            if (s.reply_length) summaryPills += `<span class="rl-detail-stat">Reply: <strong>${s.reply_length} chars</strong></span>`;
+            if (s.cache_hit) summaryPills += `<span class="rl-detail-stat" style="color:rgba(245,158,11,0.7);">⚡ Cache hit</span>`;
+        }
+
+        let stagesHtml = '';
+        (t.stages || []).forEach((stage, i) => {
+            const skipped = stage.detail?.skipped;
+            const badges = [];
+            if (stage.doc_count) badges.push(`<span class="rl-stage-badge rl-badge-docs">${stage.doc_count} docs</span>`);
+            if (stage.elapsed_ms) badges.push(`<span class="rl-stage-badge rl-badge-time">${Math.round(stage.elapsed_ms)}ms</span>`);
+            if (skipped) badges.push(`<span class="rl-stage-badge rl-badge-skipped">skipped</span>`);
+
+            let bodyHtml = '';
+            if (stage.detail && Object.keys(stage.detail).length) {
+                bodyHtml += `<div class="rl-detail-json">${rlEsc(JSON.stringify(stage.detail, null, 2))}</div>`;
+            }
+            if (stage.docs_preview && stage.docs_preview.length) {
+                bodyHtml += '<div style="margin-top:0.6rem;">';
+                stage.docs_preview.forEach(doc => {
+                    const scoreHtml = doc.score !== undefined ? rlScorePill(doc.score) : '';
+                    let metaPills = '';
+                    for (const [k, v] of Object.entries(doc)) {
+                        if (['rank', 'content_preview', 'score'].includes(k)) continue;
+                        metaPills += `<span class="rl-doc-meta-pill">${rlEsc(k)}: ${rlEsc(String(v).slice(0, 60))}</span>`;
+                    }
+                    bodyHtml += `<div class="rl-doc-preview">
+                        <div class="rl-doc-rank"><span>#${doc.rank}</span>${scoreHtml}</div>
+                        <div class="rl-doc-content">${rlEsc(doc.content_preview || '')}</div>
+                        ${metaPills ? '<div class="rl-doc-meta-pills">' + metaPills + '</div>' : ''}
+                    </div>`;
+                });
+                if (stage.doc_count > stage.docs_preview.length) {
+                    bodyHtml += `<div class="text-xs text-gray-600 mt-1">+ ${stage.doc_count - stage.docs_preview.length} more docs not shown</div>`;
+                }
+                bodyHtml += '</div>';
+            }
+
+            stagesHtml += `<div class="rl-stage" id="rl-stage-${i}">
+                <div class="rl-stage-header" onclick="rlToggleStage(${i})">
+                    <div class="rl-stage-name">
+                        <i data-lucide="chevron-right" class="w-3 h-3 rl-stage-chevron"></i>
+                        ${rlFormatStage(stage.name)}
+                        ${badges.join('')}
+                    </div>
+                </div>
+                <div class="rl-stage-body">${bodyHtml || '<span class="text-xs text-gray-600">No additional detail</span>'}</div>
+            </div>`;
+        });
+
+        el.innerHTML = `
+            <div class="rl-detail-header">
+                <div class="rl-detail-query">${rlEsc(t.query)}</div>
+                <div class="rl-detail-stats">
+                    <span class="rl-detail-stat">ID: <strong>${t.trace_id}</strong></span>
+                    <span class="rl-detail-stat">Time: <strong>${time}</strong></span>
+                    <span class="rl-detail-stat">Duration: <strong>${ms}</strong></span>
+                    <span class="rl-detail-stat">Entry: <strong>${t.entry_point}</strong></span>
+                    ${summaryPills}
+                </div>
+            </div>
+            <div style="padding:0.5rem 0;">${stagesHtml}</div>
+        `;
+        lucide.createIcons();
+    }
+
+    function rlToggleStage(idx) { const el = document.getElementById('rl-stage-' + idx); if (el) el.classList.toggle('open'); }
+    function rlFormatStage(name) { return name.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()); }
+    function rlScorePill(score) {
+        let cls = 'rl-score-weak';
+        if (score < 0.8) cls = 'rl-score-good';
+        else if (score < 1.2) cls = 'rl-score-ok';
+        return `<span class="rl-score-pill ${cls}">L2: ${score}</span>`;
+    }
+    function rlEsc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+
+    async function rlClearTraces() {
+        if (!confirm('Clear all retrieval traces?')) return;
+        await apiCall('/api/v1/retrieval/traces', {method: 'DELETE'});
+        rlAllTraces = [];
+        rlRenderList();
+        document.getElementById('rlTraceDetail').innerHTML = `<div class="rl-empty-detail">
+            <div class="text-center"><p>Traces cleared</p></div>
+        </div>`;
+    }
+
+    /* ───── API Key modal ───── */
+
+    function showKeyInput(key, displayName) {
+        currentEnvVar = key;
+        document.getElementById('modalTitle').textContent = `Add ${displayName}`;
+        document.getElementById('keyInput').value = '';
+        const modal = document.getElementById('keyModal');
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+        modal.classList.add('active');
+        modal.style.display = 'flex';
+        modal.style.zIndex = '10050';
+        document.getElementById('keyInput').focus();
+    }
+
+    function hideModal() {
+        const modal = document.getElementById('keyModal');
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+        modal.classList.remove('active');
+        modal.style.display = 'none';
+        modal.style.zIndex = '';
+        currentEnvVar = null;
+    }
+
+    async function saveKey() {
+        const key = document.getElementById('keyInput').value.trim();
+        if (!key) { showToast('Please enter a key', 'error'); return; }
+        const data = await apiCall('/api/v1/secrets/set', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ key: currentEnvVar, value: key })
+        });
+        if (data.success) {
+            showToast('Key saved!');
+            hideModal();
+            setTimeout(() => location.reload(), 800);
+        } else {
+            showToast(data.error || 'Failed to save key — please try again.', 'error');
+            hideModal();
+        }
+    }
+
+    async function testKey(key) {
+        showToast('Testing key...');
+        const data = await apiCall(`/api/v1/secrets/test/${key}`);
+        if (data.valid) {
+            showToast(`✓ ${data.message || 'Key is valid!'}`);
+        } else {
+            const providerLinks = {
+                'OPENAI_API_KEY': 'https://platform.openai.com/api-keys',
+                'ANTHROPIC_API_KEY': 'https://console.anthropic.com/settings/keys',
+                'GOOGLE_API_KEY': 'https://aistudio.google.com/apikey',
+                'MISTRAL_API_KEY': 'https://console.mistral.ai/api-keys/',
+                'GROQ_API_KEY': 'https://console.groq.com/keys',
+            };
+            const link = providerLinks[key];
+            const linkHtml = link ? ` <a href="${link}" target="_blank" style="color:#EFAAC4;text-decoration:underline;">Get a new key →</a>` : '';
+            showToast(`✗ ${data.error || 'Key test failed'} — check the key is correct and has not expired.${link ? ' Visit the provider dashboard to verify.' : ''}`, 'error');
+        }
+    }
+
+    async function clearKey(key) {
+        if (!confirm('Are you sure you want to remove this key?')) return;
+        const data = await apiCall(`/api/v1/secrets/delete/${key}`, { method: 'POST' });
+        if (data.success) {
+            showToast('Key removed');
+            setTimeout(() => location.reload(), 800);
+        } else {
+            showToast(data.error || 'Failed to remove key — please try again.', 'error');
+        }
+    }
+
+    /* ───── Import / Export ───── */
+
+    async function exportConfig() {
+        const data = await apiCall('/api/v1/config/export');
+        // Strip any API keys / secrets from the export for safety
+        if (data && data.secrets) delete data.secrets;
+        if (data && data.config) {
+            for (const section of Object.values(data.config)) {
+                if (section && typeof section === 'object') {
+                    for (const key of Object.keys(section)) {
+                        if (/key|token|secret|password/i.test(key)) delete section[key];
+                    }
+                }
+            }
+        }
+        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = 'bot_settings.json'; a.click();
+        URL.revokeObjectURL(url);
+        showToast('Config exported (API keys excluded for security)');
+    }
+
+    async function exportAlphaLogs() {
+        try {
+            const resp = await fetch('/api/v1/alpha/logs/export');
+            if (resp.status === 401 || resp.status === 303) {
+                window.location.href = '/login?next=' + encodeURIComponent(window.location.pathname);
+                return;
+            }
+            if (!resp.ok) {
+                showToast(`Log export failed (${resp.status})`, 'error');
+                return;
+            }
+            const blob = await resp.blob();
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'alpha_logs.zip';
+            a.click();
+            URL.revokeObjectURL(url);
+            showToast('Logs exported');
+        } catch (e) {
+            showToast('Log export failed: ' + e.message, 'error');
+        }
+    }
+
+    async function importConfig(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+        try {
+            const text = await file.text();
+            const config = JSON.parse(text);
+            const data = await apiCall('/api/v1/config/import', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ config })
+            });
+            if (data.success) { showToast('Config imported! Reloading...'); setTimeout(() => location.reload(), 1000); }
+        } catch (e) {
+            showToast('Invalid config file', 'error');
+        }
+        event.target.value = '';
+    }
+
+    /* ───── Prompts ───── */
+
+    async function loadPrompts() {
+        try {
+            const data = await apiCall('/api/v1/prompts');
+            if (data.success) {
+                for (const key of Object.keys(data.prompts)) {
+                    loadPromptContent(key);
+                }
+            }
+        } catch (e) { console.error('Failed to load prompts:', e); }
+    }
+
+    async function loadPromptContent(promptKey) {
+        const data = await apiCall(`/api/v1/prompts/${promptKey}`);
+        if (data.success) {
+            const textarea = document.getElementById(`prompt-${promptKey}`);
+            if (textarea) { textarea.value = data.content || ''; updateCharCount(promptKey); }
+        }
+    }
+
+    function updateCharCount(promptKey) {
+        const textarea = document.getElementById(`prompt-${promptKey}`);
+        const counter = document.getElementById(`prompt-${promptKey}-chars`);
+        if (textarea && counter) counter.textContent = `${textarea.value.length} characters`;
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        ['system_prompt', 'operational_context'].forEach(key => {
+            const textarea = document.getElementById(`prompt-${key}`);
+            if (textarea) textarea.addEventListener('input', () => updateCharCount(key));
+        });
+    });
+
+    async function savePrompt(promptKey) {
+        const textarea = document.getElementById(`prompt-${promptKey}`);
+        if (!textarea) return;
+        const data = await apiCall(`/api/v1/prompts/${promptKey}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ content: textarea.value })
+        });
+        if (data.success) showToast(data.message || 'Prompt saved!');
+    }
+
+    async function backupPrompt(promptKey) {
+        const data = await apiCall(`/api/v1/prompts/${promptKey}/backup`, { method: 'POST' });
+        if (data.success) showToast(data.message);
+    }
+
+    async function resetPrompt(promptKey) {
+        if (!confirm('Reset this prompt to the default? Your current version will be lost.')) return;
+        const textarea = document.getElementById(`prompt-${promptKey}`);
+        if (textarea) { textarea.value = ''; updateCharCount(promptKey); showToast('Prompt cleared. Save to apply.'); }
+    }
+
+    /* ───── LLM Presets ───── */
+
+    function applyLLMPreset(preset) {
+        const presets = {
+            precise:  { temperature: 0.1, max_tokens: 4000, retrieval_top_k: 10 },
+            balanced: { temperature: 0.3, max_tokens: 4000, retrieval_top_k: 8 },
+            creative: { temperature: 0.7, max_tokens: 4000, retrieval_top_k: 6 },
+            verbose:  { temperature: 0.3, max_tokens: 8000, retrieval_top_k: 12 }
+        };
+        const values = presets[preset];
+        if (!values) return;
+        for (const [key, value] of Object.entries(values)) {
+            const el = document.getElementById(`llm_settings-${key}`);
+            if (el) el.value = value;
+        }
+        showToast(`Applied "${preset}" preset. Click Save to apply.`);
+    }
+
+    /* ───── Theme colour pickers (guided swatch palettes) ───── */
+
+    const _themeDefaults = { ink: '#2B2622', canvas: '#F9DEA2', accent_a: '#EFAAC4', accent_b: '#7EA3CC', accent_c: '#83781B', accessibility_mode: false };
+    const _themeColorFields = ['ink', 'canvas', 'accent_a', 'accent_b', 'accent_c'];
+    const _accessibilityPalette = { ink: '#000000', canvas: '#FFFFFF', accent_a: '#000000', accent_b: '#000000', accent_c: '#000000' };
+    let _preA11yValues = null;
+
+    /* Curated palettes — each set is colour-theory appropriate for its role */
+    const _rolePalettes = {
+        ink: {
+            label: 'Ink (dark neutral)',
+            description: 'Near-black base for deep surfaces &amp; text',
+            swatches: [
+                { hex: '#2B2622', name: 'Warm charcoal' },
+                { hex: '#0D0D0D', name: 'Jet black' },
+                { hex: '#1A1A1A', name: 'Near black' },
+                { hex: '#3B3B3B', name: 'Graphite' },
+                { hex: '#1A1A2E', name: 'Midnight navy' },
+                { hex: '#0B1929', name: 'Deep navy' },
+                { hex: '#2C1810', name: 'Espresso' },
+                { hex: '#1B0F0A', name: 'Dark cocoa' },
+                { hex: '#1C2526', name: 'Dark teal' },
+                { hex: '#0F2318', name: 'Forest night' },
+                { hex: '#2B2B3D', name: 'Dark indigo' },
+                { hex: '#2A1A2E', name: 'Deep plum' },
+                { hex: '#3D0C11', name: 'Oxblood' },
+                { hex: '#1A2F1A', name: 'Dark moss' },
+                { hex: '#2F1B14', name: 'Dark umber' },
+                { hex: '#0E2433', name: 'Prussian' },
+            ]
+        },
+        canvas: {
+            label: 'Canvas (light neutral)',
+            description: 'Warm light colour for headings &amp; highlights',
+            swatches: [
+                { hex: '#F9DEA2', name: 'Warm cream' },
+                { hex: '#FFFFFF', name: 'Pure white' },
+                { hex: '#FFF8E7', name: 'Soft ivory' },
+                { hex: '#F5E6CC', name: 'Warm sand' },
+                { hex: '#E8D5B7', name: 'Wheat' },
+                { hex: '#FFD6D6', name: 'Rose mist' },
+                { hex: '#D4EDDA', name: 'Mint cream' },
+                { hex: '#D6E9F8', name: 'Ice blue' },
+                { hex: '#E8E0F0', name: 'Soft lilac' },
+                { hex: '#F0EAD6', name: 'Eggshell' },
+                { hex: '#FFE4C4', name: 'Bisque' },
+                { hex: '#DDEEDD', name: 'Honeydew' },
+                { hex: '#FFF0F5', name: 'Lavender blush' },
+                { hex: '#F0FFFF', name: 'Azure' },
+                { hex: '#FFFACD', name: 'Lemon chiffon' },
+                { hex: '#E6E6FA', name: 'Lavender' },
+            ]
+        },
+        accent_a: {
+            label: 'Accent A (primary)',
+            description: 'Primary accent — links, active states, CTA',
+            swatches: [
+                { hex: '#EFAAC4', name: 'Blush pink' },
+                { hex: '#E8637A', name: 'Rose' },
+                { hex: '#FF4D4D', name: 'Bright red' },
+                { hex: '#FF7F6B', name: 'Soft coral' },
+                { hex: '#F2994A', name: 'Amber' },
+                { hex: '#FFB627', name: 'Marigold' },
+                { hex: '#E13943', name: 'Crimson' },
+                { hex: '#D4A574', name: 'Warm tan' },
+                { hex: '#D98880', name: 'Terracotta' },
+                { hex: '#C75B7A', name: 'Berry' },
+                { hex: '#B44593', name: 'Magenta' },
+                { hex: '#FF6B35', name: 'Tangerine' },
+                { hex: '#E74C3C', name: 'Vermilion' },
+                { hex: '#8E44AD', name: 'Purple' },
+                { hex: '#27AE60', name: 'Emerald' },
+                { hex: '#F39C12', name: 'Sunflower' },
+                { hex: '#1ABC9C', name: 'Turquoise' },
+                { hex: '#3498DB', name: 'Bright blue' },
+                { hex: '#E91E63', name: 'Hot pink' },
+                { hex: '#009688', name: 'Teal' },
+            ]
+        },
+        accent_b: {
+            label: 'Accent B (cool)',
+            description: 'Cool secondary accent colour',
+            swatches: [
+                { hex: '#7EA3CC', name: 'Cornflower' },
+                { hex: '#2E86C1', name: 'Bright blue' },
+                { hex: '#5FA8D3', name: 'Sky blue' },
+                { hex: '#154360', name: 'Deep ocean' },
+                { hex: '#6B9B8A', name: 'Sage teal' },
+                { hex: '#1ABC9C', name: 'Turquoise' },
+                { hex: '#8E7CC3', name: 'Lavender' },
+                { hex: '#5C7AEA', name: 'Periwinkle' },
+                { hex: '#7D3C98', name: 'Orchid purple' },
+                { hex: '#48C9B0', name: 'Aquamarine' },
+                { hex: '#3498DB', name: 'Dodger blue' },
+                { hex: '#2C3E7B', name: 'Royal navy' },
+                { hex: '#00BCD4', name: 'Cyan' },
+                { hex: '#9B59B6', name: 'Amethyst' },
+                { hex: '#009688', name: 'Deep teal' },
+                { hex: '#4A90D9', name: 'Cerulean' },
+                { hex: '#5B2C6F', name: 'Dark violet' },
+                { hex: '#76D7C4', name: 'Seafoam' },
+                { hex: '#2980B9', name: 'Strong blue' },
+                { hex: '#A569BD', name: 'Soft purple' },
+            ]
+        },
+        accent_c: {
+            label: 'Accent C (support)',
+            description: 'Support colour for badges &amp; emphasis',
+            swatches: [
+                { hex: '#83781B', name: 'Olive gold' },
+                { hex: '#B8860B', name: 'Golden brown' },
+                { hex: '#DAA520', name: 'Goldenrod' },
+                { hex: '#6B8E23', name: 'Olive drab' },
+                { hex: '#2E7D32', name: 'Forest green' },
+                { hex: '#A0522D', name: 'Sienna' },
+                { hex: '#8B4513', name: 'Saddle brown' },
+                { hex: '#556B2F', name: 'Dark olive' },
+                { hex: '#C0392B', name: 'Burnt red' },
+                { hex: '#7D6608', name: 'Dark gold' },
+                { hex: '#1B5E20', name: 'Deep green' },
+                { hex: '#BF8C3E', name: 'Brass' },
+                { hex: '#E67E22', name: 'Pumpkin' },
+                { hex: '#C2185B', name: 'Dark pink' },
+                { hex: '#00695C', name: 'Dark cyan' },
+                { hex: '#4A148C', name: 'Deep purple' },
+                { hex: '#F57F17', name: 'Dark yellow' },
+                { hex: '#795548', name: 'Brown' },
+                { hex: '#546E7A', name: 'Blue grey' },
+                { hex: '#AD1457', name: 'Raspberry' },
+            ]
+        }
+    };
+
+    function _hexToRgb(hex) {
+        const r = parseInt(hex.slice(1,3),16), g = parseInt(hex.slice(3,5),16), b = parseInt(hex.slice(5,7),16);
+        return `${r},${g},${b}`;
+    }
+    function _tv(f) { const el = document.getElementById(`theme-${f}`); return el ? el.value : _themeDefaults[f]; }
+    function _stv(f, hex) { const el = document.getElementById(`theme-${f}`); if (el) el.value = hex; }
+
+    function _renderRolePickers() {
+        const ctr = document.getElementById('theme-roles-container');
+        if (!ctr) return;
+        ctr.innerHTML = '';
+        const isA11y = document.getElementById('theme-accessibility')?.checked;
+
+        _themeColorFields.forEach(f => {
+            const role = _rolePalettes[f];
+            const cur = _tv(f);
+            const row = document.createElement('div');
+            row.className = 'config-item p-3';
+            if (isA11y) { row.style.opacity = '0.35'; row.style.pointerEvents = 'none'; }
+
+            /* header: colour dot · label · hex */
+            const hdr = document.createElement('div');
+            hdr.className = 'flex items-center gap-3 mb-2';
+            hdr.innerHTML = `<div class="w-8 h-8 rounded-lg border border-white/10 shrink-0" style="background:${cur}"></div>`
+                + `<div class="flex-1"><span class="block text-sm font-medium text-white mb-0.5">${role.label}</span>`
+                + `<span class="text-xs text-gray-400">${role.description}</span></div>`
+                + `<span class="text-xs font-mono text-gray-400">${cur.toUpperCase()}</span>`;
+            row.appendChild(hdr);
+
+            /* swatch grid */
+            const grid = document.createElement('div');
+            grid.className = 'flex flex-wrap gap-2 mt-1';
+            role.swatches.forEach(sw => {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.style.background = sw.hex;
+                btn.title = sw.name + ' (' + sw.hex + ')';
+                const sel = cur.toUpperCase() === sw.hex.toUpperCase();
+                btn.className = 'w-8 h-8 rounded-lg border-2 transition-all hover:scale-110 focus:outline-none '
+                    + (sel ? 'border-white ring-2 ring-offset-2 ring-offset-black ring-white/60 scale-110' : 'border-white/10 hover:border-white/40');
+                btn.addEventListener('click', () => { _stv(f, sw.hex); _renderRolePickers(); _syncPreview(); _applyThemeLive(); });
+                grid.appendChild(btn);
+            });
+            row.appendChild(grid);
+            ctr.appendChild(row);
+        });
+
+        /* show a11y banner when active */
+        if (isA11y) {
+            const banner = document.createElement('div');
+            banner.className = 'config-item p-3 text-center text-xs text-gray-400';
+            banner.innerHTML = '<i data-lucide="eye" class="w-4 h-4 inline-block mr-1" style="vertical-align:-3px;"></i> Accessibility mode active — palette locked to high-contrast black &amp; white';
+            ctr.prepend(banner);
+            if (window.lucide) lucide.createIcons();
+        }
+    }
+
+    function _syncPreview() {
+        _themeColorFields.forEach(f => {
+            const strip = document.getElementById(`strip-${f}`);
+            if (strip) strip.style.background = _tv(f);
+        });
+        const label = document.getElementById('preview-label');
+        if (label) label.textContent = document.getElementById('theme-accessibility')?.checked ? 'Accessibility mode' : 'Custom palette';
+
+        /* text legibility mock */
+        const ink = _tv('ink'), canvas = _tv('canvas'), a = _tv('accent_a'), c = _tv('accent_c');
+        const mock = document.getElementById('text-mock'); if (mock) mock.style.background = ink;
+        const mh = document.getElementById('mock-heading'); if (mh) mh.style.color = canvas;
+        const mb = document.getElementById('mock-body'); if (mb) mb.style.color = canvas;
+        const ml = document.getElementById('mock-link'); if (ml) ml.style.color = a;
+        const mbg = document.getElementById('mock-badge'); if (mbg) { mbg.style.background = c; mbg.style.color = canvas; }
+        document.querySelectorAll('.mock-sep').forEach(s => s.style.color = canvas);
+    }
+
+    function _applyThemeLive() {
+        const root = document.documentElement.style;
+        root.setProperty('--ink', _hexToRgb(_tv('ink')));
+        root.setProperty('--canvas', _hexToRgb(_tv('canvas')));
+        root.setProperty('--a', _hexToRgb(_tv('accent_a')));
+        root.setProperty('--b', _hexToRgb(_tv('accent_b')));
+        root.setProperty('--c', _hexToRgb(_tv('accent_c')));
+    }
+
+    function toggleAccessibility() {
+        const isA11y = document.getElementById('theme-accessibility')?.checked;
+        if (isA11y) {
+            _preA11yValues = {};
+            _themeColorFields.forEach(f => _preA11yValues[f] = _tv(f));
+            Object.entries(_accessibilityPalette).forEach(([f, hex]) => _stv(f, hex));
+        } else {
+            const restore = _preA11yValues || _themeDefaults;
+            _themeColorFields.forEach(f => _stv(f, restore[f] || _themeDefaults[f]));
+            _preA11yValues = null;
+        }
+        _renderRolePickers(); _syncPreview(); _applyThemeLive();
+    }
+
+    async function loadTheme() {
+        try {
+            const data = await apiCall('/api/v1/config/theme');
+            const vals = (data && data.config) ? data.config : _themeDefaults;
+            _themeColorFields.forEach(f => _stv(f, vals[f] || _themeDefaults[f]));
+            const a11y = document.getElementById('theme-accessibility');
+            if (a11y) a11y.checked = !!vals.accessibility_mode;
+            _renderRolePickers(); _syncPreview();
+        } catch(e) { console.error('Failed to load theme:', e); }
+    }
+
+    async function saveTheme() {
+        const values = {};
+        _themeColorFields.forEach(f => values[f] = _tv(f));
+        values.accessibility_mode = !!document.getElementById('theme-accessibility')?.checked;
+        sessionStorage.setItem('mk_theme', JSON.stringify(values));
+        const data = await apiCall('/api/v1/config/theme', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ values })
+        });
+        if (data.success) showToast('Theme saved! Colours will apply across all pages.');
+    }
+
+    async function resetTheme() {
+        if (!confirm('Reset palette to defaults?')) return;
+        _themeColorFields.forEach(f => _stv(f, _themeDefaults[f]));
+        const a11y = document.getElementById('theme-accessibility');
+        if (a11y) a11y.checked = false;
+        _preA11yValues = null;
+        _renderRolePickers(); _syncPreview(); _applyThemeLive();
+        sessionStorage.removeItem('mk_theme');
+        const data = await apiCall('/api/v1/config/theme/reset', { method: 'POST' });
+        if (data.success) showToast('Theme reset to defaults!');
+    }
+
+    document.addEventListener('DOMContentLoaded', () => { loadTheme(); });
+
+    function randomTheme() {
+        const a11y = document.getElementById('theme-accessibility');
+        if (a11y && a11y.checked) { a11y.checked = false; _preA11yValues = null; }
+        _themeColorFields.forEach(f => {
+            const pool = _rolePalettes[f].swatches;
+            const pick = pool[Math.floor(Math.random() * pool.length)];
+            _stv(f, pick.hex);
+        });
+        _renderRolePickers(); _syncPreview(); _applyThemeLive();
+    }
+
+    /* ───── Modal keyboard dismiss ───── */
+
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') hideModal(); });
+    document.getElementById('keyModal').addEventListener('click', (e) => { if (e.target.id === 'keyModal') hideModal(); });
+</script>
+{% endblock %}

@@ -1,0 +1,580 @@
+{% extends "base.html" %}
+{% block title %}Inference Log — {{ bot_name }}{% endblock %}
+
+{% block head %}
+<style>
+/* ── Tabs ───────────────────────────────────────────────────────────── */
+.log-tabs{display:flex;gap:0;border-bottom:1px solid rgba(255,255,255,0.06);margin-bottom:0;}
+.log-tab{padding:0.65rem 1.25rem;font-size:0.78rem;color:rgba(255,255,255,0.35);cursor:pointer;
+  border-bottom:2px solid transparent;transition:all .15s;font-weight:500;display:flex;align-items:center;gap:0.4rem;}
+.log-tab:hover{color:rgba(255,255,255,0.6);}
+.log-tab.active{color:rgba(var(--a),0.85);border-bottom-color:rgba(var(--a),0.6);}
+.tab-panel{display:none;}
+.tab-panel.active{display:block;}
+
+/* ── Trace list ─────────────────────────────────────────────────────── */
+.trace-item{display:flex;align-items:center;gap:1rem;padding:0.75rem 1rem;border-bottom:1px solid rgba(255,255,255,0.04);
+  cursor:pointer;transition:background .15s;}
+.trace-item:hover{background:rgba(255,255,255,0.03);}
+.trace-item.active{background:rgba(var(--a),0.06);border-left:3px solid rgba(var(--a),0.6);}
+.trace-query{flex:1;font-size:0.82rem;color:rgba(255,255,255,0.7);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.trace-meta{display:flex;gap:0.6rem;align-items:center;font-size:0.65rem;color:rgba(255,255,255,0.25);font-family:'Martian Mono',monospace;}
+.trace-id{color:rgba(255,255,255,0.15);font-size:0.6rem;}
+
+/* ── Detail panel ───────────────────────────────────────────────────── */
+.detail-header{padding:1rem 1.25rem;border-bottom:1px solid rgba(255,255,255,0.06);}
+.detail-query{font-size:0.95rem;color:#fff;font-weight:500;margin-bottom:0.5rem;}
+.detail-stats{display:flex;gap:1rem;flex-wrap:wrap;}
+.detail-stat{font-size:0.65rem;color:rgba(255,255,255,0.3);font-family:'Martian Mono',monospace;}
+.detail-stat strong{color:rgba(255,255,255,0.6);}
+
+/* ── Pipeline stages ────────────────────────────────────────────────── */
+.stage{border:1px solid rgba(255,255,255,0.06);border-radius:0.5rem;margin:0.6rem 1rem;overflow:hidden;}
+.stage-header{display:flex;justify-content:space-between;align-items:center;padding:0.6rem 0.85rem;
+  background:rgba(255,255,255,0.02);cursor:pointer;transition:background .15s;}
+.stage-header:hover{background:rgba(255,255,255,0.04);}
+.stage-name{font-size:0.78rem;font-weight:600;color:rgba(255,255,255,0.7);display:flex;align-items:center;gap:0.5rem;}
+.stage-badge{font-size:0.6rem;padding:0.1rem 0.45rem;border-radius:5px;font-family:'Martian Mono',monospace;font-weight:500;}
+.badge-docs{background:rgba(99,102,241,0.12);color:rgb(129,140,248);}
+.badge-time{background:rgba(16,185,129,0.12);color:rgb(16,185,129);}
+.badge-skipped{background:rgba(245,158,11,0.12);color:rgb(245,158,11);}
+.stage-body{padding:0.75rem 0.85rem;display:none;border-top:1px solid rgba(255,255,255,0.04);}
+.stage.open .stage-body{display:block;}
+.stage-chevron{transition:transform .2s;color:rgba(255,255,255,0.2);}
+.stage.open .stage-chevron{transform:rotate(90deg);}
+
+/* ── Doc previews inside stages ─────────────────────────────────────── */
+.doc-preview{background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.04);border-radius:0.4rem;
+  padding:0.6rem 0.75rem;margin-bottom:0.4rem;font-size:0.75rem;}
+.doc-rank{font-size:0.6rem;font-weight:700;color:rgba(var(--a),0.6);margin-bottom:0.2rem;display:flex;justify-content:space-between;align-items:center;}
+.doc-content{color:rgba(255,255,255,0.5);line-height:1.5;white-space:pre-wrap;word-break:break-word;max-height:6rem;overflow-y:auto;}
+.doc-meta-pills{display:flex;flex-wrap:wrap;gap:0.3rem;margin-top:0.35rem;}
+.doc-meta-pill{font-size:0.58rem;padding:0.1rem 0.4rem;border-radius:4px;background:rgba(255,255,255,0.04);
+  color:rgba(255,255,255,0.3);font-family:'Martian Mono',monospace;}
+
+/* ── Detail JSON ────────────────────────────────────────────────────── */
+.detail-json{font-size:0.7rem;font-family:'Martian Mono',monospace;color:rgba(255,255,255,0.4);
+  background:rgba(0,0,0,0.2);border-radius:0.35rem;padding:0.6rem;line-height:1.5;
+  white-space:pre-wrap;word-break:break-word;max-height:12rem;overflow-y:auto;}
+
+/* ── Score pills ────────────────────────────────────────────────────── */
+.score-pill{font-size:0.62rem;padding:0.1rem 0.45rem;border-radius:5px;font-family:'Martian Mono',monospace;font-weight:600;}
+.score-good{background:rgba(16,185,129,0.12);color:rgb(16,185,129);}
+.score-ok{background:rgba(245,158,11,0.12);color:rgb(245,158,11);}
+.score-weak{background:rgba(239,68,68,0.12);color:rgb(239,68,68);}
+
+/* ── Layout ─────────────────────────────────────────────────────────── */
+.split-layout{display:grid;grid-template-columns:380px 1fr;gap:0;height:calc(100vh - 14rem);min-height:400px;}
+.trace-list-panel{border-right:1px solid rgba(255,255,255,0.06);overflow-y:auto;}
+.trace-detail-panel{overflow-y:auto;}
+.empty-detail{display:flex;align-items:center;justify-content:center;height:100%;color:rgba(255,255,255,0.15);font-size:0.85rem;}
+
+/* ── Inference log table ────────────────────────────────────────────── */
+.inf-table{width:100%;border-collapse:collapse;font-size:0.75rem;}
+.inf-table th{text-align:left;padding:0.5rem 0.75rem;color:rgba(255,255,255,0.3);font-weight:600;font-size:0.65rem;
+  text-transform:uppercase;letter-spacing:0.05em;border-bottom:1px solid rgba(255,255,255,0.06);position:sticky;top:0;background:rgba(26,23,20,0.95);}
+.inf-table td{padding:0.45rem 0.75rem;border-bottom:1px solid rgba(255,255,255,0.03);color:rgba(255,255,255,0.55);font-family:'Martian Mono',monospace;font-size:0.68rem;}
+.inf-table tr:hover td{background:rgba(255,255,255,0.02);}
+.inf-role{font-size:0.58rem;padding:0.1rem 0.4rem;border-radius:4px;font-weight:600;}
+.role-initial{background:rgba(99,102,241,0.12);color:rgb(129,140,248);}
+.role-critique{background:rgba(245,158,11,0.12);color:rgb(245,158,11);}
+.role-synthesize{background:rgba(16,185,129,0.12);color:rgb(16,185,129);}
+.role-single{background:rgba(255,255,255,0.06);color:rgba(255,255,255,0.4);}
+.latency-fast{color:rgb(16,185,129);}
+.latency-med{color:rgb(245,158,11);}
+.latency-slow{color:rgb(239,68,68);}
+
+/* ── Engine log viewer ──────────────────────────────────────────────── */
+.engine-log{font-family:'Martian Mono',monospace;font-size:0.68rem;line-height:1.7;color:rgba(255,255,255,0.4);
+  background:rgba(0,0,0,0.25);border-radius:0.4rem;padding:0.75rem 1rem;max-height:200px;overflow-y:auto;
+  white-space:pre-wrap;word-break:break-word;}
+
+/* ── Playground ─────────────────────────────────────────────────────── */
+.pg-form{display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;padding:1rem 1.25rem;}
+.pg-field{display:flex;flex-direction:column;gap:0.25rem;}
+.pg-field.full{grid-column:1/-1;}
+.pg-label{font-size:0.65rem;color:rgba(255,255,255,0.3);text-transform:uppercase;letter-spacing:0.05em;font-weight:600;}
+.pg-input,.pg-select,.pg-textarea{background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:0.4rem;
+  padding:0.45rem 0.6rem;color:rgba(255,255,255,0.8);font-size:0.78rem;font-family:inherit;outline:none;transition:border-color .15s;}
+.pg-input:focus,.pg-select:focus,.pg-textarea:focus{border-color:rgba(var(--a),0.4);}
+.pg-textarea{min-height:6rem;resize:vertical;font-family:'Martian Mono',monospace;font-size:0.72rem;line-height:1.5;}
+.pg-response{background:rgba(0,0,0,0.2);border:1px solid rgba(255,255,255,0.04);border-radius:0.4rem;
+  padding:0.75rem 1rem;color:rgba(255,255,255,0.7);font-size:0.8rem;line-height:1.6;
+  white-space:pre-wrap;word-break:break-word;max-height:28rem;overflow-y:auto;margin:0 1.25rem 1rem;}
+.pg-stats{display:flex;gap:1rem;flex-wrap:wrap;padding:0 1.25rem 0.75rem;}
+.pg-stat{font-size:0.65rem;color:rgba(255,255,255,0.25);font-family:'Martian Mono',monospace;}
+.pg-stat strong{color:rgba(255,255,255,0.55);}
+.pg-btn{background:rgba(var(--a),0.15);border:1px solid rgba(var(--a),0.3);color:rgba(var(--a),0.85);
+  padding:0.5rem 1.25rem;border-radius:0.4rem;font-size:0.78rem;font-weight:600;cursor:pointer;transition:all .15s;}
+.pg-btn:hover{background:rgba(var(--a),0.25);}
+.pg-btn:disabled{opacity:0.4;cursor:not-allowed;}
+
+@media(max-width:900px){
+    .split-layout{grid-template-columns:1fr;height:auto;}
+    .trace-list-panel{max-height:300px;border-right:none;border-bottom:1px solid rgba(255,255,255,0.06);}
+    .pg-form{grid-template-columns:1fr;}
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<header class="header-scrim flex justify-between items-center mb-4 reveal">
+    <div>
+        <h2 class="text-2xl font-semibold text-white mb-1 tracking-tight">Inference Log</h2>
+        <p class="text-sm text-secondary">Trace retrieval pipelines, inspect every LLM call, and test models interactively</p>
+    </div>
+    <div class="flex gap-2" id="headerActions">
+        <button class="text-xs px-3 py-1.5 rounded-lg border border-white/10 text-gray-400 hover:text-white transition" onclick="refreshCurrentTab()">
+            <i data-lucide="refresh-cw" class="w-3 h-3 inline-block mr-1" style="vertical-align:-2px;"></i>Refresh
+        </button>
+    </div>
+</header>
+
+<div class="glass-card glow-card overflow-hidden reveal stagger-1">
+    <!-- Tab bar -->
+    <div class="log-tabs">
+        <div class="log-tab active" data-tab="traces" onclick="switchTab('traces')">
+            <i data-lucide="git-branch" class="w-3.5 h-3.5"></i> Retrieval Traces
+        </div>
+        <div class="log-tab" data-tab="inference" onclick="switchTab('inference')">
+            <i data-lucide="activity" class="w-3.5 h-3.5"></i> Inference Log
+        </div>
+        <div class="log-tab" data-tab="playground" onclick="switchTab('playground')">
+            <i data-lucide="play-circle" class="w-3.5 h-3.5"></i> Model Playground
+        </div>
+    </div>
+
+    <!-- ─── Tab 1: Retrieval Traces (existing) ──────────────────────── -->
+    <div class="tab-panel active" id="panel-traces">
+        <div class="split-layout">
+            <div class="trace-list-panel" id="traceList">
+                <div class="p-6 text-center text-gray-600 text-sm">Loading traces…</div>
+            </div>
+            <div class="trace-detail-panel" id="traceDetail">
+                <div class="empty-detail">
+                    <div class="text-center">
+                        <i data-lucide="git-branch" class="w-8 h-8 mx-auto block mb-2" style="opacity:0.2;"></i>
+                        <p>Select a trace to inspect the pipeline</p>
+                        <p class="text-xs mt-1" style="color:rgba(255,255,255,0.1);">Ask a question in web chat, then refresh to see the trace</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ─── Tab 2: Inference Log ────────────────────────────────────── -->
+    <div class="tab-panel" id="panel-inference">
+        <div style="overflow-y:auto;max-height:calc(100vh - 14rem);">
+            <!-- Engine log (collapsible) -->
+            <details style="margin:0.75rem 1rem 0;">
+                <summary style="cursor:pointer;font-size:0.72rem;color:rgba(255,255,255,0.3);font-weight:600;padding:0.4rem 0;">
+                    <i data-lucide="terminal" class="w-3 h-3 inline-block mr-1" style="vertical-align:-2px;"></i>
+                    Engine Log (llama-server)
+                </summary>
+                <div class="engine-log" id="engineLog" style="margin-top:0.4rem;">No engine logs available</div>
+            </details>
+            <!-- Inference call table -->
+            <div style="padding:0.75rem 1rem 0;">
+                <div style="font-size:0.72rem;color:rgba(255,255,255,0.3);font-weight:600;margin-bottom:0.5rem;">
+                    Recent LLM Calls
+                </div>
+            </div>
+            <div style="overflow-x:auto;padding:0 1rem 1rem;">
+                <table class="inf-table" id="infTable">
+                    <thead>
+                        <tr>
+                            <th>Time</th>
+                            <th>Backend</th>
+                            <th>Model</th>
+                            <th>Role</th>
+                            <th>Tokens</th>
+                            <th>Latency</th>
+                            <th>Cost</th>
+                        </tr>
+                    </thead>
+                    <tbody id="infBody">
+                        <tr><td colspan="7" class="text-center" style="padding:2rem;color:rgba(255,255,255,0.15);">Loading…</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- ─── Tab 3: Model Playground ─────────────────────────────────── -->
+    <div class="tab-panel" id="panel-playground">
+        <div class="pg-form" id="pgForm">
+            <div class="pg-field">
+                <span class="pg-label">Backend</span>
+                <select class="pg-select" id="pgBackend" onchange="onBackendChange()">
+                    <option value="">Loading…</option>
+                </select>
+            </div>
+            <div class="pg-field">
+                <span class="pg-label">Model</span>
+                <select class="pg-select" id="pgModel">
+                    <option value="">Select a backend first</option>
+                </select>
+            </div>
+            <div class="pg-field">
+                <span class="pg-label">Temperature</span>
+                <input type="number" class="pg-input" id="pgTemp" value="0.5" min="0" max="2" step="0.1">
+            </div>
+            <div class="pg-field">
+                <span class="pg-label">Max Tokens</span>
+                <input type="number" class="pg-input" id="pgMaxTokens" value="2000" min="64" max="8000" step="64">
+            </div>
+            <div class="pg-field full">
+                <span class="pg-label">System Prompt <span style="font-weight:400;opacity:0.5;">(optional)</span></span>
+                <input type="text" class="pg-input" id="pgSystem" placeholder="e.g. You are a helpful assistant.">
+            </div>
+            <div class="pg-field full">
+                <span class="pg-label">Prompt</span>
+                <textarea class="pg-textarea" id="pgPrompt" placeholder="Type your test prompt here…"></textarea>
+            </div>
+            <div class="pg-field full" style="flex-direction:row;justify-content:flex-end;">
+                <button class="pg-btn" id="pgSend" onclick="sendPlayground()">
+                    <i data-lucide="play" class="w-3.5 h-3.5 inline-block mr-1" style="vertical-align:-2px;"></i>Send
+                </button>
+            </div>
+        </div>
+        <div class="pg-stats" id="pgStats" style="display:none;"></div>
+        <div class="pg-response" id="pgResponse" style="display:none;"></div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+/* ══════════════════════════════════════════════════════════════════════
+   Tab switching
+   ══════════════════════════════════════════════════════════════════════ */
+let currentTab = 'traces';
+function switchTab(tab) {
+    currentTab = tab;
+    document.querySelectorAll('.log-tab').forEach(t => t.classList.toggle('active', t.dataset.tab === tab));
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.toggle('active', p.id === 'panel-' + tab));
+    lucide.createIcons();
+    // Lazy-load on first visit
+    if (tab === 'inference' && !_infLoaded) loadInference();
+    if (tab === 'playground' && !_pgLoaded) loadPlaygroundBackends();
+}
+
+function refreshCurrentTab() {
+    if (currentTab === 'traces') loadTraces();
+    else if (currentTab === 'inference') loadInference();
+    else if (currentTab === 'playground') loadPlaygroundBackends();
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   Tab 1: Retrieval Traces (preserved from original)
+   ══════════════════════════════════════════════════════════════════════ */
+let allTraces = [];
+
+async function loadTraces() {
+    try {
+        const data = await apiCall('/api/v1/retrieval/traces?limit=50');
+        allTraces = data.traces || [];
+        renderTraceList();
+    } catch(e) {
+        document.getElementById('traceList').innerHTML =
+            `<div class="p-4 text-red-400 text-sm">${e.message || e}</div>`;
+    }
+}
+
+function renderTraceList() {
+    const el = document.getElementById('traceList');
+    if (!allTraces.length) {
+        el.innerHTML = `<div class="p-6 text-center text-gray-600 text-sm">
+            <i data-lucide="inbox" class="w-6 h-6 mx-auto block mb-2" style="opacity:0.2;"></i>
+            No traces yet — ask a question in web chat to generate one
+        </div>`;
+        lucide.createIcons();
+        return;
+    }
+    el.innerHTML = allTraces.map((t, i) => {
+        const ms = t.summary?.total_ms ? `${Math.round(t.summary.total_ms)}ms` : '—';
+        const stages = t.summary?.stage_count || t.stages?.length || 0;
+        const time = new Date(t.started_at * 1000).toLocaleTimeString();
+        return `<div class="trace-item" data-idx="${i}" onclick="selectTrace(${i})">
+            <div class="trace-query">${escHtml(t.query)}</div>
+            <div class="trace-meta">
+                <span>${stages} stages</span>
+                <span>${ms}</span>
+                <span>${time}</span>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+function selectTrace(idx) {
+    document.querySelectorAll('.trace-item').forEach(el => el.classList.remove('active'));
+    const items = document.querySelectorAll('.trace-item');
+    if (items[idx]) items[idx].classList.add('active');
+    const t = allTraces[idx];
+    if (!t) return;
+    renderDetail(t);
+}
+
+function renderDetail(t) {
+    const el = document.getElementById('traceDetail');
+    const ms = t.summary?.total_ms ? `${Math.round(t.summary.total_ms)}ms` : '—';
+    const time = new Date(t.started_at * 1000).toLocaleString();
+
+    let summaryPills = '';
+    if (t.summary) {
+        const s = t.summary;
+        if (s.context_words !== undefined) summaryPills += `<span class="detail-stat">Context: <strong>${s.context_words} words</strong></span>`;
+        if (s.pipeline_used !== undefined) summaryPills += `<span class="detail-stat">Pipeline: <strong>${s.pipeline_used ? 'Yes' : 'Fallback'}</strong></span>`;
+        if (s.web_searched) summaryPills += `<span class="detail-stat">Web: <strong>Yes</strong></span>`;
+        if (s.reply_length) summaryPills += `<span class="detail-stat">Reply: <strong>${s.reply_length} chars</strong></span>`;
+        if (s.cache_hit) summaryPills += `<span class="detail-stat" style="color:rgba(245,158,11,0.7);">⚡ Cache hit</span>`;
+    }
+
+    let stagesHtml = '';
+    (t.stages || []).forEach((stage, i) => {
+        const skipped = stage.detail?.skipped;
+        const badges = [];
+        if (stage.doc_count) badges.push(`<span class="stage-badge badge-docs">${stage.doc_count} docs</span>`);
+        if (stage.elapsed_ms) badges.push(`<span class="stage-badge badge-time">${Math.round(stage.elapsed_ms)}ms</span>`);
+        if (skipped) badges.push(`<span class="stage-badge badge-skipped">skipped</span>`);
+
+        let bodyHtml = '';
+        if (stage.detail && Object.keys(stage.detail).length) {
+            bodyHtml += `<div class="detail-json">${escHtml(JSON.stringify(stage.detail, null, 2))}</div>`;
+        }
+        if (stage.docs_preview && stage.docs_preview.length) {
+            bodyHtml += '<div style="margin-top:0.6rem;">';
+            stage.docs_preview.forEach(doc => {
+                const scoreHtml = doc.score !== undefined ? renderScorePill(doc.score) : '';
+                let metaPills = '';
+                for (const [k, v] of Object.entries(doc)) {
+                    if (['rank', 'content_preview', 'score'].includes(k)) continue;
+                    metaPills += `<span class="doc-meta-pill">${escHtml(k)}: ${escHtml(String(v).slice(0, 60))}</span>`;
+                }
+                bodyHtml += `<div class="doc-preview">
+                    <div class="doc-rank"><span>#${doc.rank}</span>${scoreHtml}</div>
+                    <div class="doc-content">${escHtml(doc.content_preview || '')}</div>
+                    ${metaPills ? '<div class="doc-meta-pills">' + metaPills + '</div>' : ''}
+                </div>`;
+            });
+            if (stage.doc_count > stage.docs_preview.length) {
+                bodyHtml += `<div class="text-xs text-gray-600 mt-1">+ ${stage.doc_count - stage.docs_preview.length} more docs not shown</div>`;
+            }
+            bodyHtml += '</div>';
+        }
+
+        stagesHtml += `<div class="stage" id="stage-${i}">
+            <div class="stage-header" onclick="toggleStage(${i})">
+                <div class="stage-name">
+                    <i data-lucide="chevron-right" class="w-3 h-3 stage-chevron"></i>
+                    ${formatStageName(stage.name)}
+                    ${badges.join('')}
+                </div>
+            </div>
+            <div class="stage-body">${bodyHtml || '<span class="text-xs text-gray-600">No additional detail</span>'}</div>
+        </div>`;
+    });
+
+    el.innerHTML = `
+        <div class="detail-header">
+            <div class="detail-query">${escHtml(t.query)}</div>
+            <div class="detail-stats">
+                <span class="detail-stat">ID: <strong>${t.trace_id}</strong></span>
+                <span class="detail-stat">Time: <strong>${time}</strong></span>
+                <span class="detail-stat">Duration: <strong>${ms}</strong></span>
+                <span class="detail-stat">Entry: <strong>${t.entry_point}</strong></span>
+                ${summaryPills}
+            </div>
+        </div>
+        <div style="padding:0.5rem 0;">${stagesHtml}</div>
+    `;
+    lucide.createIcons();
+}
+
+function toggleStage(idx) {
+    const el = document.getElementById('stage-' + idx);
+    if (el) el.classList.toggle('open');
+}
+function formatStageName(name) {
+    return name.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+}
+function renderScorePill(score) {
+    let cls = 'score-weak';
+    if (score < 0.8) cls = 'score-good';
+    else if (score < 1.2) cls = 'score-ok';
+    return `<span class="score-pill ${cls}">L2: ${score}</span>`;
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   Tab 2: Inference Log
+   ══════════════════════════════════════════════════════════════════════ */
+let _infLoaded = false;
+
+async function loadInference() {
+    _infLoaded = true;
+    // Load engine logs and inference entries in parallel
+    const [infData, logData] = await Promise.all([
+        apiCall('/api/v1/inference/recent?limit=100').catch(e => ({success:false, error:e.message})),
+        apiCall('/api/v1/inference/engine-logs?tail=80').catch(e => ({success:false, error:e.message})),
+    ]);
+
+    // Engine log
+    const logEl = document.getElementById('engineLog');
+    if (logData.success && logData.lines && logData.lines.length) {
+        logEl.textContent = logData.lines.join('\n');
+        logEl.scrollTop = logEl.scrollHeight;
+    } else {
+        logEl.textContent = logData.error || logData.message || 'No engine logs available';
+    }
+
+    // Inference table
+    const tbody = document.getElementById('infBody');
+    if (!infData.success || !infData.entries || !infData.entries.length) {
+        tbody.innerHTML = `<tr><td colspan="7" class="text-center" style="padding:2rem;color:rgba(255,255,255,0.15);">
+            ${infData.error || 'No inference calls recorded yet — ask a question in web chat to generate entries'}
+        </td></tr>`;
+        return;
+    }
+
+    tbody.innerHTML = infData.entries.map(e => {
+        const time = e.timestamp ? new Date(e.timestamp).toLocaleTimeString() : '—';
+        const roleClass = 'role-' + (e.pipeline_role || 'single');
+        const latMs = e.latency_ms || 0;
+        let latClass = 'latency-fast';
+        if (latMs > 10000) latClass = 'latency-slow';
+        else if (latMs > 3000) latClass = 'latency-med';
+        const cost = e.actual_cost_usd > 0 ? `$${e.actual_cost_usd.toFixed(4)}` : '<span style="color:rgba(16,185,129,0.6);">free</span>';
+        return `<tr>
+            <td>${time}</td>
+            <td>${escHtml(e.backend_name || e.backend_type || '—')}</td>
+            <td>${escHtml(truncModel(e.model))}</td>
+            <td><span class="inf-role ${roleClass}">${e.pipeline_role || 'single'}</span></td>
+            <td>${(e.total_tokens || 0).toLocaleString()}</td>
+            <td class="${latClass}">${latMs.toLocaleString()}ms</td>
+            <td>${cost}</td>
+        </tr>`;
+    }).join('');
+}
+
+function truncModel(m) {
+    if (!m) return '—';
+    return m.length > 28 ? m.slice(0, 26) + '…' : m;
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   Tab 3: Model Playground
+   ══════════════════════════════════════════════════════════════════════ */
+let _pgLoaded = false;
+let _pgBackends = {};  // name → {models: [...]}
+
+async function loadPlaygroundBackends() {
+    _pgLoaded = true;
+    try {
+        const data = await apiCall('/api/v1/router/backends');
+        if (!data.success) throw new Error(data.error || 'Failed');
+        _pgBackends = {};
+        const raw = data.backends || {};
+        for (const [name, b] of Object.entries(raw)) {
+            _pgBackends[name] = {
+                models: b.models || [],
+                default_model: b.default_model || '',
+                type: b.type,
+            };
+        }
+        const sel = document.getElementById('pgBackend');
+        sel.innerHTML = Object.keys(_pgBackends).map(n => `<option value="${escHtml(n)}">${escHtml(n)}</option>`).join('');
+        if (sel.options.length) onBackendChange();
+    } catch(e) {
+        document.getElementById('pgBackend').innerHTML = `<option value="">Error: ${escHtml(e.message)}</option>`;
+    }
+}
+
+function onBackendChange() {
+    const name = document.getElementById('pgBackend').value;
+    const modelSel = document.getElementById('pgModel');
+    const info = _pgBackends[name];
+    if (!info || !info.models.length) {
+        modelSel.innerHTML = '<option value="">No models available</option>';
+        return;
+    }
+    modelSel.innerHTML = info.models.map(m => `<option value="${escHtml(m)}" ${m===info.default_model?'selected':''}>${escHtml(m)}</option>`).join('');
+}
+
+async function sendPlayground() {
+    const btn = document.getElementById('pgSend');
+    const prompt = document.getElementById('pgPrompt').value.trim();
+    if (!prompt) { showToast('Enter a prompt', 'error'); return; }
+
+    btn.disabled = true;
+    btn.innerHTML = '<i data-lucide="loader" class="w-3.5 h-3.5 inline-block mr-1 animate-spin" style="vertical-align:-2px;"></i>Running…';
+    lucide.createIcons();
+
+    const resEl = document.getElementById('pgResponse');
+    const statsEl = document.getElementById('pgStats');
+    resEl.style.display = 'none';
+    statsEl.style.display = 'none';
+
+    try {
+        const data = await apiCall('/api/v1/inference/playground', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                backend: document.getElementById('pgBackend').value,
+                model: document.getElementById('pgModel').value,
+                prompt: prompt,
+                system_prompt: document.getElementById('pgSystem').value.trim() || null,
+                temperature: parseFloat(document.getElementById('pgTemp').value) || 0.5,
+                max_tokens: parseInt(document.getElementById('pgMaxTokens').value) || 2000,
+            }),
+        });
+
+        if (!data.success) throw new Error(data.error || 'Generation failed');
+
+        resEl.textContent = data.response;
+        resEl.style.display = 'block';
+
+        const latMs = data.latency_ms || 0;
+        let latClass = 'latency-fast';
+        if (latMs > 10000) latClass = 'latency-slow';
+        else if (latMs > 3000) latClass = 'latency-med';
+
+        statsEl.innerHTML = `
+            <span class="pg-stat">Backend: <strong>${escHtml(data.backend)}</strong></span>
+            <span class="pg-stat">Model: <strong>${escHtml(data.model)}</strong></span>
+            <span class="pg-stat">Temp: <strong>${data.temperature}</strong></span>
+            <span class="pg-stat ${latClass}">Latency: <strong>${latMs.toLocaleString()}ms</strong></span>
+            <span class="pg-stat">~${data.est_input_tokens} in → ~${data.est_output_tokens} out tokens</span>
+        `;
+        statsEl.style.display = 'flex';
+    } catch(e) {
+        resEl.textContent = 'Error: ' + (e.message || e);
+        resEl.style.display = 'block';
+        resEl.style.color = 'rgb(239,68,68)';
+        setTimeout(() => { resEl.style.color = ''; }, 4000);
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i data-lucide="play" class="w-3.5 h-3.5 inline-block mr-1" style="vertical-align:-2px;"></i>Send';
+        lucide.createIcons();
+    }
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   Shared utilities
+   ══════════════════════════════════════════════════════════════════════ */
+function escHtml(s) {
+    const d = document.createElement('div');
+    d.textContent = s;
+    return d.innerHTML;
+}
+
+// Check URL hash for tab deep-link
+(function() {
+    const hash = location.hash.replace('#','');
+    if (['traces','inference','playground'].includes(hash)) {
+        switchTab(hash);
+    }
+})();
+
+loadTraces();
+</script>
+{% endblock %}

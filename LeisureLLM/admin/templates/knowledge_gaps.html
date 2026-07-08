@@ -1,0 +1,1053 @@
+{% extends "base.html" %}
+{% block title %}Knowledge Gaps — {{ bot_name }}{% endblock %}
+
+{% block head %}
+<style>
+    .data-table th {
+        text-align: left;
+        padding: 12px 16px;
+        font-size: 11px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: rgba(249, 222, 162, 0.85);
+        border-bottom: 1px solid rgba(239, 170, 196, 0.15);
+        background: rgba(4, 3, 2, 0.94);
+        position: sticky;
+        top: 0;
+        z-index: 10;
+    }
+
+    .data-table th.sortable {
+        cursor: pointer;
+        user-select: none;
+    }
+
+    .data-table th.sortable:hover {
+        color: rgba(255, 255, 255, 0.8);
+        background: rgba(239, 170, 196, 0.1);
+    }
+
+    .data-table tr.selected td {
+        background: rgba(239, 170, 196, 0.28);
+    }
+
+    .badge-open { background: rgba(239, 170, 196, 0.2); color: #F4C3D6; border: 1px solid rgba(239, 170, 196, 0.3); }
+    .badge-resolved { background: rgba(100, 100, 100, 0.2); color: #888; border: 1px solid rgba(100, 100, 100, 0.3); }
+    .badge-in_progress { background: rgba(131, 120, 27, 0.2); color: #83781B; border: 1px solid rgba(131, 120, 27, 0.3); }
+
+    .badge-keep { background: rgba(239, 170, 196, 0.15); color: #F4C3D6; }
+    .badge-defer { background: rgba(131, 120, 27, 0.15); color: #83781B; }
+    .badge-discard { background: rgba(225, 57, 67, 0.15); color: #E13943; }
+
+    .btn {
+        padding: 8px 16px;
+        border-radius: 10px;
+        font-size: 13px;
+        font-weight: 500;
+        transition: all 0.2s ease;
+        cursor: pointer;
+        border: none;
+    }
+
+    .btn-primary {
+        background: linear-gradient(180deg, #F4C3D6 0%, #EFAAC4 100%);
+        color: white;
+        box-shadow: 0 2px 8px rgba(239, 170, 196, 0.3);
+    }
+
+    .btn-primary:hover {
+        background: linear-gradient(180deg, #F4C3D6 0%, #F4C3D6 100%);
+        transform: translateY(-1px);
+    }
+
+    .btn-secondary {
+        background: rgba(255, 255, 255, 0.05);
+        color: rgba(255, 255, 255, 0.7);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .btn-secondary:hover {
+        background: rgba(255, 255, 255, 0.1);
+        color: white;
+    }
+
+    .btn-danger {
+        background: rgba(225, 57, 67, 0.15);
+        color: #E13943;
+        border: 1px solid rgba(225, 57, 67, 0.3);
+    }
+
+    .btn-danger:hover {
+        background: rgba(225, 57, 67, 0.25);
+    }
+
+    .input {
+        background: rgba(4, 3, 2, 0.94);
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        border-radius: 10px;
+        padding: 10px 14px;
+        font-size: 13px;
+        color: white;
+        transition: all 0.2s ease;
+    }
+
+    .input:focus {
+        outline: none;
+        border-color: rgba(239, 170, 196, 0.5);
+        box-shadow: 0 0 0 3px rgba(239, 170, 196, 0.1);
+    }
+
+    .input::placeholder {
+        color: rgba(255, 255, 255, 0.40);
+    }
+
+    select.input {
+        cursor: pointer;
+    }
+
+    .checkbox {
+        width: 18px;
+        height: 18px;
+        border-radius: 4px;
+        border: 2px solid rgba(255, 255, 255, 0.2);
+        background: transparent;
+        cursor: pointer;
+        appearance: none;
+        transition: all 0.2s ease;
+    }
+
+    .checkbox:checked {
+        background: #EFAAC4;
+        border-color: #EFAAC4;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='white'%3E%3Cpath d='M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z'/%3E%3C/svg%3E");
+        background-size: 14px;
+        background-position: center;
+        background-repeat: no-repeat;
+    }
+
+    .modal-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.7);
+        backdrop-filter: blur(4px);
+        z-index: 100;
+        display: none;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .modal-overlay.active {
+        display: flex;
+    }
+
+    .modal {
+        background: linear-gradient(145deg, rgba(20, 32, 18, 0.98) 0%, rgba(10, 18, 10, 0.98) 100%);
+        border: 1px solid rgba(239, 170, 196, 0.2);
+        border-radius: 20px;
+        padding: 24px;
+        max-width: 600px;
+        width: 90%;
+        max-height: 80vh;
+        overflow-y: auto;
+        box-shadow: 0 24px 64px rgba(0, 0, 0, 0.5);
+    }
+
+    .pagination {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+    }
+
+    .pagination button {
+        padding: 8px 12px;
+        border-radius: 8px;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        color: rgba(255, 255, 255, 0.7);
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+
+    .pagination button:hover:not(:disabled) {
+        background: rgba(239, 170, 196, 0.15);
+        border-color: rgba(239, 170, 196, 0.3);
+        color: white;
+    }
+
+    .pagination button:disabled {
+        opacity: 0.45;
+        cursor: not-allowed;
+    }
+
+    .truncate-2 {
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+
+    /* ── Growth-insights panel ── */
+    .insights-toggle { cursor: pointer; user-select: none; }
+    .insights-toggle .chevron { transition: transform .25s ease; display: inline-block; }
+    .insights-toggle.open .chevron { transform: rotate(90deg); }
+    .insights-body { max-height: 0; overflow: hidden; transition: max-height .35s ease; }
+    .insights-body.open { max-height: 1200px; }
+    .topic-bar-g { height: 100%; border-radius: 4px 4px 0 0; transition: all .3s ease; min-width: 4px; }
+    .topic-bar-g:hover { opacity: .85; }
+    .topic-chart-g { display: flex; align-items: flex-end; gap: 6px; height: 110px; padding-top: 8px; }
+    .progress-ring-g { transform: rotate(-90deg); }
+    .action-card-g { transition: all .2s ease; }
+    .action-card-g:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
+    .priority-high { border-left: 3px solid #83781B; }
+    .priority-medium { border-left: 3px solid #5865F2; }
+    .priority-low { border-left: 3px solid #43B581; }
+</style>
+{% endblock %}
+
+{% block content %}
+<header class="header-scrim flex justify-between items-center mb-6 reveal">
+    <div>
+        <h2 class="text-2xl font-semibold text-white mb-1 tracking-tight">What the Assistant Needs to Learn</h2>
+        <p class="text-sm text-secondary">Topics detected from real conversations where the assistant couldn&rsquo;t answer confidently</p>
+    </div>
+</header>
+
+<div class="info-panel p-4 mb-6 reveal stagger-1">
+    <p class="text-sm text-secondary">
+        <span class="text-gold"><i data-lucide="lightbulb" class="w-4 h-4 inline-block"></i></span> The assistant tracks its own weak spots. When it can&rsquo;t answer a question well, the topic lands here automatically.
+        <strong class="text-white">Keep</strong> to flag it for follow-up, <strong class="text-white">Defer</strong> to snooze, or <strong class="text-white">Discard</strong> to dismiss.
+        To close a gap, go to <a href="/teach" class="text-teal hover:underline">Teach</a> and add the missing information &mdash; the knowledge base repairs itself.
+    </p>
+</div>
+
+<div class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6 reveal stagger-2">
+    <div class="stat-card cursor-pointer hover:ring-2 hover:ring-teal/40 hover:bg-teal/5 transition" onclick="filterByStatCard('status', 'open')" title="Click to filter by Open">
+        <div class="stat-value" id="statOpen">—</div>
+        <div class="stat-label">Open</div>
+    </div>
+    <div class="stat-card cursor-pointer hover:ring-2 hover:ring-green-400/40 hover:bg-green-400/5 transition" onclick="filterByStatCard('status', 'resolved')" title="Click to filter by Resolved">
+        <div class="stat-value" id="statResolved">—</div>
+        <div class="stat-label">Resolved</div>
+    </div>
+    <div class="stat-card cursor-pointer hover:ring-2 hover:ring-yellow-400/40 hover:bg-yellow-400/5 transition" onclick="filterByStatCard('curation', 'defer')" title="Click to filter by Deferred">
+        <div class="stat-value" id="statDeferred">—</div>
+        <div class="stat-label">Deferred</div>
+    </div>
+    <div class="stat-card cursor-pointer hover:ring-2 hover:ring-red-400/40 hover:bg-red-400/5 transition" onclick="filterByStatCard('priority', 'high')" title="Click to filter by High Priority">
+        <div class="stat-value" id="statHighPriority">—</div>
+        <div class="stat-label">High Priority</div>
+    </div>
+    <div class="stat-card cursor-pointer hover:ring-2 hover:ring-purple-400/40 hover:bg-purple-400/5 transition" onclick="filterByStatCard('frequent', '')" title="Click to filter by Frequently Asked">
+        <div class="stat-value" id="statFrequent">—</div>
+        <div class="stat-label">Frequently Asked</div>
+    </div>
+</div>
+
+<!-- ─── Collapsible Growth Insights ─── -->
+<div class="mb-6 reveal stagger-3">
+    <div class="insights-toggle flex items-center gap-2 mb-3 open" id="insightsToggle" onclick="toggleInsights()">
+        <span class="chevron text-gray-400">▶</span>
+        <span class="text-sm font-medium text-gray-300">Growth Insights</span>
+        <span class="text-xs text-gray-600 ml-1" id="insightsSubtitle"></span>
+    </div>
+    <div class="insights-body open" id="insightsBody">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+            <!-- Gap progress ring -->
+            <div class="info-panel p-5 relative overflow-hidden">
+                <h3 class="text-sm font-semibold text-white mb-3"><i data-lucide="target" class="w-4 h-4 inline-block"></i> Gap Resolution Progress</h3>
+                <div class="flex items-center gap-5">
+                    <div class="flex-shrink-0">
+                        <svg width="72" height="72" viewBox="0 0 80 80">
+                            <circle cx="40" cy="40" r="35" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="6"/>
+                            <circle id="gapRing" class="progress-ring-g" cx="40" cy="40" r="35" fill="none"
+                                    stroke="#43B581" stroke-width="6" stroke-linecap="round"
+                                    stroke-dasharray="220" stroke-dashoffset="220"/>
+                            <text x="40" y="44" text-anchor="middle" fill="white" font-size="16" font-weight="600"
+                                  id="gapPct">—</text>
+                        </svg>
+                    </div>
+                    <div class="flex-1 text-sm space-y-1">
+                        <div class="flex justify-between"><span class="text-gray-400">Resolved</span><span class="text-green-400" id="gapResolvedI">—</span></div>
+                        <div class="flex justify-between"><span class="text-gray-400">Open</span><span class="text-yellow-400" id="gapOpenI">—</span></div>
+                        <div class="flex justify-between"><span class="text-gray-400">Foundational left</span><span class="text-orange-400" id="gapFoundationalI">—</span></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quality metrics -->
+            <div class="info-panel p-5 relative overflow-hidden">
+                <h3 class="text-sm font-semibold text-white mb-3"><i data-lucide="microscope" class="w-4 h-4 inline-block"></i> Quality &amp; Coverage</h3>
+                <div class="space-y-2.5">
+                    <div>
+                        <div class="flex justify-between text-xs mb-1">
+                            <span class="text-gray-400">Avg Confidence</span>
+                            <span class="text-white" id="qConf">—</span>
+                        </div>
+                        <div class="w-full bg-gray-800 rounded-full h-1.5">
+                            <div id="qConfBar" class="bg-teal rounded-full h-1.5 transition-all" style="width:0%"></div>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="flex justify-between text-xs mb-1">
+                            <span class="text-gray-400">Enrichment Coverage</span>
+                            <span class="text-white" id="qEnrich">—</span>
+                        </div>
+                        <div class="w-full bg-gray-800 rounded-full h-1.5">
+                            <div id="qEnrichBar" class="bg-purple-400 rounded-full h-1.5 transition-all" style="width:0%"></div>
+                        </div>
+                    </div>
+                    <div class="flex justify-between text-xs">
+                        <span class="text-gray-400">Total facts / topics / sources</span>
+                        <span class="text-white font-mono" id="qCounts">—</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Topic chart -->
+        <div class="info-panel p-5 mb-4">
+            <h3 class="text-sm font-semibold text-white mb-3"><i data-lucide="trending-up" class="w-4 h-4 inline-block"></i> Strongest Topics</h3>
+            <div id="topicChartG" class="topic-chart-g"></div>
+            <div id="topicLabelsG" class="flex gap-6 mt-2 text-[10px] text-gray-500 overflow-x-auto"></div>
+        </div>
+
+        <!-- Thin topics -->
+        <div class="info-panel p-5 mb-4" id="thinSectionG" style="display:none">
+            <h3 class="text-sm font-semibold text-white mb-3"><i data-lucide="alert-triangle" class="w-4 h-4 inline-block"></i> Needs Content</h3>
+            <p class="text-xs text-secondary mb-3">Topics frequently asked about but with little coverage.</p>
+            <div id="thinListG" class="space-y-2"></div>
+        </div>
+
+        <!-- Suggested actions -->
+        <div class="info-panel p-5" id="actionsSectionG" style="display:none">
+            <h3 class="text-sm font-semibold text-white mb-3"><i data-lucide="arrow-right" class="w-4 h-4 inline-block"></i> Suggested Next Steps</h3>
+            <div id="actionsListG" class="space-y-2"></div>
+        </div>
+    </div>
+</div>
+
+<!-- Self-healing activity feed -->
+<div class="mb-6 reveal stagger-4" id="healingFeedSection" style="display:none;">
+    <div class="info-panel p-5">
+        <h3 class="text-sm font-semibold text-white mb-3">
+            <i data-lucide="heart-pulse" class="w-4 h-4 inline-block"></i> Recently Self-Healed
+            <span class="text-xs text-gray-500 font-normal ml-2" id="healingFeedCount"></span>
+        </h3>
+        <p class="text-xs text-secondary mb-3">Gaps the system resolved automatically in the last 14 days.</p>
+        <div id="healingFeedList" class="space-y-2"></div>
+    </div>
+</div>
+
+<div class="glass-card p-4 mb-6">
+    <div class="flex flex-wrap gap-4 items-center justify-between">
+        <div class="flex flex-wrap gap-3 items-center">
+            <input type="text" id="searchInput" placeholder="Search gaps..." class="input w-64">
+
+            <select id="statusFilter" class="input">
+                <option value="">All Statuses</option>
+                <option value="open">Open</option>
+                <option value="in_progress">In Progress</option>
+                <option value="resolved">Resolved</option>
+            </select>
+
+            <select id="curationFilter" class="input">
+                <option value="">All Curations</option>
+                <option value="keep">Keep</option>
+                <option value="defer">Defer</option>
+                <option value="discard">Discard</option>
+            </select>
+
+            <button onclick="applyFilters()" class="btn btn-secondary"><i data-lucide="search" class="w-3.5 h-3.5 inline-block"></i> Filter</button>
+            <button onclick="clearFilters()" class="btn btn-secondary">✕ Clear</button>
+        </div>
+
+        <div class="flex gap-3 items-center">
+            <span id="selectionCount" class="text-sm text-gray-400"></span>
+            <div class="flex gap-2" id="bulkActions" style="display: none;">
+                <button onclick="bulkAction('keep')" class="btn btn-secondary" title="Mark as Keep">✓ Keep</button>
+                <button onclick="bulkAction('defer')" class="btn btn-secondary" title="Defer from interviews">⏸ Defer</button>
+                <button onclick="bulkAction('discard')" class="btn btn-danger" title="Discard (mark resolved)">✕ Discard</button>
+                <button onclick="bulkAction('delete')" class="btn btn-danger" title="Permanently delete"><i data-lucide="trash-2" class="w-3.5 h-3.5 inline-block"></i> Delete</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="glass-card overflow-hidden mb-6">
+    <div class="overflow-x-auto" style="max-height: 60vh; overflow-y: auto;">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th style="width: 40px;">
+                        <input type="checkbox" class="checkbox" id="selectAll" onchange="toggleSelectAll()">
+                    </th>
+                    <th class="sortable" onclick="sortBy('id')" style="width: 60px;">ID</th>
+                    <th class="sortable" onclick="sortBy('topic')" style="min-width: 200px;">Topic</th>
+                    <th style="min-width: 250px;">Question</th>
+                    <th class="sortable" onclick="sortBy('times_asked')" style="width: 80px;">Asked</th>
+                    <th class="sortable" onclick="sortBy('priority_score')" style="width: 80px;">Priority</th>
+                    <th style="width: 100px;">Status</th>
+                    <th style="width: 90px;">Curation</th>
+                    <th class="sortable" onclick="sortBy('last_asked')" style="width: 110px;">Last Asked</th>
+                    <th style="width: 100px;">Actions</th>
+                </tr>
+            </thead>
+            <tbody id="gapsTableBody">
+                <tr>
+                    <td colspan="10" class="text-center py-12 text-gray-500">Loading gaps...</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="flex justify-between items-center">
+    <div class="text-sm text-gray-400" id="pageInfo">Showing 0 of 0 gaps</div>
+    <div class="pagination">
+        <button onclick="goToPage(1)" id="btnFirst">« First</button>
+        <button onclick="goToPage(currentPage - 1)" id="btnPrev">‹ Prev</button>
+        <span class="text-sm text-gray-400 px-3" id="pageNumber">Page 1</span>
+        <button onclick="goToPage(currentPage + 1)" id="btnNext">Next ›</button>
+        <button onclick="goToPage(totalPages)" id="btnLast">Last »</button>
+    </div>
+</div>
+
+<div class="modal-overlay" id="detailModal">
+    <div class="modal">
+        <div class="flex justify-between items-start mb-4">
+            <h3 class="text-lg font-semibold text-white" id="modalTitle">Gap Details</h3>
+            <button onclick="closeModal()" class="text-gray-400 hover:text-white text-2xl leading-none" aria-label="Close">&times;</button>
+        </div>
+        <div id="modalContent"></div>
+        <div class="flex justify-end gap-3 mt-6 pt-4 border-t border-white/10">
+            <button onclick="closeModal()" class="btn btn-secondary">Close</button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    let currentPage = 1;
+    let totalPages = 1;
+    let totalGaps = 0;
+    let selectedIds = new Set();
+    let currentSort = { by: 'priority_score', dir: 'desc' };
+    let filters = { status: '', curation_status: '', search: '' };
+    let currentGapId = null;
+
+    document.addEventListener('DOMContentLoaded', () => {
+        loadStats();
+        loadGaps();
+        loadGrowthInsights();
+        loadHealingFeed();
+
+        document.getElementById('searchInput').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') applyFilters();
+        });
+    });
+
+    /* ── Insights toggle ── */
+    function toggleInsights() {
+        const tog = document.getElementById('insightsToggle');
+        const bod = document.getElementById('insightsBody');
+        tog.classList.toggle('open');
+        bod.classList.toggle('open');
+    }
+
+    /* ── Self-healing activity feed ── */
+    async function loadHealingFeed() {
+        try {
+            const resp = await fetch('/api/v1/gaps/recent-activity?days=14&limit=8');
+            const data = await resp.json();
+            if (!data.success || !data.activity || !data.activity.length) return;
+            const section = document.getElementById('healingFeedSection');
+            const list = document.getElementById('healingFeedList');
+            const count = document.getElementById('healingFeedCount');
+            if (!section || !list) return;
+            section.style.display = '';
+            count.textContent = `(${data.count})`;
+
+            const viaLabels = {
+                'self_assessment': 'Self-assessment',
+                'web_research': 'Web research',
+                'action_item': 'Action completed',
+                'action_item_auto': 'Auto-linked action',
+                'interview': 'Interview',
+                'admin': 'Manual',
+            };
+
+            list.innerHTML = data.activity.map(g => {
+                const via = viaLabels[g.resolved_via] || g.resolved_via || 'Unknown';
+                const date = g.resolved_at ? new Date(g.resolved_at + 'Z').toLocaleDateString() : '';
+                return `<div class="flex items-center justify-between p-2 rounded-lg" style="background:rgba(67,181,129,0.06);border:1px solid rgba(67,181,129,0.15);">
+                    <div class="flex-1 min-w-0">
+                        <span class="text-sm text-white">${escapeHtml(g.topic)}</span>
+                        <span class="text-xs text-gray-500 ml-2">${escapeHtml(via)}</span>
+                    </div>
+                    <span class="text-xs text-gray-500 flex-shrink-0 ml-2">${date}</span>
+                </div>`;
+            }).join('');
+            if (typeof lucide !== 'undefined') lucide.createIcons();
+        } catch (e) {
+            console.debug('Healing feed load skipped:', e);
+        }
+    }
+
+    /* ── Growth insights loader ── */
+    async function loadGrowthInsights() {
+        try {
+            const resp = await fetch('/api/v1/corpus/growth');
+            const data = await resp.json();
+            if (!data.success) return;
+
+            // Subtitle
+            document.getElementById('insightsSubtitle').textContent =
+                `${data.total_facts.toLocaleString()} facts · ${data.total_topics} topics · ${data.total_sources} sources`;
+
+            // Gap progress ring
+            const gs = data.gap_stats || {};
+            const total = (gs.open || 0) + (gs.resolved || 0);
+            const resolved = gs.resolved || 0;
+            const pct = total > 0 ? Math.round(resolved / total * 100) : 0;
+            document.getElementById('gapPct').textContent = pct + '%';
+            document.getElementById('gapResolvedI').textContent = resolved;
+            document.getElementById('gapOpenI').textContent = gs.open || 0;
+            document.getElementById('gapFoundationalI').textContent = gs.foundational_remaining || 0;
+            document.getElementById('gapRing').style.strokeDashoffset = 220 - (220 * pct / 100);
+
+            // Quality metrics
+            document.getElementById('qConf').textContent = data.avg_confidence + '%';
+            document.getElementById('qConfBar').style.width = data.avg_confidence + '%';
+            document.getElementById('qEnrich').textContent = data.enrichment_coverage + '%';
+            document.getElementById('qEnrichBar').style.width = data.enrichment_coverage + '%';
+            document.getElementById('qCounts').textContent = `${data.total_facts.toLocaleString()} / ${data.total_topics} / ${data.total_sources}`;
+
+            // Topic chart
+            const chart = document.getElementById('topicChartG');
+            const labels = document.getElementById('topicLabelsG');
+            chart.innerHTML = ''; labels.innerHTML = '';
+            const maxC = Math.max(...(data.strongest || []).map(t => t.chunks), 1);
+            for (const t of (data.strongest || [])) {
+                const h = Math.max(5, t.chunks / maxC * 100);
+                const bar = document.createElement('div');
+                bar.className = 'flex-1 flex flex-col items-center justify-end';
+                bar.innerHTML = `<span class="text-[10px] text-gray-400 mb-1">${t.chunks}</span>` +
+                    `<div class="w-full topic-bar-g bg-teal" style="height:${h}%" title="${t.topic}: ${t.chunks} chunks"></div>`;
+                chart.appendChild(bar);
+                const lbl = document.createElement('span');
+                lbl.className = 'flex-1 text-center truncate';
+                lbl.textContent = t.topic; lbl.title = t.topic;
+                labels.appendChild(lbl);
+            }
+
+            // Thin topics
+            if (data.thin_topics && data.thin_topics.length) {
+                document.getElementById('thinSectionG').style.display = '';
+                const tl = document.getElementById('thinListG'); tl.innerHTML = '';
+                for (const t of data.thin_topics) {
+                    const r = document.createElement('div');
+                    r.className = 'flex justify-between items-center p-2.5 bg-gray-800/50 rounded-lg';
+                    r.innerHTML = `<div><span class="text-white text-sm font-medium">${t.topic}</span>` +
+                        `<span class="text-[10px] text-gray-500 ml-2">asked ${t.times_asked}x</span></div>` +
+                        `<span class="text-[10px] px-2 py-0.5 rounded-full ${t.corpus_chunks === 0 ? 'bg-red-900/30 text-red-400' : 'bg-yellow-900/30 text-yellow-400'}">${t.corpus_chunks} chunk${t.corpus_chunks !== 1 ? 's' : ''}</span>`;
+                    tl.appendChild(r);
+                }
+            }
+
+            // Suggested actions
+            if (data.suggested_actions && data.suggested_actions.length) {
+                document.getElementById('actionsSectionG').style.display = '';
+                const al = document.getElementById('actionsListG'); al.innerHTML = '';
+                for (const a of data.suggested_actions) {
+                    const c = document.createElement('div');
+                    c.className = `action-card-g p-3 bg-gray-800/50 rounded-lg priority-${a.priority}`;
+                    c.innerHTML = `<div class="text-sm font-medium text-white">${a.action}</div>` +
+                        `<div class="text-[10px] text-gray-400 mt-0.5">${a.description}</div>`;
+                    al.appendChild(c);
+                }
+            }
+        } catch (err) {
+            console.warn('Growth insights unavailable:', err);
+        }
+    }
+
+    function filterByStatCard(type, value) {
+        // Reset filters first
+        document.getElementById('statusFilter').value = '';
+        document.getElementById('curationFilter').value = '';
+        document.getElementById('searchInput').value = '';
+        filters = { status: '', curation_status: '', search: '' };
+
+        if (type === 'status') {
+            document.getElementById('statusFilter').value = value;
+            filters.status = value;
+        } else if (type === 'curation') {
+            document.getElementById('curationFilter').value = value;
+            filters.curation_status = value;
+        } else if (type === 'priority') {
+            // Sort by priority descending to show high-priority first
+            currentSort = { by: 'priority_score', dir: 'desc' };
+            filters.status = 'open';
+            document.getElementById('statusFilter').value = 'open';
+        } else if (type === 'frequent') {
+            // Sort by times_asked descending
+            currentSort = { by: 'times_asked', dir: 'desc' };
+        }
+        currentPage = 1;
+        loadGaps();
+    }
+
+    async function loadStats() {
+        try {
+            const resp = await fetch('/api/v1/gaps/stats');
+            const data = await resp.json();
+
+            if (data.success) {
+                const s = data.stats;
+                document.getElementById('statOpen').textContent = s.by_status?.open || 0;
+                document.getElementById('statResolved').textContent = s.by_status?.resolved || 0;
+                document.getElementById('statDeferred').textContent = s.by_curation?.defer || 0;
+                document.getElementById('statHighPriority').textContent = s.high_priority_open || 0;
+                document.getElementById('statFrequent').textContent = s.frequently_asked || 0;
+            }
+        } catch (e) {
+            console.error('Failed to load stats:', e);
+        }
+    }
+
+    async function loadGaps() {
+        const params = new URLSearchParams({
+            page: currentPage,
+            per_page: 50,
+            sort_by: currentSort.by,
+            sort_dir: currentSort.dir,
+        });
+
+        if (filters.status) params.append('status', filters.status);
+        if (filters.curation_status) params.append('curation_status', filters.curation_status);
+        if (filters.search) params.append('search', filters.search);
+
+        try {
+            const resp = await fetch(`/api/v1/gaps?${params}`);
+            const data = await resp.json();
+
+            if (data.success) {
+                renderTable(data.gaps);
+                totalPages = data.total_pages;
+                totalGaps = data.total;
+                updatePagination();
+            } else {
+                showToast('Failed to load gaps: ' + data.error, 'error');
+            }
+        } catch (e) {
+            console.error('Failed to load gaps:', e);
+            showToast('Network error loading gaps', 'error');
+        }
+    }
+
+    function renderTable(gaps) {
+        const tbody = document.getElementById('gapsTableBody');
+
+        if (!gaps.length) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="10" class="text-center py-12 text-gray-500">
+                        No knowledge gaps found matching your filters.
+                    </td>
+                </tr>
+            `;
+            return;
+        }
+
+        tbody.innerHTML = gaps.map(gap => `
+            <tr class="${selectedIds.has(gap.id) ? 'selected' : ''}" data-id="${gap.id}">
+                <td>
+                    <input type="checkbox" class="checkbox row-checkbox"
+                           ${selectedIds.has(gap.id) ? 'checked' : ''}
+                           onchange="toggleSelect(${gap.id})">
+                </td>
+                <td class="text-gray-500 font-mono text-xs">#${gap.id}</td>
+                <td>
+                    <span class="text-teal-light font-medium text-sm" title="${escapeHtml(gap.topic)}">${escapeHtml(gap.topic)}</span>
+                </td>
+                <td>
+                    <div class="truncate-2 text-sm" title="${escapeHtml(gap.question)}">
+                        ${escapeHtml(gap.question)}
+                    </div>
+                </td>
+                <td class="text-center font-mono">${gap.times_asked || 1}</td>
+                <td class="text-center">
+                    <span class="font-mono ${gap.priority_score >= 20 ? 'text-gold' : gap.priority_score >= 10 ? 'text-teal-light' : 'text-gray-400'}">
+                        ${gap.priority_score || 0}
+                    </span>
+                </td>
+                <td>
+                    <span class="badge badge-${gap.status}">${gap.status}</span>
+                </td>
+                <td>
+                    ${gap.curation_status ? `<span class="badge badge-${gap.curation_status}">${gap.curation_status}</span>` : '<span class="text-gray-600">—</span>'}
+                </td>
+                <td class="text-gray-500 text-xs">${formatDate(gap.last_asked)}</td>
+                <td>
+                    <div class="dot-menu">
+                        <button class="dot-menu-trigger" onclick="toggleDotMenu(this,event)" title="Actions">⋯</button>
+                        <div class="dot-menu-drop">
+                            <button onclick="viewGap(${gap.id})"><i data-lucide="eye" class="w-3.5 h-3.5"></i> View</button>
+                            <button onclick="quickCurate(${gap.id}, 'defer')"><i data-lucide="pause" class="w-3.5 h-3.5"></i> Defer</button>
+                            <button onclick="deleteGap(${gap.id})" class="dot-danger"><i data-lucide="trash-2" class="w-3.5 h-3.5"></i> Delete</button>
+                        </div>
+                    </div>
+                </td>
+            </tr>
+        `).join('');
+    }
+
+    function applyFilters() {
+        filters.status = document.getElementById('statusFilter').value;
+        filters.curation_status = document.getElementById('curationFilter').value;
+        filters.search = document.getElementById('searchInput').value.trim();
+        currentPage = 1;
+        loadGaps();
+    }
+
+    function clearFilters() {
+        document.getElementById('statusFilter').value = '';
+        document.getElementById('curationFilter').value = '';
+        document.getElementById('searchInput').value = '';
+        filters = { status: '', curation_status: '', search: '' };
+        currentPage = 1;
+        loadGaps();
+    }
+
+    function sortBy(column) {
+        if (currentSort.by === column) {
+            currentSort.dir = currentSort.dir === 'desc' ? 'asc' : 'desc';
+        } else {
+            currentSort.by = column;
+            currentSort.dir = 'desc';
+        }
+        loadGaps();
+    }
+
+    function toggleSelectAll() {
+        const checked = document.getElementById('selectAll').checked;
+        document.querySelectorAll('.row-checkbox').forEach(cb => {
+            cb.checked = checked;
+            const id = parseInt(cb.closest('tr').dataset.id);
+            if (checked) {
+                selectedIds.add(id);
+            } else {
+                selectedIds.delete(id);
+            }
+        });
+        updateSelectionUI();
+    }
+
+    function toggleSelect(id) {
+        if (selectedIds.has(id)) {
+            selectedIds.delete(id);
+        } else {
+            selectedIds.add(id);
+        }
+        updateSelectionUI();
+    }
+
+    function updateSelectionUI() {
+        const count = selectedIds.size;
+        const countEl = document.getElementById('selectionCount');
+        const actionsEl = document.getElementById('bulkActions');
+
+        if (count > 0) {
+            countEl.textContent = `${count} selected`;
+            actionsEl.style.display = 'flex';
+        } else {
+            countEl.textContent = '';
+            actionsEl.style.display = 'none';
+        }
+
+        document.querySelectorAll('tr[data-id]').forEach(tr => {
+            const id = parseInt(tr.dataset.id);
+            tr.classList.toggle('selected', selectedIds.has(id));
+        });
+    }
+
+    async function bulkAction(action) {
+        if (!selectedIds.size) return;
+
+        const actionLabels = {
+            'keep': 'mark as keep',
+            'defer': 'defer',
+            'discard': 'discard',
+            'delete': 'permanently delete'
+        };
+
+        if (!confirm(`Are you sure you want to ${actionLabels[action]} ${selectedIds.size} gap(s)?`)) {
+            return;
+        }
+
+        try {
+            const data = await apiCall('/api/v1/gaps/bulk', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    gap_ids: Array.from(selectedIds),
+                    action: action
+                })
+            });
+
+            if (data && data.success) {
+                showToast(data.message, 'success');
+                selectedIds.clear();
+                document.getElementById('selectAll').checked = false;
+                updateSelectionUI();
+                loadGaps();
+                loadStats();
+            } else if (data) {
+                showToast('Error: ' + data.error, 'error');
+            }
+        } catch (e) {
+            showToast('Network error', 'error');
+        }
+    }
+
+    async function viewGap(id) {
+        try {
+            const resp = await fetch(`/api/v1/gaps/${id}`);
+            const data = await resp.json();
+
+            if (data.success) {
+                const gap = data.gap;
+                currentGapId = gap.id;
+                document.getElementById('modalTitle').textContent = `Gap #${gap.id}: ${truncate(gap.topic, 50)}`;
+                document.getElementById('modalContent').innerHTML = `
+                    <div class="space-y-4">
+                        <div>
+                            <label class="text-xs text-gray-500 uppercase tracking-wide">Question</label>
+                            <p class="text-white mt-1">${escapeHtml(gap.question)}</p>
+                        </div>
+                        ${gap.context ? `
+                        <div>
+                            <label class="text-xs text-gray-500 uppercase tracking-wide">Context</label>
+                            <p class="text-gray-300 mt-1 text-sm">${escapeHtml(gap.context)}</p>
+                        </div>
+                        ` : ''}
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="text-xs text-gray-500 uppercase tracking-wide">Status</label>
+                                <p class="mt-1"><span class="badge badge-${gap.status}">${gap.status}</span></p>
+                            </div>
+                            <div>
+                                <label class="text-xs text-gray-500 uppercase tracking-wide">Curation</label>
+                                <p class="mt-1">${gap.curation_status ? `<span class="badge badge-${gap.curation_status}">${gap.curation_status}</span>` : '<span class="text-gray-500">Not curated</span>'}</p>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-3 gap-4">
+                            <div>
+                                <label class="text-xs text-gray-500 uppercase tracking-wide">Times Asked</label>
+                                <p class="text-white mt-1 font-mono">${gap.times_asked || 1}</p>
+                            </div>
+                            <div>
+                                <label class="text-xs text-gray-500 uppercase tracking-wide">Priority Score</label>
+                                <p class="text-white mt-1 font-mono">${gap.priority_score || 0}</p>
+                            </div>
+                            <div>
+                                <label class="text-xs text-gray-500 uppercase tracking-wide">First Asked</label>
+                                <p class="text-gray-300 mt-1 text-sm">${formatDate(gap.first_asked)}</p>
+                            </div>
+                        </div>
+                        ${gap.curation_reason ? `
+                        <div>
+                            <label class="text-xs text-gray-500 uppercase tracking-wide">Curation Reason</label>
+                            <p class="text-gray-300 mt-1 text-sm">${escapeHtml(gap.curation_reason)}</p>
+                        </div>
+                        ` : ''}
+                        ${gap.notes ? `
+                        <div>
+                            <label class="text-xs text-gray-500 uppercase tracking-wide">Notes</label>
+                            <pre class="text-gray-300 mt-1 text-xs bg-black/30 p-3 rounded-lg overflow-auto max-h-32">${escapeHtml(gap.notes)}</pre>
+                        </div>
+                        ` : ''}
+                        ${gap.memo_path ? `
+                        <div>
+                            <label class="text-xs text-gray-500 uppercase tracking-wide">Memo Path</label>
+                            <p class="text-teal-light mt-1 text-sm font-mono">${escapeHtml(gap.memo_path)}</p>
+                        </div>
+                        ` : ''}
+
+                        <div class="pt-4 border-t border-white/10">
+                            <label class="text-xs text-gray-500 uppercase tracking-wide mb-2 block">Answer This Gap</label>
+                            <textarea id="gapAnswerInput" class="input w-full h-32" placeholder="Write the answer that should close this gap..."></textarea>
+                            <div class="flex items-center gap-2 mt-3">
+                                <input type="checkbox" id="gapCreateMemo" class="checkbox" checked>
+                                <label for="gapCreateMemo" class="text-xs text-gray-400">Save as memo in docs/</label>
+                            </div>
+                            <div class="flex justify-end gap-2 mt-3">
+                                <button onclick="submitGapAnswer()" class="btn btn-primary">Save Answer & Resolve</button>
+                            </div>
+                        </div>
+
+                        <div class="pt-4 border-t border-white/10">
+                            <label class="text-xs text-gray-500 uppercase tracking-wide mb-2 block">Quick Actions</label>
+                            <div class="flex gap-2 flex-wrap">
+                                <button onclick="quickCurate(${gap.id}, 'keep'); closeModal();" class="btn btn-secondary">\u2713 Keep</button>
+                                <button onclick="quickCurate(${gap.id}, 'defer'); closeModal();" class="btn btn-secondary"><i data-lucide="pause" class="w-3 h-3 inline-block"></i> Defer</button>
+                                <button onclick="quickCurate(${gap.id}, 'discard'); closeModal();" class="btn btn-danger">\u2715 Discard</button>
+                                <button onclick="resolveGap(${gap.id}); closeModal();" class="btn btn-primary">\u2713 Mark Resolved</button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                document.getElementById('detailModal').classList.add('active');
+                if (typeof lucide !== 'undefined') lucide.createIcons();
+            }
+        } catch (e) {
+            showToast('Failed to load gap details', 'error');
+        }
+    }
+
+    async function submitGapAnswer() {
+        const textarea = document.getElementById('gapAnswerInput');
+        if (!textarea || !currentGapId) return;
+        const answer = textarea.value.trim();
+        if (!answer) {
+            showToast('Please enter an answer before saving.', 'error');
+            return;
+        }
+
+        const createMemo = document.getElementById('gapCreateMemo')?.checked !== false;
+
+        try {
+            const data = await apiCall(`/api/v1/gaps/${currentGapId}/answer`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ answer: answer, create_memo: createMemo })
+            });
+            if (data && data.success) {
+                showToast('Gap resolved with your answer.', 'success');
+                closeModal();
+                loadGaps();
+                loadStats();
+            } else if (data) {
+                showToast('Error: ' + (data.error || 'Failed to save answer'), 'error');
+            }
+        } catch (e) {
+            showToast('Network error', 'error');
+        }
+    }
+
+    function closeModal() {
+        document.getElementById('detailModal').classList.remove('active');
+    }
+
+    async function quickCurate(id, status) {
+        try {
+            const data = await apiCall(`/api/v1/gaps/${id}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ curation_status: status })
+            });
+
+            if (data && data.success) {
+                showToast(`Gap #${id} marked as ${status}`, 'success');
+                loadGaps();
+                loadStats();
+            } else if (data) {
+                showToast('Error: ' + data.error, 'error');
+            }
+        } catch (e) {
+            showToast('Network error', 'error');
+        }
+    }
+
+    async function resolveGap(id) {
+        try {
+            const data = await apiCall(`/api/v1/gaps/${id}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ status: 'resolved' })
+            });
+
+            if (data && data.success) {
+                showToast(`Gap #${id} marked as resolved`, 'success');
+                loadGaps();
+                loadStats();
+            } else if (data) {
+                showToast('Error: ' + data.error, 'error');
+            }
+        } catch (e) {
+            showToast('Network error', 'error');
+        }
+    }
+
+    async function deleteGap(id) {
+        if (!confirm(`Are you sure you want to permanently delete gap #${id}?`)) {
+            return;
+        }
+
+        try {
+            const data = await apiCall(`/api/v1/gaps/${id}`, { method: 'DELETE' });
+
+            if (data && data.success) {
+                showToast(`Gap #${id} deleted`, 'success');
+                selectedIds.delete(id);
+                loadGaps();
+                loadStats();
+            } else if (data) {
+                showToast('Error: ' + data.error, 'error');
+            }
+        } catch (e) {
+            showToast('Network error', 'error');
+        }
+    }
+
+    function updatePagination() {
+        document.getElementById('pageInfo').textContent =
+            `Showing ${Math.min((currentPage - 1) * 50 + 1, totalGaps)}-${Math.min(currentPage * 50, totalGaps)} of ${totalGaps} gaps`;
+        document.getElementById('pageNumber').textContent = `Page ${currentPage} of ${totalPages}`;
+
+        document.getElementById('btnFirst').disabled = currentPage === 1;
+        document.getElementById('btnPrev').disabled = currentPage === 1;
+        document.getElementById('btnNext').disabled = currentPage >= totalPages;
+        document.getElementById('btnLast').disabled = currentPage >= totalPages;
+    }
+
+    function goToPage(page) {
+        if (page < 1 || page > totalPages) return;
+        currentPage = page;
+        loadGaps();
+    }
+
+    function escapeHtml(str) {
+        if (!str) return '';
+        return str.replace(/&/g, '&amp;')
+                  .replace(/</g, '&lt;')
+                  .replace(/>/g, '&gt;')
+                  .replace(/"/g, '&quot;');
+    }
+
+    function truncate(str, len) {
+        if (!str) return '';
+        return str.length > len ? str.substring(0, len) + '...' : str;
+    }
+
+    function formatDate(dateStr) {
+        if (!dateStr) return '—';
+        try {
+            const d = new Date(dateStr);
+            return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: '2-digit' });
+        } catch {
+            return dateStr;
+        }
+    }
+
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') closeModal();
+    });
+
+    document.getElementById('detailModal').addEventListener('click', (e) => {
+        if (e.target.classList.contains('modal-overlay')) closeModal();
+    });
+</script>
+{% endblock %}

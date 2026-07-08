@@ -1,0 +1,1058 @@
+{% extends "base.html" %}
+{% block title %}Knowledge — {{ bot_name }}{% endblock %}
+
+{% block head %}
+<style>
+    /* Violet accent overrides for Knowledge page */
+    .glass-card {
+        background: linear-gradient(145deg, rgba(126,163,204,0.04) 0%, rgba(6,5,4,0.93) 50%, rgba(4,3,2,0.96) 100%);
+        border-color: rgba(126,163,204,0.18);
+    }
+    .glass-card:hover { border-color: rgba(126,163,204,0.3); transform: translateY(-1px); box-shadow: 0 8px 32px rgba(0,0,0,0.35), 0 0 20px rgba(126,163,204,0.08); }
+    .info-panel { border-color: rgba(126,163,204,0.1); }
+
+    .btn-glossy {
+        background: linear-gradient(180deg, #9EBCDA 0%, #7EA3CC 40%, #7B5AAF 100%);
+        box-shadow: 0 4px 12px rgba(126,163,204,0.25), 0 1px 0 rgba(255,255,255,0.2) inset;
+    }
+    .btn-glossy:hover { background: linear-gradient(180deg, #B5D0E8 0%, #9EBCDA 40%, #7EA3CC 100%); box-shadow: 0 6px 20px rgba(126,163,204,0.3); }
+
+    .btn-outline { background: rgba(6,5,4,0.55); border: 1.5px solid rgba(126,163,204,0.35); border-radius: 12px; color: #7EA3CC; transition: all 0.3s ease; backdrop-filter:blur(6px); }
+    .btn-outline:hover { background: rgba(6,5,4,0.70); border-color: rgba(126,163,204,0.50); }
+
+    .storage-card { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+    .storage-card:hover { transform: translateY(-2px); }
+
+    .badge-violet { background: linear-gradient(135deg, rgba(126,163,204,0.25) 0%, rgba(126,163,204,0.1) 100%); border: 1px solid rgba(126,163,204,0.35); }
+
+    .table-row { transition: all 0.2s ease; border-bottom: 1px solid rgba(255,255,255,0.03); }
+    .table-row:hover { background: rgba(126,163,204,0.08); }
+
+    .path-input {
+        background: rgba(4,3,2,0.94); border: 1px solid rgba(126,163,204,0.22);
+        color: #e5e5e5; border-radius: 10px; font-family: 'Martian Mono', 'Consolas','Monaco',monospace; transition: all 0.2s ease;
+    }
+    .path-input:focus { outline: none; border-color: rgba(126,163,204,0.5); box-shadow: 0 0 0 3px rgba(126,163,204,0.1); }
+
+    .stat-value { font-variant-numeric: tabular-nums; }
+
+    /* Upload zone */
+    .upload-zone {
+        border: 2px dashed rgba(126,163,204,0.25);
+        border-radius: 16px;
+        padding: 2rem 1.5rem;
+        text-align: center;
+        transition: all 0.3s ease;
+        cursor: pointer;
+        background: rgba(126,163,204,0.03);
+    }
+    .upload-zone:hover, .upload-zone.drag-over {
+        border-color: rgba(126,163,204,0.4);
+        background: rgba(126,163,204,0.06);
+        transform: translateY(-1px);
+        box-shadow: 0 4px 16px rgba(126,163,204,0.1);
+    }
+    .upload-zone.drag-over {
+        border-color: rgba(126,163,204,0.7);
+        background: rgba(126,163,204,0.12);
+    }
+    .upload-file-row {
+        display: flex; align-items: center; gap: 0.75rem;
+        padding: 0.5rem 0.75rem; border-radius: 10px;
+        background: rgba(6,5,4,0.93); border: 1px solid rgba(255,255,255,0.08);
+        transition: all 0.2s ease;
+    }
+    .upload-file-row .upload-progress {
+        height: 3px; border-radius: 2px; background: rgba(126,163,204,0.2);
+        overflow: hidden; margin-top: 4px;
+    }
+    .upload-file-row .upload-progress-bar {
+        height: 100%; background: linear-gradient(90deg, #7EA3CC, #9EBCDA);
+        border-radius: 2px; transition: width 0.3s ease;
+    }
+
+    /* ── Knowledge tabs ────────────────────────────────────────────── */
+    .kb-tab-content { display:none; }
+    .kb-tab-content.active { display:block; }
+
+    /* ── KB Search styles ────────────────────────────────────────── */
+    .kbs-search-wrap{display:flex;gap:0.5rem;align-items:stretch;}
+    .kbs-search-input{flex:1;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);
+      border-radius:0.6rem;padding:0.65rem 1rem;color:#fff;font-size:0.9rem;outline:none;transition:border .2s;}
+    .kbs-search-input:focus{border-color:rgba(var(--a),0.5);}
+    .kbs-search-input::placeholder{color:rgba(255,255,255,0.25);}
+    .kbs-search-btn{padding:0 1.25rem;border-radius:0.6rem;font-size:0.85rem;font-weight:600;
+      background:rgba(var(--a),0.85);color:#fff;border:none;cursor:pointer;transition:background .2s;white-space:nowrap;}
+    .kbs-search-btn:hover{background:rgba(var(--a),1);}
+    .kbs-search-btn:disabled{opacity:0.4;cursor:not-allowed;}
+    .kbs-method-group{display:flex;gap:0.35rem;margin-top:0.6rem;}
+    .kbs-method-btn{font-size:0.7rem;padding:0.3rem 0.75rem;border-radius:9px;border:1px solid rgba(255,255,255,0.08);
+      background:transparent;color:rgba(255,255,255,0.4);cursor:pointer;transition:all .2s;}
+    .kbs-method-btn.active{border-color:rgba(var(--a),0.5);color:rgba(var(--a),0.9);background:rgba(var(--a),0.08);}
+    .kbs-result-card{background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);
+      border-radius:0.65rem;padding:1rem 1.15rem;margin-bottom:0.6rem;transition:border .2s;}
+    .kbs-result-card:hover{border-color:rgba(var(--a),0.25);}
+    .kbs-result-rank{font-size:0.65rem;font-weight:700;color:rgba(var(--a),0.7);margin-bottom:0.25rem;text-transform:uppercase;letter-spacing:0.05em;}
+    .kbs-result-score{float:right;font-size:0.7rem;padding:0.15rem 0.55rem;border-radius:6px;
+      font-family:'Martian Mono',monospace;font-weight:500;}
+    .kbs-score-good{background:rgba(16,185,129,0.12);color:rgb(16,185,129);}
+    .kbs-score-ok{background:rgba(245,158,11,0.12);color:rgb(245,158,11);}
+    .kbs-score-weak{background:rgba(239,68,68,0.12);color:rgb(239,68,68);}
+    .kbs-result-content{font-size:0.82rem;color:rgba(255,255,255,0.7);line-height:1.6;white-space:pre-wrap;
+      word-break:break-word;max-height:10rem;overflow-y:auto;}
+    .kbs-result-meta{margin-top:0.5rem;display:flex;flex-wrap:wrap;gap:0.4rem;}
+    .kbs-meta-pill{font-size:0.62rem;padding:0.15rem 0.5rem;border-radius:6px;
+      background:rgba(255,255,255,0.05);color:rgba(255,255,255,0.35);font-family:'Martian Mono',monospace;}
+    .kbs-result-toggle{font-size:0.7rem;color:rgba(var(--a),0.6);cursor:pointer;margin-top:0.35rem;display:inline-block;}
+    .kbs-result-toggle:hover{color:rgba(var(--a),0.9);}
+    .kbs-stats-card{background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);
+      border-radius:0.65rem;padding:1rem;}
+    .kbs-stats-label{font-size:0.65rem;text-transform:uppercase;letter-spacing:0.05em;color:rgba(255,255,255,0.3);margin-bottom:0.25rem;}
+    .kbs-stats-value{font-size:1.4rem;font-weight:700;color:#fff;font-family:'Martian Mono',monospace;}
+    .kbs-source-row{display:flex;justify-content:space-between;align-items:center;padding:0.3rem 0;font-size:0.72rem;
+      border-bottom:1px solid rgba(255,255,255,0.04);}
+    .kbs-source-row:last-child{border-bottom:none;}
+    .kbs-source-name{color:rgba(255,255,255,0.55);max-width:70%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+    .kbs-source-count{color:rgba(255,255,255,0.3);font-family:'Martian Mono',monospace;font-size:0.65rem;}
+    .kbs-empty-state{text-align:center;padding:3rem 1rem;color:rgba(255,255,255,0.25);}
+    .kbs-empty-state i{margin-bottom:0.75rem;}
+    .kbs-hint{font-size:0.72rem;color:rgba(255,255,255,0.25);margin-top:0.35rem;}
+    #kbsResultsArea mark{background:rgba(var(--a),0.25);color:#fff;border-radius:2px;padding:0 2px;}
+</style>
+{% endblock %}
+
+{% block content %}
+<header class="header-scrim flex justify-between items-center mb-6 reveal">
+    <div>
+        <h2 class="text-2xl font-semibold text-white mb-1 tracking-tight">Knowledge Base</h2>
+        <p class="text-sm text-secondary">Everything the assistant has learned &mdash; the more you add, the better every answer gets</p>
+    </div>
+    <div class="flex gap-3">
+        <button onclick="exportKnowledge()" class="px-4 py-2.5 btn-chrome font-medium flex items-center gap-1.5"><i data-lucide="file-output" class="w-3.5 h-3.5"></i> Export Knowledge</button>
+        <button onclick="document.getElementById('importKnowledgeInput').click()" class="px-4 py-2.5 btn-chrome font-medium flex items-center gap-1.5"><i data-lucide="file-input" class="w-3.5 h-3.5"></i> Import Knowledge</button>
+        <input type="file" id="importKnowledgeInput" accept=".zip" onchange="importKnowledge(event)" class="hidden">
+        <button onclick="refreshStats()" class="px-4 py-2.5 btn-chrome font-medium flex items-center gap-1.5"><i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i> Refresh Stats</button>
+        <button onclick="syncDocs()" class="btn-glossy px-5 py-2.5 text-white font-semibold" title="Scans the docs/ folder for new or updated files and indexes them into the knowledge base. Safe to run at any time.">
+            <span class="relative z-10 flex items-center gap-1.5"><i data-lucide="zap" class="w-4 h-4"></i> Sync Documents</span>
+        </button>
+    </div>
+</header>
+
+<!-- Tab navigation -->
+<div class="flex gap-2 mb-6 reveal stagger-2 border-b border-white/10 pb-4 flex-wrap items-center">
+    <button onclick="showKbTab('documents')" id="kb-tab-documents" class="px-5 py-2.5 rounded-lg font-medium text-purple-400 bg-purple-400/15 transition-all flex items-center gap-1.5">
+        <i data-lucide="library" class="w-4 h-4"></i> Documents
+    </button>
+    <button onclick="showKbTab('search')" id="kb-tab-search" class="px-5 py-2.5 rounded-lg font-medium text-gray-400 hover:bg-white/5 transition-all flex items-center gap-1.5">
+        <i data-lucide="search" class="w-4 h-4"></i> KB Search
+    </button>
+    <button onclick="showKbTab('growth')" id="kb-tab-growth" class="px-5 py-2.5 rounded-lg font-medium text-gray-400 hover:bg-white/5 transition-all flex items-center gap-1.5">
+        <i data-lucide="trending-up" class="w-4 h-4"></i> Growth
+    </button>
+</div>
+
+<!-- ═══ Tab: Growth Timeline ═══════════════════════════════════════ -->
+<div id="kb-content-growth" class="kb-tab-content">
+    <div class="glass-card p-6 mb-6">
+        <div class="flex items-center gap-3 mb-4 relative z-10">
+            <div class="w-10 h-10 rounded-2xl bg-gradient-to-br from-green-400/20 to-teal-500/20 flex items-center justify-center"><i data-lucide="trending-up" class="w-5 h-5" style="color:#2dd4bf"></i></div>
+            <div>
+                <h3 class="font-medium text-white">Knowledge Growth</h3>
+                <p class="text-xs text-secondary">How the system's memory has grown over time</p>
+            </div>
+        </div>
+
+        <!-- Growth stats -->
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6 relative z-10" id="growthStats">
+            <div class="stat-card"><div class="stat-value" id="growthDocsTotal">—</div><div class="stat-label">Documents</div></div>
+            <div class="stat-card"><div class="stat-value" id="growthGapsResolved">—</div><div class="stat-label">Gaps Resolved</div></div>
+            <div class="stat-card"><div class="stat-value" id="growthTopicsCovered">—</div><div class="stat-label">Topics Covered</div></div>
+            <div class="stat-card"><div class="stat-value" id="growthThinTopics">—</div><div class="stat-label">Thin Topics</div></div>
+        </div>
+
+        <!-- Timeline -->
+        <div class="relative z-10">
+            <div class="text-xs text-gray-500 uppercase tracking-wider font-bold mb-3">Recent Activity</div>
+            <div id="growthTimeline" class="space-y-2">
+                <div class="text-sm text-gray-500 py-4 text-center"><i data-lucide="loader-2" class="w-4 h-4 inline-block animate-spin"></i> Loading timeline…</div>
+            </div>
+        </div>
+
+        <!-- Suggestions -->
+        <div class="relative z-10 mt-6" id="growthSuggestions" style="display:none">
+            <div class="text-xs text-gray-500 uppercase tracking-wider font-bold mb-3">Suggested Actions</div>
+            <div id="growthSuggestionsList" class="space-y-1.5"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+(function(){
+    async function loadGrowthData() {
+        try {
+            const [gd, gs, grs] = await Promise.all([
+                fetch('/api/v1/knowledge/stats').then(r=>r.json()),
+                fetch('/api/v1/corpus/growth').then(r=>r.json()),
+                fetch('/api/v1/gaps/recent-activity').then(r=>r.json()).catch(()=>({recent:[]})),
+            ]);
+
+            // Stats
+            if(gd.success){
+                document.getElementById('growthDocsTotal').textContent = gd.docs_count || 0;
+            }
+            if(gs.success){
+                document.getElementById('growthTopicsCovered').textContent = (gs.topics||[]).length || '—';
+                document.getElementById('growthThinTopics').textContent = (gs.thin_topics||[]).length || 0;
+
+                // Suggestions
+                if(gs.suggestions && gs.suggestions.length){
+                    document.getElementById('growthSuggestions').style.display='';
+                    document.getElementById('growthSuggestionsList').innerHTML = gs.suggestions.map(s=>
+                        `<div class="flex items-start gap-2 p-2 rounded-lg" style="background:rgba(var(--a),0.04);border:1px solid rgba(var(--a),0.08);">
+                            <i data-lucide="lightbulb" class="w-3.5 h-3.5 flex-shrink-0 mt-0.5" style="color:rgba(var(--a),0.6)"></i>
+                            <span class="text-sm" style="color:rgba(255,255,255,0.65)">${_esc(s)}</span>
+                        </div>`
+                    ).join('');
+                    if(typeof lucide!=='undefined')lucide.createIcons({root:document.getElementById('growthSuggestionsList')});
+                }
+            }
+            // Resolved gaps count
+            const resolvedGaps = grs.recent ? grs.recent.length : 0;
+            document.getElementById('growthGapsResolved').textContent = resolvedGaps;
+
+            // Timeline
+            const timeline = [];
+            if(grs.recent){
+                grs.recent.slice(0,10).forEach(g=>{
+                    timeline.push({date:g.resolved_at||g.updated_at||'', text: 'Gap resolved: '+(g.question||'').slice(0,80), icon:'puzzle', color:'#2dd4bf'});
+                });
+            }
+            if(!timeline.length){
+                document.getElementById('growthTimeline').innerHTML = '<div class="text-sm text-gray-500 text-center py-4">No activity yet — add documents and start conversations to build the timeline</div>';
+            } else {
+                document.getElementById('growthTimeline').innerHTML = timeline.map(t=>
+                    `<div class="flex items-start gap-3 p-2 rounded-lg" style="background:rgba(255,255,255,0.02);">
+                        <div class="w-6 h-6 rounded-lg flex items-center justify-center flex-shrink-0" style="background:${t.color}15;"><i data-lucide="${t.icon}" class="w-3 h-3" style="color:${t.color}"></i></div>
+                        <div class="flex-1 min-w-0">
+                            <div class="text-sm text-gray-300 truncate">${_esc(t.text)}</div>
+                            ${t.date ? '<div class="text-xs text-gray-500">'+_esc(t.date)+'</div>' : ''}
+                        </div>
+                    </div>`
+                ).join('');
+                if(typeof lucide!=='undefined')lucide.createIcons({root:document.getElementById('growthTimeline')});
+            }
+        } catch(e){ console.error('Growth data error:', e); }
+    }
+    function _esc(s){const d=document.createElement('div');d.textContent=s||'';return d.innerHTML;}
+
+    // Override showKbTab to handle the new growth tab
+    const _origShowKbTab = window.showKbTab;
+    window.showKbTab = function(tab) {
+        if(typeof _origShowKbTab === 'function' && tab !== 'growth') { _origShowKbTab(tab); }
+        // Handle growth tab manually
+        document.querySelectorAll('.kb-tab-content').forEach(el=>el.classList.remove('active'));
+        document.querySelectorAll('[id^="kb-tab-"]').forEach(el=>{
+            el.classList.remove('text-purple-400','bg-purple-400/15');
+            el.classList.add('text-gray-400');
+        });
+        const content = document.getElementById('kb-content-'+tab);
+        const tabBtn = document.getElementById('kb-tab-'+tab);
+        if(content) content.classList.add('active');
+        if(tabBtn) { tabBtn.classList.add('text-purple-400','bg-purple-400/15'); tabBtn.classList.remove('text-gray-400'); }
+        if(tab === 'growth') loadGrowthData();
+    };
+})();
+</script>
+
+<!-- ═══ Tab: Documents ══════════════════════════════════════════════ -->
+<div id="kb-content-documents" class="kb-tab-content active">
+
+<!-- Inline guide -->
+<div class="info-banner p-4 mb-6 reveal stagger-2">
+    <div class="flex items-start gap-3 relative z-10">
+        <div class="text-lg"><i data-lucide="lightbulb" class="w-5 h-5 text-amber-400"></i></div>
+        <div>
+            <p class="text-sm text-secondary mb-1">This is the assistant&rsquo;s memory &mdash; and it repairs itself over time. Add documents, teach facts, and fill gaps detected from real conversations. The more you add, the better every answer gets.</p>
+            <p class="text-xs text-gray-400"><strong class="text-white">Upload</strong> files below or drop them in the <code class="bg-black/60 px-1 py-0.5 rounded text-xs">docs/</code> folder, then hit <strong class="text-white">Sync Documents</strong>. Use <a href="/teach" class="text-teal hover:underline">Teach</a> to write notes by hand. <strong class="text-white">AI Enrichment</strong> automatically extracts summaries and topics to improve search quality.</p>
+        </div>
+    </div>
+</div>
+
+<!-- Storage Cards — Documents prominent, technical details collapsed -->
+<section class="grid grid-cols-1 md:grid-cols-1 gap-5 mb-8 reveal stagger-3">
+    <div class="storage-card glass-card glow-card border-shimmer p-5">
+        <div class="flex items-center gap-4 mb-4 relative z-10">
+            <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-purple-400/30 to-purple-600/30 flex items-center justify-center"><i data-lucide="folder" class="w-6 h-6 text-purple-400"></i></div>
+            <div><h3 class="font-medium text-white">Documents</h3><p class="text-sm text-secondary">Files the assistant has learned from</p></div>
+        </div>
+        <div class="flex items-center gap-6 relative z-10">
+            <div class="flex gap-6">
+                <div class="text-sm"><span class="text-gray-400">Files: </span><span class="text-white stat-value font-medium">{{ storage.documents.file_count }}</span></div>
+                <div class="text-sm"><span class="text-gray-400">Size: </span><span class="text-white stat-value font-medium">{{ storage.documents.total_size_mb }} MB</span></div>
+            </div>
+            <div class="ml-auto">
+                <button onclick="openFolder('docs')" class="btn-outline px-4 py-2 text-sm"><i data-lucide="folder-open" class="w-4 h-4 inline-block"></i> Open Documents Folder</button>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ═══════════ File Upload Zone ═══════════ -->
+<section class="glass-card glow-card p-6 mb-8 reveal stagger-4">
+    <div class="flex items-center gap-3 mb-4 relative z-10">
+        <div class="w-10 h-10 rounded-2xl bg-gradient-to-br from-purple-400/30 to-purple-600/30 flex items-center justify-center"><i data-lucide="upload" class="w-5 h-5 text-purple-400"></i></div>
+        <div>
+            <h3 class="font-medium text-white">Upload Documents</h3>
+            <p class="text-xs text-secondary">Drag and drop files or browse — they'll be indexed automatically</p>
+        </div>
+    </div>
+
+    <div class="upload-zone relative z-10" id="uploadZone" onclick="document.getElementById('fileInput').click()">
+        <input type="file" id="fileInput" multiple accept=".pdf,.docx,.json,.jsonl,.txt,.md" class="hidden" onchange="handleFileSelect(this.files)">
+        <div id="uploadPrompt">
+            <div class="text-3xl mb-2 opacity-50"><i data-lucide="folder" class="w-8 h-8 text-gray-500"></i></div>
+            <p class="text-sm text-secondary mb-1">Drop files here or <span class="text-purple-400 font-medium">click to browse</span></p>
+            <p class="text-xs text-secondary">PDF, DOCX, TXT, MD, JSON, JSONL — up to 50 MB each</p>
+        </div>
+        <div id="uploadQueue" class="hidden space-y-2 text-left"></div>
+    </div>
+
+    <div class="flex items-center justify-between mt-3 relative z-10">
+        <p class="text-xs text-gray-600" id="uploadStatus"></p>
+        <button onclick="clearUploadQueue()" id="uploadClearBtn" class="hidden text-xs text-gray-500 hover:text-gray-300 transition">Clear</button>
+    </div>
+</section>
+
+<!-- Technical storage details (collapsed by default) -->
+<details class="mb-8 fade-in fade-in-delay-1">
+    <summary class="text-xs text-gray-600 cursor-pointer hover:text-gray-400 transition-colors mb-3 select-none"><i data-lucide="settings" class="w-3.5 h-3.5 inline-block"></i> Technical storage details</summary>
+    <section class="grid grid-cols-1 md:grid-cols-2 gap-5">
+        <div class="storage-card glass-card p-5">
+            <div class="flex items-center gap-4 mb-4 relative z-10">
+                <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-teal-light/30 to-teal-dark/30 flex items-center justify-center"><i data-lucide="database" class="w-6 h-6 text-teal"></i></div>
+                <div><h3 class="font-medium text-white">ChromaDB</h3><p class="text-sm text-gray-400">Vector database</p></div>
+            </div>
+            <div class="space-y-3 relative z-10">
+                <div class="flex justify-between text-sm"><span class="text-gray-400">Database</span><span class="text-white stat-value font-medium">{{ storage.chroma.sqlite_size_mb|default(0) }} MB</span></div>
+                <div class="flex justify-between text-sm"><span class="text-gray-400">Total Size</span><span class="text-white stat-value font-medium">{{ storage.chroma.total_size_mb }} MB</span></div>
+                <div class="pt-2 border-t border-white/5">
+                    <span class="badge px-2 py-1 rounded-full text-teal text-xs font-medium">● {{ 'Active' if storage.chroma.exists else 'Not Found' }}</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="storage-card glass-card p-5">
+            <div class="flex items-center gap-4 mb-4 relative z-10">
+                <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-gold-light/30 to-gold/30 flex items-center justify-center text-2xl">#️⃣</div>
+                <div><h3 class="font-medium text-white">Hash Index</h3><p class="text-sm text-gray-400">Document tracking</p></div>
+            </div>
+            <div class="space-y-3 relative z-10">
+                <div class="flex justify-between text-sm"><span class="text-gray-400">Tracked</span><span class="text-white stat-value font-medium">{{ storage.hashes.entry_count }}</span></div>
+                <div class="flex justify-between text-sm"><span class="text-gray-400">Status</span><span class="text-white stat-value font-medium">{{ 'Active' if storage.hashes.exists else 'Not Found' }}</span></div>
+                <div class="pt-2 border-t border-white/5">
+                    <button onclick="copyPath('hashes')" class="text-sm text-gold hover:text-gold-light transition-colors"><i data-lucide="clipboard" class="w-3.5 h-3.5 inline-block"></i> Copy path</button>
+                </div>
+            </div>
+        </div>
+    </section>
+</details>
+
+<!-- AI Enrichment Card -->
+<section class="glass-card p-6 mb-8 fade-in fade-in-delay-1" id="enrichment-section">
+    <div class="flex items-center justify-between mb-4 relative z-10">
+        <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-2xl bg-gradient-to-br from-amber-400/30 to-orange-600/30 flex items-center justify-center"><i data-lucide="sparkles" class="w-5 h-5 text-amber-400"></i></div>
+            <div>
+                <h3 class="font-medium text-white">AI Enrichment</h3>
+                <p class="text-xs text-gray-400">Automatically improves search by extracting summaries, topics, and dates from your documents</p>
+            </div>
+        </div>
+        <div class="flex gap-2" id="enrichment-actions">
+            <button onclick="startEnrichment(false)" id="enrich-btn" class="px-4 py-2.5 btn-glossy font-medium text-sm">
+                <span class="relative z-10"><i data-lucide="rocket" class="w-4 h-4 inline-block"></i> Enrich New Documents</span>
+            </button>
+            <details class="relative">
+                <summary class="px-3 py-2.5 btn-outline font-medium text-xs text-gray-500 cursor-pointer list-none" title="Advanced options">⋯</summary>
+                <div class="absolute right-0 top-full mt-1 glass-card p-3 text-xs w-56 z-50" style="background:rgba(10,15,10,0.98);">
+                    <button onclick="confirmForceEnrich();this.closest('details').removeAttribute('open')" class="w-full text-left px-2 py-1.5 rounded hover:bg-white/5 text-gray-400 hover:text-white transition">
+                        <i data-lucide="refresh-cw" class="w-3.5 h-3.5 inline-block"></i> Force re-enrich all — re-processes everything, even already-enriched chunks
+                    </button>
+                </div>
+            </details>
+        </div>
+    </div>
+
+    <!-- Stats bar -->
+    <div class="grid grid-cols-2 md:grid-cols-3 gap-4 mb-4 relative z-10" id="enrichment-stats">
+        <div class="text-center">
+            <div class="text-2xl font-bold text-white stat-value" id="enrich-total">—</div>
+            <div class="text-xs text-gray-400">Total Chunks</div>
+        </div>
+        <div class="text-center">
+            <div class="text-2xl font-bold text-teal stat-value" id="enrich-done">—</div>
+            <div class="text-xs text-gray-400">Enriched</div>
+        </div>
+        <div class="text-center">
+            <div class="text-2xl font-bold text-amber-400 stat-value" id="enrich-pending">—</div>
+            <div class="text-xs text-gray-400">Pending</div>
+        </div>
+    </div>
+
+    <!-- Progress bar (hidden until running) -->
+    <div class="relative z-10 hidden" id="enrichment-progress">
+        <div class="flex items-center justify-between text-sm text-gray-400 mb-2">
+            <span id="enrich-progress-text">Processing…</span>
+            <div class="flex gap-3">
+                <span id="enrich-eta" class="text-xs"></span>
+                <button onclick="cancelEnrichment()" class="text-red-400 hover:text-red-300 text-xs"><i data-lucide="square" class="w-3 h-3 inline-block"></i> Cancel</button>
+            </div>
+        </div>
+        <div class="w-full h-2 bg-black/40 rounded-full overflow-hidden">
+            <div id="enrich-bar" class="h-full bg-gradient-to-r from-amber-500 to-purple-500 rounded-full transition-all duration-500" style="width:0%"></div>
+        </div>
+    </div>
+
+    <!-- Content type breakdown (shown when data available) -->
+    <div class="relative z-10 hidden mt-4 pt-4 border-t border-white/5" id="content-types-section">
+        <h4 class="text-xs text-gray-500 uppercase mb-2">Content Type Breakdown</h4>
+        <div class="flex flex-wrap gap-2" id="content-types-tags"></div>
+    </div>
+</section>
+
+<!-- Quick link to Teach page -->
+<div class="flex justify-center mb-8 fade-in fade-in-delay-2">
+    <a href="/teach" class="btn-outline px-6 py-3 text-sm flex items-center gap-2 no-underline">
+        <span><i data-lucide="pen-line" class="w-3.5 h-3.5 inline-block"></i></span> <span>Want to teach the assistant something new?</span> <span class="text-teal">Go to Teach →</span>
+    </a>
+</div>
+
+<!-- Recent Documents -->
+<section class="glass-card overflow-hidden mb-8 fade-in fade-in-delay-2">
+    <div class="px-6 py-4 border-b border-white/5 flex justify-between items-center relative z-10">
+        <h3 class="font-medium text-white flex items-center gap-2"><i data-lucide="file-text" class="w-4 h-4 text-purple-400"></i> Recent Documents</h3>
+        <span class="badge-violet px-3 py-1 rounded-full text-purple-400 text-xs font-medium">{{ storage.documents.file_count }} total</span>
+    </div>
+    <div class="overflow-x-auto relative z-10">
+        <table class="w-full">
+            <thead>
+                <tr class="text-left text-xs text-gray-500 uppercase">
+                    <th class="px-6 py-3 font-medium">Name</th>
+                    <th class="px-6 py-3 font-medium">Type</th>
+                    <th class="px-6 py-3 font-medium">Size</th>
+                    <th class="px-6 py-3 font-medium">Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for doc in storage.documents.files %}
+                <tr class="table-row">
+                    <td class="px-6 py-3 text-sm text-white font-medium">{{ doc.name }}</td>
+                    <td class="px-6 py-3 text-sm text-gray-400">{{ doc.name.split('.')[-1]|upper if '.' in doc.name else 'FILE' }}</td>
+                    <td class="px-6 py-3 text-sm text-gray-400 stat-value">{{ doc.size_kb }} KB</td>
+                    <td class="px-6 py-3"><span class="badge px-2 py-1 rounded-full text-teal text-xs">Available</span></td>
+                </tr>
+                {% else %}
+                <tr><td colspan="4" class="px-6 py-8 text-center text-gray-400">No documents found. Add files to your docs folder.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>
+
+<!-- Path Configuration -->
+<section class="glass-card p-6 fade-in fade-in-delay-3">
+    <h3 class="font-medium text-white mb-5 flex items-center gap-2 relative z-10">
+        <i data-lucide="settings" class="w-4 h-4 text-purple-400"></i> Storage Paths
+    </h3>
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 relative z-10">
+        <div>
+            <label class="block text-sm text-gray-400 mb-2">Documents Folder</label>
+            <div class="flex gap-2">
+                <input type="text" id="docs-path" value="{{ storage.documents.path }}" class="path-input flex-1 px-4 py-2.5 text-sm" readonly>
+                <button onclick="copyPath('docs')" class="btn-outline px-3 py-2.5 text-sm" title="Copy path" aria-label="Copy documents path"><i data-lucide="clipboard" class="w-3.5 h-3.5"></i></button>
+                <button onclick="openFolder('docs')" class="btn-outline px-3 py-2.5 text-sm" title="Open folder" aria-label="Open documents folder"><i data-lucide="folder-open" class="w-3.5 h-3.5"></i></button>
+            </div>
+        </div>
+        <div>
+            <label class="block text-sm text-gray-400 mb-2">ChromaDB Path</label>
+            <div class="flex gap-2">
+                <input type="text" id="chroma-path" value="{{ storage.chroma.path }}" class="path-input flex-1 px-4 py-2.5 text-sm" readonly>
+                <button onclick="copyPath('chroma')" class="btn-outline px-3 py-2.5 text-sm" title="Copy path" aria-label="Copy ChromaDB path"><i data-lucide="clipboard" class="w-3.5 h-3.5"></i></button>
+                <button onclick="openFolder('chroma')" class="btn-outline px-3 py-2.5 text-sm" title="Open folder" aria-label="Open ChromaDB folder"><i data-lucide="folder-open" class="w-3.5 h-3.5"></i></button>
+            </div>
+        </div>
+        <div>
+            <label class="block text-sm text-gray-400 mb-2">Hash Index</label>
+            <div class="flex gap-2">
+                <input type="text" id="hashes-path" value="{{ storage.hashes.path }}" class="path-input flex-1 px-4 py-2.5 text-sm" readonly>
+                <button onclick="copyPath('hashes')" class="btn-outline px-3 py-2.5 text-sm" title="Copy path" aria-label="Copy hash index path"><i data-lucide="clipboard" class="w-3.5 h-3.5"></i></button>
+            </div>
+        </div>
+        <div>
+            <label class="block text-sm text-gray-400 mb-2">Workspace Root</label>
+            <div class="flex gap-2">
+                <input type="text" id="root-path" value="{{ storage.documents.path|replace('/docs', '')|replace('\\docs', '') }}" class="path-input flex-1 px-4 py-2.5 text-sm" readonly>
+                <button onclick="copyPath('root')" class="btn-outline px-3 py-2.5 text-sm" title="Copy path" aria-label="Copy workspace root path"><i data-lucide="clipboard" class="w-3.5 h-3.5"></i></button>
+                <button onclick="openFolder('root')" class="btn-outline px-3 py-2.5 text-sm" title="Open folder" aria-label="Open workspace root"><i data-lucide="folder-open" class="w-3.5 h-3.5"></i></button>
+            </div>
+        </div>
+    </div>
+    <div class="mt-6 pt-4 border-t border-white/5 relative z-10">
+        <div class="info-panel p-4 text-sm">
+            <p class="text-secondary"><i data-lucide="lightbulb" class="w-3.5 h-3.5 inline-block text-purple-400"></i> Paths are configured via <code class="bg-black/30 px-1.5 py-0.5 rounded text-purple-300">config.py</code>. Restart the assistant after making changes.</p>
+        </div>
+    </div>
+</section>
+</div>
+
+<!-- ═══ Tab: KB Search ══════════════════════════════════════════════ -->
+<div id="kb-content-search" class="kb-tab-content">
+<div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+    <!-- Main search panel -->
+    <div class="lg:col-span-3 space-y-4">
+        <div class="glass-card glow-card p-5">
+            <div class="kbs-search-wrap">
+                <input type="text" id="kbsSearchInput" class="kbs-search-input" placeholder="Search query…" autocomplete="off" />
+                <select id="kbsKSelect" class="kbs-search-input" style="flex:none;width:5rem;font-size:0.78rem;text-align:center;">
+                    <option value="5">k=5</option>
+                    <option value="10" selected>k=10</option>
+                    <option value="20">k=20</option>
+                    <option value="30">k=30</option>
+                    <option value="50">k=50</option>
+                </select>
+                <button id="kbsSearchBtn" class="kbs-search-btn" onclick="kbsDoSearch()">Search</button>
+            </div>
+            <div class="kbs-method-group">
+                <button class="kbs-method-btn active" data-method="similarity" onclick="kbsSetMethod(this)">
+                    <i data-lucide="brain" class="w-3 h-3 inline-block mr-1" style="vertical-align:-2px;"></i>Vector Similarity
+                </button>
+                <button class="kbs-method-btn" data-method="keyword" onclick="kbsSetMethod(this)">
+                    <i data-lucide="text-search" class="w-3 h-3 inline-block mr-1" style="vertical-align:-2px;"></i>Keyword Match
+                </button>
+            </div>
+            <p class="kbs-hint" id="kbsMethodHint">Ranked by L2 distance — lower score = closer semantic match</p>
+        </div>
+        <div id="kbsResultsArea">
+            <div class="kbs-empty-state">
+                <i data-lucide="search" class="w-10 h-10 mx-auto block" style="opacity:0.3;"></i>
+                <p class="mt-2">Enter a query to search the knowledge base</p>
+                <p class="text-xs mt-1" style="color:rgba(255,255,255,0.15);">Results show what the retriever would return — useful for diagnosing corpus vs retrieval issues</p>
+            </div>
+        </div>
+    </div>
+    <!-- Stats sidebar -->
+    <div class="space-y-4">
+        <div class="kbs-stats-card">
+            <div class="kbs-stats-label">Total Chunks</div>
+            <div class="kbs-stats-value" id="kbsStatChunks">—</div>
+        </div>
+        <div class="kbs-stats-card">
+            <div class="kbs-stats-label">Unique Sources</div>
+            <div class="kbs-stats-value" id="kbsStatSources">—</div>
+        </div>
+        <div class="kbs-stats-card" id="kbsSourcesCard" style="display:none;">
+            <div class="kbs-stats-label mb-2">Sources</div>
+            <div id="kbsSourcesList" style="max-height:18rem;overflow-y:auto;"></div>
+        </div>
+    </div>
+</div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    const paths = {
+        docs: '{{ storage.documents.path }}',
+        chroma: '{{ storage.chroma.path }}',
+        hashes: '{{ storage.hashes.path }}',
+        root: '{{ storage.documents.path }}'
+    };
+
+    function copyPath(key) {
+        navigator.clipboard.writeText(paths[key]).then(() => showToast('Path copied!')).catch(() => showToast('Copy failed', 'error'));
+    }
+
+    async function openFolder(key) {
+        const data = await apiCall(`/api/v1/knowledge/open-folder/${key}`, { method: 'POST' });
+        if (!data.success) showToast(data.error || 'Failed to open', 'error');
+    }
+
+    async function refreshStats() {
+        showToast('Refreshing stats...');
+        const data = await apiCall('/api/v1/knowledge/stats');
+        if (data.success) { showToast('Stats updated! Reloading...'); setTimeout(() => location.reload(), 800); }
+    }
+
+    async function syncDocs() {
+        showToast('Syncing documents… this may take a moment.');
+        const data = await apiCall('/api/v1/knowledge/sync', { method: 'POST' });
+        if (data.success) {
+            showToast(`Synced! ${data.added} added, ${data.updated} updated, ${data.chunks} chunks written`);
+            setTimeout(() => location.reload(), 1500);
+        } else {
+            showToast(data.error || 'Sync failed', 'error');
+        }
+    }
+
+    async function exportKnowledge() {
+        showToast('Preparing knowledge export…');
+        try {
+            const resp = await fetch('/api/v1/knowledge/export');
+            if (!resp.ok) {
+                const err = await resp.text();
+                showToast('Export failed: ' + (err || resp.statusText), 'error');
+                return;
+            }
+            const blob = await resp.blob();
+            const cd = resp.headers.get('Content-Disposition') || '';
+            const match = cd.match(/filename="?([^"]+)"?/);
+            const filename = match ? match[1] : 'knowledge_export.zip';
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url; a.download = filename; a.click();
+            URL.revokeObjectURL(url);
+            showToast('Knowledge exported successfully!');
+        } catch (e) {
+            showToast('Export failed: ' + e.message, 'error');
+        }
+    }
+
+    async function importKnowledge(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+        if (!file.name.endsWith('.zip')) {
+            showToast('Please select a .zip file', 'error');
+            event.target.value = '';
+            return;
+        }
+        showToast('Importing knowledge… this may take a moment.');
+        try {
+            const fd = new FormData();
+            fd.append('file', file);
+            const resp = await fetch('/api/v1/knowledge/import', {
+                method: 'POST',
+                body: fd,
+                headers: { 'X-CSRF-Protection': '1' },
+            });
+            const data = await resp.json();
+            if (data.success) {
+                showToast(data.message || 'Import complete!');
+                setTimeout(() => location.reload(), 2000);
+            } else {
+                showToast(data.error || 'Import failed', 'error');
+            }
+        } catch (e) {
+            showToast('Import failed: ' + e.message, 'error');
+        }
+        event.target.value = '';
+    }
+
+    // rememberNote() has moved to the Teach page
+
+    // ── Enrichment ──
+    let enrichPollTimer = null;
+
+    async function loadEnrichmentStatus() {
+        const data = await apiCall('/api/v1/knowledge/enrichment/status');
+        if (!data.success) return;
+
+        document.getElementById('enrich-total').textContent = data.total_chunks;
+        document.getElementById('enrich-done').textContent = data.enriched;
+        document.getElementById('enrich-pending').textContent = data.pending;
+
+        // Content type breakdown
+        const types = data.content_types || {};
+        const tagsEl = document.getElementById('content-types-tags');
+        const typesSection = document.getElementById('content-types-section');
+        if (Object.keys(types).length) {
+            typesSection.classList.remove('hidden');
+            const typeColors = {
+                decision: 'text-red-400 border-red-400/30',
+                strategy: 'text-blue-400 border-blue-400/30',
+                meeting_notes: 'text-teal border-teal/30',
+                reference: 'text-purple-400 border-purple-400/30',
+                technical: 'text-cyan-400 border-cyan-400/30',
+                financial: 'text-green-400 border-green-400/30',
+                casual_discussion: 'text-gray-400 border-gray-400/30',
+                announcement: 'text-amber-400 border-amber-400/30',
+                noise: 'text-gray-600 border-gray-600/30',
+                unknown: 'text-gray-500 border-gray-500/30',
+            };
+            tagsEl.innerHTML = Object.entries(types)
+                .sort((a, b) => b[1] - a[1])
+                .map(([t, c]) => `<span class="px-2 py-1 rounded-full text-xs border ${typeColors[t] || 'text-gray-400 border-gray-400/30'}">${t}: ${c}</span>`)
+                .join('');
+        }
+
+        // If a job is running, show progress
+        if (data.job && data.job.status === 'running') {
+            showEnrichmentProgress(data.job);
+            if (!enrichPollTimer) {
+                enrichPollTimer = setInterval(loadEnrichmentStatus, 3000);
+            }
+        } else {
+            hideEnrichmentProgress();
+            if (enrichPollTimer) {
+                clearInterval(enrichPollTimer);
+                enrichPollTimer = null;
+            }
+            if (data.job && data.job.status === 'completed') {
+                showToast(`Enrichment complete! ${data.job.done - data.job.skipped} chunks enriched in ${data.job.elapsed_seconds}s`);
+            }
+        }
+    }
+
+    function showEnrichmentProgress(job) {
+        const el = document.getElementById('enrichment-progress');
+        el.classList.remove('hidden');
+        document.getElementById('enrich-btn').disabled = true;
+
+        const pct = job.total > 0 ? Math.round((job.done / job.total) * 100) : 0;
+        document.getElementById('enrich-bar').style.width = pct + '%';
+        document.getElementById('enrich-progress-text').textContent =
+            `Processing chunk ${job.done} / ${job.total} (${pct}%)`;
+        if (job.eta_seconds) {
+            const mins = Math.floor(job.eta_seconds / 60);
+            const secs = job.eta_seconds % 60;
+            document.getElementById('enrich-eta').textContent =
+                `ETA: ${mins > 0 ? mins + 'm ' : ''}${secs}s`;
+        }
+    }
+
+    function hideEnrichmentProgress() {
+        document.getElementById('enrichment-progress').classList.add('hidden');
+        document.getElementById('enrich-btn').disabled = false;
+    }
+
+    function confirmForceEnrich() {
+        if (!confirm('This will re-process ALL chunks, including ones already enriched. This can take a long time. Are you sure?')) return;
+        startEnrichment(true);
+    }
+
+    async function startEnrichment(force) {
+        const label = force ? 'Force re-enriching ALL chunks' : 'Enriching pending chunks';
+        showToast(`${label}… This runs in the background using your local Ollama model.`);
+        const data = await apiCall('/api/v1/knowledge/enrichment/start', {
+            method: 'POST',
+            body: JSON.stringify({ force }),
+        });
+        if (data.success) {
+            if (!enrichPollTimer) {
+                enrichPollTimer = setInterval(loadEnrichmentStatus, 3000);
+            }
+            loadEnrichmentStatus();
+        } else {
+            showToast(data.error || 'Failed to start enrichment', 'error');
+        }
+    }
+
+    async function cancelEnrichment() {
+        const data = await apiCall('/api/v1/knowledge/enrichment/cancel', { method: 'POST' });
+        if (data.success) {
+            showToast('Cancellation requested');
+        } else {
+            showToast(data.error || 'Cancel failed', 'error');
+        }
+    }
+
+    // Load enrichment status on page load
+    loadEnrichmentStatus();
+
+    // ── File Upload ──────────────────────────────────────────────────────
+    const uploadZone = document.getElementById('uploadZone');
+    const uploadQueue = document.getElementById('uploadQueue');
+    const uploadPrompt = document.getElementById('uploadPrompt');
+    const uploadStatus = document.getElementById('uploadStatus');
+    const uploadClearBtn = document.getElementById('uploadClearBtn');
+    const ALLOWED_EXT = ['.pdf','.docx','.json','.jsonl','.txt','.md'];
+
+    // Drag and drop
+    ['dragenter','dragover'].forEach(ev => {
+        uploadZone.addEventListener(ev, e => { e.preventDefault(); e.stopPropagation(); uploadZone.classList.add('drag-over'); });
+    });
+    ['dragleave','drop'].forEach(ev => {
+        uploadZone.addEventListener(ev, e => { e.preventDefault(); e.stopPropagation(); uploadZone.classList.remove('drag-over'); });
+    });
+    uploadZone.addEventListener('drop', e => {
+        const files = e.dataTransfer.files;
+        if (files.length) handleFileSelect(files);
+    });
+
+    async function handleFileSelect(fileList) {
+        if (!fileList || !fileList.length) return;
+        const files = Array.from(fileList);
+
+        // Validate extensions client-side
+        const valid = [];
+        const rejected = [];
+        files.forEach(f => {
+            const ext = '.' + f.name.split('.').pop().toLowerCase();
+            if (ALLOWED_EXT.includes(ext)) valid.push(f);
+            else rejected.push(f.name);
+        });
+        if (rejected.length) {
+            showToast(`Skipped ${rejected.length} unsupported file(s): ${rejected.slice(0,3).join(', ')}${rejected.length > 3 ? '…' : ''}`, 'error');
+        }
+        if (!valid.length) return;
+
+        // Show upload queue
+        uploadPrompt.classList.add('hidden');
+        uploadQueue.classList.remove('hidden');
+        uploadClearBtn.classList.remove('hidden');
+
+        // Build file rows
+        uploadQueue.innerHTML = valid.map((f, i) => `
+            <div class="upload-file-row" id="uf-${i}">
+                <span class="text-base">${fileIcon(f.name)}</span>
+                <div class="flex-1 min-w-0">
+                    <div class="text-sm text-white truncate">${escHtml(f.name)}</div>
+                    <div class="text-xs text-gray-500">${(f.size / 1024).toFixed(1)} KB</div>
+                    <div class="upload-progress"><div class="upload-progress-bar" id="uf-bar-${i}" style="width:0%"></div></div>
+                </div>
+                <span class="text-xs text-gray-500" id="uf-status-${i}">Pending</span>
+            </div>
+        `).join('');
+
+        // Upload via FormData (can't use apiCall — it forces JSON content-type)
+        const fd = new FormData();
+        valid.forEach(f => fd.append('files', f));
+
+        // Show uploading state
+        valid.forEach((_, i) => {
+            document.getElementById(`uf-status-${i}`).textContent = 'Uploading…';
+            document.getElementById(`uf-bar-${i}`).style.width = '60%';
+        });
+        uploadStatus.textContent = `Uploading ${valid.length} file(s)…`;
+
+        try {
+            const resp = await fetch('/api/v1/knowledge/upload', {
+                method: 'POST',
+                body: fd,
+                headers: { 'X-CSRF-Protection': '1' },
+            });
+            if (resp.status === 401 || resp.status === 303) {
+                window.location.href = '/login';
+                return;
+            }
+            let data;
+            try {
+                const text = await resp.text();
+                data = JSON.parse(text);
+            } catch(_) {
+                showToast('Upload failed: unexpected server response', 'error');
+                uploadStatus.textContent = 'Upload failed';
+                return;
+            }
+
+            if (data.uploaded) {
+                data.uploaded.forEach((u, i) => {
+                    const bar = document.getElementById(`uf-bar-${i}`);
+                    const status = document.getElementById(`uf-status-${i}`);
+                    if (bar) bar.style.width = '100%';
+                    if (status) { status.textContent = '✓ Done'; status.style.color = '#EFAAC4'; }
+                });
+            }
+            if (data.errors) {
+                data.errors.forEach(err => {
+                    // Find the matching row by filename
+                    const idx = valid.findIndex(f => f.name === err.file);
+                    if (idx >= 0) {
+                        const status = document.getElementById(`uf-status-${idx}`);
+                        if (status) { status.textContent = '✗ ' + err.error; status.style.color = '#E13943'; }
+                    }
+                });
+            }
+
+            const msg = data.message || `${(data.uploaded||[]).length} uploaded`;
+            uploadStatus.textContent = msg;
+            showToast(msg + '. Documents will be indexed automatically.');
+
+            // Reload page after a moment to reflect new files
+            setTimeout(() => location.reload(), 2500);
+        } catch(e) {
+            showToast('Upload failed: ' + e.message, 'error');
+            uploadStatus.textContent = 'Upload failed';
+            valid.forEach((_, i) => {
+                const status = document.getElementById(`uf-status-${i}`);
+                if (status) { status.textContent = '✗ Error'; status.style.color = '#E13943'; }
+            });
+        }
+
+        // Reset file input
+        document.getElementById('fileInput').value = '';
+    }
+
+    function clearUploadQueue() {
+        uploadQueue.innerHTML = '';
+        uploadQueue.classList.add('hidden');
+        uploadPrompt.classList.remove('hidden');
+        uploadClearBtn.classList.add('hidden');
+        uploadStatus.textContent = '';
+        document.getElementById('fileInput').value = '';
+    }
+
+    function fileIcon(name) {
+        const ext = name.split('.').pop().toLowerCase();
+        const icons = { pdf: '', docx: '', txt: '', md: '', json: '', jsonl: '' };
+        return icons[ext] || '';
+    }
+
+    function escHtml(s) {
+        const d = document.createElement('div');
+        d.textContent = s;
+        return d.innerHTML;
+    }
+
+    // ── Knowledge tab switching ──────────────────────────────────────
+    const _kbTabs = ['documents', 'search'];
+    let kbsStatsLoaded = false;
+
+    function showKbTab(tab) {
+        _kbTabs.forEach(t => {
+            const panel = document.getElementById('kb-content-' + t);
+            const btn = document.getElementById('kb-tab-' + t);
+            if (panel) panel.classList.remove('active');
+            if (btn) {
+                btn.classList.remove('text-purple-400', 'bg-purple-400/15');
+                btn.classList.add('text-gray-400');
+            }
+        });
+        const panel = document.getElementById('kb-content-' + tab);
+        const btn = document.getElementById('kb-tab-' + tab);
+        if (panel) panel.classList.add('active');
+        if (btn) {
+            btn.classList.add('text-purple-400', 'bg-purple-400/15');
+            btn.classList.remove('text-gray-400');
+        }
+        try { localStorage.setItem('mka_kb_tab', tab); } catch (_) {}
+        if (tab === 'search' && !kbsStatsLoaded) { kbsLoadStats(); kbsStatsLoaded = true; }
+    }
+
+    // Restore saved tab, with URL override so /kb-search can deep-link here.
+    (function restoreKbTab() {
+        const params = new URLSearchParams(window.location.search);
+        const requested = params.get('tab');
+        if (requested && document.getElementById('kb-content-' + requested)) {
+            showKbTab(requested);
+            return;
+        }
+        const saved = localStorage.getItem('mka_kb_tab');
+        if (saved && document.getElementById('kb-content-' + saved)) showKbTab(saved);
+    })();
+
+    // ── KB Search (embedded) ─────────────────────────────────────────
+    let kbsMethod = 'similarity';
+
+    function kbsSetMethod(btn) {
+        document.querySelectorAll('.kbs-method-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        kbsMethod = btn.dataset.method;
+        document.getElementById('kbsMethodHint').textContent =
+            kbsMethod === 'similarity'
+                ? 'Ranked by L2 distance \u2014 lower score = closer semantic match'
+                : 'Brute-force substring search across all stored chunks';
+    }
+
+    document.getElementById('kbsSearchInput').addEventListener('keydown', e => {
+        if (e.key === 'Enter') kbsDoSearch();
+    });
+
+    async function kbsDoSearch() {
+        const q = document.getElementById('kbsSearchInput').value.trim();
+        if (!q) return;
+        const k = document.getElementById('kbsKSelect').value;
+        const btn = document.getElementById('kbsSearchBtn');
+        btn.disabled = true;
+        btn.textContent = 'Searching\u2026';
+        try {
+            const data = await apiCall(`/api/v1/kb/search?q=${encodeURIComponent(q)}&k=${k}&method=${kbsMethod}`);
+            kbsRenderResults(data, q);
+        } catch(err) {
+            document.getElementById('kbsResultsArea').innerHTML =
+                `<div class="glass-card p-4 text-red-400 text-sm">${err.message || err}</div>`;
+        } finally {
+            btn.disabled = false;
+            btn.textContent = 'Search';
+        }
+    }
+
+    function kbsRenderResults(data, query) {
+        const area = document.getElementById('kbsResultsArea');
+        if (!data.results || data.results.length === 0) {
+            area.innerHTML = `<div class="kbs-empty-state">
+                <i data-lucide="search-x" class="w-10 h-10 mx-auto block" style="opacity:0.3;"></i>
+                <p class="mt-2">No results for "<strong>${escHtml(query)}</strong>"</p>
+                <p class="text-xs mt-1" style="color:rgba(255,255,255,0.15);">${data.method === 'keyword' ? `Searched ${data.total_docs || 0} chunks` : 'Try a different query or switch to keyword search'}</p>
+            </div>`;
+            lucide.createIcons();
+            return;
+        }
+        let html = `<div class="text-xs text-gray-500 mb-3">${data.count} result${data.count !== 1 ? 's' : ''} \u00b7 ${data.method} search${data.total_docs ? ' \u00b7 ' + data.total_docs + ' total chunks' : ''}</div>`;
+        data.results.forEach((r, i) => {
+            const scoreHtml = data.method === 'similarity' ? kbsRenderScore(r.score) : '';
+            const contentPreview = escHtml(r.content.length > 500 ? r.content.slice(0, 500) + '\u2026' : r.content);
+            const contentFull = escHtml(r.content);
+            const highlighted = data.method === 'keyword' ? kbsHighlight(contentPreview, query) : contentPreview;
+            let metaHtml = '';
+            if (r.metadata && Object.keys(r.metadata).length) {
+                metaHtml = '<div class="kbs-result-meta">';
+                for (const [k, v] of Object.entries(r.metadata)) {
+                    const val = String(v);
+                    if (val.length > 100) continue;
+                    metaHtml += `<span class="kbs-meta-pill" title="${escHtml(k)}">${escHtml(k)}: ${escHtml(val)}</span>`;
+                }
+                metaHtml += '</div>';
+            }
+            const showToggle = r.content.length > 500;
+            html += `<div class="kbs-result-card">
+                <div class="kbs-result-rank">#${i + 1} ${scoreHtml}</div>
+                <div class="kbs-result-content" id="kbs-content-${i}">${highlighted}</div>
+                ${showToggle ? `<span class="kbs-result-toggle" onclick="kbsToggleFull(${i}, this)" data-full="${btoa(unescape(encodeURIComponent(contentFull)))}">Show full chunk</span>` : ''}
+                ${metaHtml}
+            </div>`;
+        });
+        area.innerHTML = html;
+        lucide.createIcons();
+    }
+
+    function kbsRenderScore(score) {
+        let cls = 'kbs-score-weak';
+        if (score < 0.8) cls = 'kbs-score-good';
+        else if (score < 1.2) cls = 'kbs-score-ok';
+        return `<span class="kbs-result-score ${cls}" title="L2 distance (lower = better)">\u2195 ${score}</span>`;
+    }
+
+    function kbsToggleFull(idx, el) {
+        const div = document.getElementById('kbs-content-' + idx);
+        if (el.textContent === 'Show full chunk') {
+            div.textContent = decodeURIComponent(escape(atob(el.dataset.full)));
+            div.style.maxHeight = 'none';
+            el.textContent = 'Collapse';
+        } else {
+            div.textContent = div.textContent.slice(0, 500) + '\u2026';
+            div.style.maxHeight = '10rem';
+            el.textContent = 'Show full chunk';
+        }
+    }
+
+    function kbsHighlight(text, query) {
+        const esc = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        return text.replace(new RegExp(esc, 'gi'), m => `<mark>${m}</mark>`);
+    }
+
+    async function kbsLoadStats() {
+        try {
+            const data = await apiCall('/api/v1/kb/stats');
+            document.getElementById('kbsStatChunks').textContent = data.total_chunks.toLocaleString();
+            document.getElementById('kbsStatSources').textContent = data.unique_sources.toLocaleString();
+            if (data.sources && data.sources.length) {
+                document.getElementById('kbsSourcesCard').style.display = '';
+                document.getElementById('kbsSourcesList').innerHTML = data.sources.map(s =>
+                    `<div class="kbs-source-row"><span class="kbs-source-name" title="${escHtml(s.name)}">${escHtml(s.name)}</span><span class="kbs-source-count">${s.chunks}</span></div>`
+                ).join('');
+            }
+        } catch(e) {
+            console.warn('KB stats unavailable:', e);
+        }
+    }
+</script>
+{% endblock %}

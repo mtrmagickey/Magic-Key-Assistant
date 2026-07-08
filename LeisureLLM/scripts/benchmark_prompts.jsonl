@@ -1,0 +1,50 @@
+{"id":"simple-01","category":"simple_recall","prompt":"What time does the main pool open on weekdays?"}
+{"id":"simple-02","category":"simple_recall","prompt":"Who owns the Saturday junior swim rota?"}
+{"id":"simple-03","category":"simple_recall","prompt":"Where is the latest cleaning checklist stored?"}
+{"id":"simple-04","category":"simple_recall","prompt":"What is the current cancellation policy for classes?"}
+{"id":"simple-05","category":"simple_recall","prompt":"Which room is used for first aid training?"}
+{"id":"simple-06","category":"simple_recall","prompt":"What is the phone number for front desk escalation?"}
+{"id":"simple-07","category":"simple_recall","prompt":"When is the next staff meeting?"}
+{"id":"simple-08","category":"simple_recall","prompt":"What is the Wi-Fi name for staff devices?"}
+{"id":"simple-09","category":"simple_recall","prompt":"Who is the duty manager tonight?"}
+{"id":"simple-10","category":"simple_recall","prompt":"What are the opening hours for the gym on Sundays?"}
+{"id":"grounded-01","category":"grounded_retrieval","prompt":"Based on the latest operating notes, what changed in pool supervision coverage this month?"}
+{"id":"grounded-02","category":"grounded_retrieval","prompt":"Using the documents, summarize the current incident reporting steps for wet-floor injuries."}
+{"id":"grounded-03","category":"grounded_retrieval","prompt":"From the staff handbook, what are the current escalation steps for a broken sauna heater?"}
+{"id":"grounded-04","category":"grounded_retrieval","prompt":"What do the current documents say about overtime approval for swim coaches?"}
+{"id":"grounded-05","category":"grounded_retrieval","prompt":"Using the available docs, summarize the current membership refund workflow."}
+{"id":"grounded-06","category":"grounded_retrieval","prompt":"What do the latest notes say about lifeguard handoff between early and late shifts?"}
+{"id":"grounded-07","category":"grounded_retrieval","prompt":"Summarize the documented process for handling a missing child report inside the center."}
+{"id":"grounded-08","category":"grounded_retrieval","prompt":"What does the current SOP say about opening the sports hall for third-party bookings?"}
+{"id":"grounded-09","category":"grounded_retrieval","prompt":"Based on the internal docs, what changed in maintenance callout thresholds?"}
+{"id":"grounded-10","category":"grounded_retrieval","prompt":"Use the source documents to summarize the current cash-handling closeout procedure."}
+{"id":"artifact-01","category":"artifact_creation","prompt":"Create an action item for reviewing broken locker complaints from this week."}
+{"id":"artifact-02","category":"artifact_creation","prompt":"Draft a short memo for staff about the new towel inventory process."}
+{"id":"artifact-03","category":"artifact_creation","prompt":"Create a decision record for switching the Sunday class schedule to a trial format."}
+{"id":"artifact-04","category":"artifact_creation","prompt":"Prepare a brief outlining next steps after the boiler maintenance delay."}
+{"id":"artifact-05","category":"artifact_creation","prompt":"Write a proposal for a simpler member check-in fallback when scanners are down."}
+{"id":"artifact-06","category":"artifact_creation","prompt":"Create an action for confirming the next fire safety inspection date."}
+{"id":"artifact-07","category":"artifact_creation","prompt":"Draft a report on recurring complaints about changing room cleanliness."}
+{"id":"artifact-08","category":"artifact_creation","prompt":"Build a one-page outline for a new induction checklist for part-time coaches."}
+{"id":"artifact-09","category":"artifact_creation","prompt":"Create a plan for following up with lapsed corporate membership leads."}
+{"id":"artifact-10","category":"artifact_creation","prompt":"Prepare a short brief for leadership on pool energy-saving options."}
+{"id":"deep-01","category":"deep_analysis","prompt":"Compare our staffing options for early-morning pool coverage and explain the tradeoffs."}
+{"id":"deep-02","category":"deep_analysis","prompt":"Diagnose why weekend check-in queues are still high and propose the strongest options."}
+{"id":"deep-03","category":"deep_analysis","prompt":"Analyze the tradeoffs between extending gym hours and reducing off-peak staffing."}
+{"id":"deep-04","category":"deep_analysis","prompt":"Compare three ways to reduce maintenance backlog risk over the next quarter."}
+{"id":"deep-05","category":"deep_analysis","prompt":"Deep dive on whether swim lesson scheduling should stay centralized or move to each lead coach."}
+{"id":"deep-06","category":"deep_analysis","prompt":"What are the tradeoffs between in-house cleaning expansion and a partial contractor model?"}
+{"id":"deep-07","category":"deep_analysis","prompt":"Analyze why incident follow-up quality varies across shifts and recommend a root-cause fix."}
+{"id":"deep-08","category":"deep_analysis","prompt":"Compare the best options for handling peak family-swim congestion without cutting revenue."}
+{"id":"deep-09","category":"deep_analysis","prompt":"Provide a deep analysis of member churn signals and the operational changes most likely to help."}
+{"id":"deep-10","category":"deep_analysis","prompt":"Use deep mode to compare our current escalation model with a single duty-ops model."}
+{"id":"current-01","category":"current_info","prompt":"What are the latest UK leisure center energy price trends that could affect our heating costs?"}
+{"id":"current-02","category":"current_info","prompt":"Find current guidance on pool chemical shortages and likely supply risk this month."}
+{"id":"current-03","category":"current_info","prompt":"What is the latest public guidance on Legionella checks for leisure facilities?"}
+{"id":"current-04","category":"current_info","prompt":"Are there current industry trends in member retention for community gyms?"}
+{"id":"current-05","category":"current_info","prompt":"What are the latest public funding opportunities for community sport facilities?"}
+{"id":"current-06","category":"current_info","prompt":"Summarize current public safety guidance for sauna and steam room operations."}
+{"id":"current-07","category":"current_info","prompt":"What are current market wages for lifeguards in the UK?"}
+{"id":"current-08","category":"current_info","prompt":"Find current examples of successful family membership promotions in leisure centers."}
+{"id":"current-09","category":"current_info","prompt":"What is the latest guidance on accessibility expectations for leisure center booking systems?"}
+{"id":"current-10","category":"current_info","prompt":"What are the latest current-info signals about sports hall demand from schools and clubs?"}

@@ -1,0 +1,62 @@
+# ──────────────────────────────────────────────────────────────
+# Magic Key Assistant — Docker Compose
+# ──────────────────────────────────────────────────────────────
+# Deploy with:   docker compose up -d
+# First run:     cp .env.example .env  &&  edit .env
+# Logs:          docker compose logs -f bot
+# ──────────────────────────────────────────────────────────────
+
+services:
+  # ── Bot worker ────────────────────────────────────────────
+  bot:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: magickey-bot
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      - ADMIN_GUI_ENABLED=false   # Admin runs in its own container
+    volumes:
+      - bot-data:/app/data                # SQLite DB + backups
+      - bot-docs:/app/LeisureLLM/docs     # Knowledge base documents
+      - bot-config:/app/LeisureLLM/config # org_profile, workflows, bot_settings
+    depends_on:
+      - chroma
+
+  # ── Admin UI ──────────────────────────────────────────────
+  admin:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: magickey-admin
+    restart: unless-stopped
+    command: ["python", "-m", "uvicorn", "admin.server:app", "--host", "0.0.0.0", "--port", "8000"]
+    working_dir: /app/LeisureLLM
+    env_file: .env
+    ports:
+      - "${ADMIN_BIND:-127.0.0.1}:${ADMIN_PORT:-8000}:8000"
+    volumes:
+      - bot-data:/app/data
+      - bot-config:/app/LeisureLLM/config
+    depends_on:
+      - bot
+
+  # ── Vector store ──────────────────────────────────────────
+  chroma:
+    image: chromadb/chroma:0.5.23
+    container_name: magickey-chroma
+    restart: unless-stopped
+    ports:
+      - "${CHROMA_BIND:-127.0.0.1}:${CHROMA_PORT:-8100}:8000"
+    volumes:
+      - chroma-data:/chroma/chroma
+    environment:
+      - IS_PERSISTENT=TRUE
+      - ANONYMIZED_TELEMETRY=FALSE
+
+volumes:
+  bot-data:
+  bot-docs:
+  bot-config:
+  chroma-data:

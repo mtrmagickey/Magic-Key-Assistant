@@ -1,0 +1,344 @@
+{% extends "base.html" %}
+{% block title %}Activity — {{ bot_name }}{% endblock %}
+
+{% block head %}
+<style>
+.feed-item {
+    display: flex;
+    gap: 1rem;
+    padding: 0.85rem 1.25rem;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+    transition: background 0.15s;
+}
+.feed-item:hover { background: rgba(255,255,255,0.03); }
+.feed-item:last-child { border-bottom: none; }
+
+.feed-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    margin-top: 6px;
+    flex-shrink: 0;
+}
+.feed-dot.job       { background: #F4C3D6; }
+.feed-dot.command   { background: #818CF8; }
+.feed-dot.learning  { background: #83781B; }
+.feed-dot.tool      { background: #EFAAC4; }
+.feed-dot.packet    { background: #60A5FA; }
+
+.source-badge {
+    display: inline-block;
+    font-size: 0.6rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    padding: 1px 6px;
+    border-radius: 4px;
+    font-weight: 600;
+}
+.source-badge.job      { background: rgba(239,170,196,0.15); color: #F4C3D6; }
+.source-badge.command  { background: rgba(129,140,248,0.15); color: #818CF8; }
+.source-badge.learning { background: rgba(131,120,27,0.15); color: #83781B; }
+.source-badge.tool     { background: rgba(239,170,196,0.15); color: #EFAAC4; }
+.source-badge.packet   { background: rgba(96,165,250,0.15); color: #60A5FA; }
+
+.status-pill {
+    font-size: 0.65rem;
+    padding: 1px 6px;
+    border-radius: 4px;
+}
+.status-pill.completed { background: rgba(52,211,153,0.15); color: #34D399; }
+.status-pill.failed    { background: rgba(239,68,68,0.15); color: #EF4444; }
+.status-pill.running   { background: rgba(96,165,250,0.15); color: #60A5FA; }
+.status-pill.success   { background: rgba(52,211,153,0.15); color: #34D399; }
+.status-pill.info      { background: rgba(131,120,27,0.1);  color: #83781B; }
+
+.packet-row {
+    display: grid;
+    grid-template-columns: 80px 1.2fr 0.8fr 0.8fr 1.2fr;
+    gap: 0.75rem;
+    padding: 0.8rem 1rem;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+    font-size: 0.8rem;
+}
+.packet-row:last-child { border-bottom: none; }
+.packet-header {
+    font-size: 0.68rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #6B7280;
+    font-weight: 700;
+}
+
+.trace-row {
+    display: grid;
+    grid-template-columns: 110px 0.7fr 1fr 90px 120px 90px;
+    gap: 0.75rem;
+    padding: 0.8rem 1rem;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+    font-size: 0.8rem;
+}
+.trace-row:last-child { border-bottom: none; }
+.trace-header {
+    font-size: 0.68rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #6B7280;
+    font-weight: 700;
+}
+
+.filter-btn {
+    font-size: 0.75rem;
+    padding: 0.35rem 0.85rem;
+    border-radius: 0.5rem;
+    border: 1px solid rgba(255,255,255,0.08);
+    background: transparent;
+    color: #9CA3AF;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+.filter-btn:hover { border-color: rgba(255,255,255,0.2); color: #e5e7eb; }
+.filter-btn.active { border-color: rgba(239,170,196,0.4); color: #F4C3D6; background: rgba(239,170,196,0.08); }
+</style>
+{% endblock %}
+
+{% block content %}
+<header class="header-scrim flex justify-between items-center mb-6 reveal">
+    <div>
+        <h2 class="text-2xl font-semibold text-white mb-1 tracking-tight">Activity</h2>
+        <p class="text-sm text-secondary">What's happened recently — tasks, learning, and background work</p>
+    </div>
+    <div class="flex gap-2">
+        <button class="filter-btn active" data-source="" onclick="setFilter(this)">All</button>
+        <button class="filter-btn" data-source="job" onclick="setFilter(this)"><i data-lucide="bot" class="w-3.5 h-3.5 inline-block"></i> Jobs</button>
+        <button class="filter-btn" data-source="command" onclick="setFilter(this)"><i data-lucide="terminal" class="w-3.5 h-3.5 inline-block"></i> Commands</button>
+        <button class="filter-btn" data-source="learning" onclick="setFilter(this)"><i data-lucide="book-open" class="w-3.5 h-3.5 inline-block"></i> Learning</button>
+        <button class="filter-btn" data-source="tool" onclick="setFilter(this)"><i data-lucide="wrench" class="w-3.5 h-3.5 inline-block"></i> Tools</button>
+        <button class="filter-btn" data-source="packet" onclick="setFilter(this)"><i data-lucide="workflow" class="w-3.5 h-3.5 inline-block"></i> Packets</button>
+    </div>
+</header>
+
+<!-- Stats Row -->
+<div class="grid grid-cols-2 md:grid-cols-6 gap-4 mb-6 reveal stagger-2">
+    <div class="stat-card">
+        <div class="stat-value" id="statTotal">—</div>
+        <div class="stat-label">Total Events</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-value text-teal" id="statJobs">—</div>
+        <div class="stat-label">Job Runs</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-value text-purple-400" id="statCommands">—</div>
+        <div class="stat-label">Commands</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-value text-gold" id="statLearning">—</div>
+        <div class="stat-label">Learning Events</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-value text-teal" id="statTools">—</div>
+        <div class="stat-label">Tool Runs</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-value text-blue-400" id="statPackets">—</div>
+        <div class="stat-label">Packet Events</div>
+    </div>
+</div>
+
+<div class="glass-card glow-card overflow-hidden reveal stagger-3 mb-6">
+    <div class="px-5 py-4 border-b border-white/5 flex items-center justify-between">
+        <div>
+            <h3 class="text-sm font-semibold text-white">Recent Request Traces</h3>
+            <p class="text-xs text-gray-500">Lane, reason, latency, and model visibility for chat flows</p>
+        </div>
+    </div>
+    <div class="trace-row trace-header">
+        <div>Request</div>
+        <div>Lane</div>
+        <div>Reason / Model</div>
+        <div>Total</div>
+        <div>Calls</div>
+        <div>Status</div>
+    </div>
+    <div id="traceList">
+        <div class="px-6 py-6 text-sm text-gray-500">Loading traces…</div>
+    </div>
+</div>
+
+<div class="glass-card glow-card overflow-hidden reveal stagger-3 mb-6">
+    <div class="px-5 py-4 border-b border-white/5 flex items-center justify-between">
+        <div>
+            <h3 class="text-sm font-semibold text-white">Recent Work Packets</h3>
+            <p class="text-xs text-gray-500">Current packet state without replaying chat history</p>
+        </div>
+    </div>
+    <div class="packet-row packet-header">
+        <div>ID</div>
+        <div>Title</div>
+        <div>Status</div>
+        <div>Lane</div>
+        <div>Source</div>
+    </div>
+    <div id="packetList">
+        <div class="px-6 py-6 text-sm text-gray-500">Loading packets…</div>
+    </div>
+</div>
+
+<!-- Feed -->
+<div class="glass-card glow-card overflow-hidden reveal stagger-4">
+    <div id="feedList" class="divide-y divide-white/5">
+        <div class="px-6 py-8 text-center text-gray-500">Loading activity…</div>
+    </div>
+    <div id="loadMore" class="px-6 py-3 border-t border-white/5 text-center" style="display:none;">
+        <button onclick="loadMore()" class="text-sm text-teal hover:text-teal-light transition">Load more…</button>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let allEvents = [];
+let currentSource = '';
+let loaded = 0;
+const PAGE = 50;
+
+async function loadFeed(append) {
+    const url = `/api/v1/activity?limit=${PAGE}&offset=${append ? loaded : 0}` +
+                (currentSource ? `&source=${currentSource}` : '');
+    const data = await apiCall(url);
+    if (!data.success) return;
+    if (!append) { allEvents = []; loaded = 0; }
+    allEvents.push(...data.events);
+    loaded = allEvents.length;
+    renderFeed();
+    updateStats(data);
+    document.getElementById('loadMore').style.display = loaded < data.total ? '' : 'none';
+}
+
+async function loadPackets() {
+    const data = await apiCall('/api/v1/work-packets?limit=10');
+    if (!data.success) return;
+    const container = document.getElementById('packetList');
+    if (!data.packets || data.packets.length === 0) {
+        container.innerHTML = '<div class="px-6 py-6 text-sm text-gray-500">No work packets recorded yet.</div>';
+        return;
+    }
+    container.innerHTML = data.packets.map(packet => `
+        <div class="packet-row">
+            <div class="text-gray-400">#${packet.id}</div>
+            <div>
+                <div class="text-white">${esc(packet.title || 'Work packet')}</div>
+                <div class="text-xs text-gray-500">${esc(packet.packet_type || '')}</div>
+            </div>
+            <div><span class="status-pill ${(packet.status || 'info').toLowerCase()}">${esc(packet.status || 'info')}</span></div>
+            <div class="text-gray-300">${esc(packet.lane || '—')}</div>
+            <div class="text-gray-500">${esc((packet.created_from_type || 'manual') + (packet.created_from_id ? '#' + packet.created_from_id : ''))}</div>
+        </div>
+    `).join('');
+}
+
+async function loadRequestTraces() {
+    const data = await apiCall('/api/v1/request-traces?limit=10');
+    if (!data.success) return;
+    const container = document.getElementById('traceList');
+    if (!data.traces || data.traces.length === 0) {
+        container.innerHTML = '<div class="px-6 py-6 text-sm text-gray-500">No request traces recorded yet.</div>';
+        return;
+    }
+    container.innerHTML = data.traces.map(trace => {
+        const modelSummary = Object.values(trace.models_used || {}).join(', ') || '—';
+        const reason = trace.policy_reason || '—';
+        const callSummary = `${trace.llm_calls || 0} LLM / ${trace.retrieval_calls || 0} retrieval`;
+        const status = trace.failure_mode ? 'failed' : (trace.completed_successfully ? 'completed' : 'failed');
+        return `
+        <div class="trace-row">
+            <div>
+                <div class="text-gray-300">${esc(trace.request_id || '—')}</div>
+                <div class="text-xs text-gray-500">${esc(trace.user_visible_flow || '')}</div>
+            </div>
+            <div>
+                <div class="text-white">${esc(trace.lane || '—')}</div>
+                <div class="text-xs text-gray-500">${esc(trace.routing_flags && trace.routing_flags.escalated_after_retrieval ? 'escalated after retrieval' : '')}</div>
+            </div>
+            <div>
+                <div class="text-white">${esc(reason)}</div>
+                <div class="text-xs text-gray-500">${esc(modelSummary)}</div>
+            </div>
+            <div class="text-gray-300">${esc(String(trace.total_ms || 0) + ' ms')}</div>
+            <div class="text-gray-300">${esc(callSummary)}</div>
+            <div>
+                <span class="status-pill ${status}">${esc(trace.failure_mode || status)}</span>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+function updateStats(data) {
+    document.getElementById('statTotal').textContent = data.total;
+    // These are approximate counts from the loaded page
+    const jobs = allEvents.filter(e => e.source === 'job').length;
+    const cmds = allEvents.filter(e => e.source === 'command').length;
+    const learn = allEvents.filter(e => e.source === 'learning').length;
+    const tools = allEvents.filter(e => e.source === 'tool').length;
+    const packets = allEvents.filter(e => e.source === 'packet').length;
+    document.getElementById('statJobs').textContent = jobs;
+    document.getElementById('statCommands').textContent = cmds;
+    document.getElementById('statLearning').textContent = learn;
+    document.getElementById('statTools').textContent = tools;
+    document.getElementById('statPackets').textContent = packets;
+}
+
+function humanizeEvent(ev) {
+    const icon = {job: '<i data-lucide="bot" class="w-3.5 h-3.5 inline-block"></i>', command: '<i data-lucide="terminal" class="w-3.5 h-3.5 inline-block"></i>', learning: '<i data-lucide="book-open" class="w-3.5 h-3.5 inline-block"></i>', tool: '<i data-lucide="wrench" class="w-3.5 h-3.5 inline-block"></i>', packet: '<i data-lucide="workflow" class="w-3.5 h-3.5 inline-block"></i>'}[ev.source] || '<i data-lucide="pin" class="w-3.5 h-3.5 inline-block"></i>';
+    const statusLabel = {completed: 'completed', success: 'completed', failed: 'failed', running: 'in progress'}[
+        (ev.status || '').toLowerCase()] || ev.status || '';
+    // Build a human sentence: "<icon> <title> — <status>"
+    let sentence = `${icon} ${esc(ev.title || 'Event')}`;
+    if (statusLabel) sentence += ` — <span class="status-pill ${(ev.status||'info').toLowerCase()}">${statusLabel}</span>`;
+    return sentence;
+}
+
+function renderFeed() {
+    const container = document.getElementById('feedList');
+    if (allEvents.length === 0) {
+        container.innerHTML = '<div class="px-6 py-8 text-center text-gray-400">No activity recorded yet.</div>';
+        return;
+    }
+    let lastDate = '';
+    container.innerHTML = allEvents.map(ev => {
+        const ts = ev.timestamp ? new Date(ev.timestamp + (ev.timestamp.endsWith('Z') ? '' : 'Z')) : null;
+        const dateStr = ts ? ts.toLocaleDateString(undefined, {weekday:'long', month:'short', day:'numeric'}) : '';
+        const timeStr = ts ? ts.toLocaleTimeString(undefined, {hour:'2-digit', minute:'2-digit'}) : '—';
+        let dateSep = '';
+        if (dateStr && dateStr !== lastDate) {
+            lastDate = dateStr;
+            dateSep = `<div class="px-5 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider bg-black/20">${dateStr}</div>`;
+        }
+        return `${dateSep}
+            <div class="feed-item">
+                <div class="feed-dot ${ev.source}"></div>
+                <div class="flex-1 min-w-0">
+                    <div class="text-sm text-white">${humanizeEvent(ev)}</div>
+                    ${ev.detail ? `<p class="text-xs text-gray-500 mt-0.5">${esc(ev.detail)}</p>` : ''}
+                </div>
+                <div class="text-xs text-gray-600 whitespace-nowrap flex-shrink-0">${timeStr}</div>
+            </div>`;
+    }).join('');
+    if (typeof lucide !== 'undefined') lucide.createIcons();
+}
+
+function esc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+
+function setFilter(btn) {
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    currentSource = btn.dataset.source || '';
+    loadFeed(false);
+}
+
+function loadMore() { loadFeed(true); }
+
+loadFeed(false);
+loadRequestTraces();
+loadPackets();
+</script>
+{% endblock %}

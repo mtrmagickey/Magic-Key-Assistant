@@ -1,0 +1,653 @@
+{% extends "base.html" %}
+{% block title %}{{ bot_name }}{% endblock %}
+
+{% block head %}
+<style>
+    .insight-shimmer { animation: shimmerPulse 2s ease-in-out infinite alternate; }
+    @keyframes shimmerPulse { 0%{opacity:0.7;} 100%{opacity:1;} }
+
+    /* Action card - large, clickable, aero glass */
+    .action-tile {
+        position: relative;
+        overflow: hidden;
+        border-radius: var(--r-card);
+        padding: 2rem 1.75rem;
+        background: linear-gradient(var(--light-angle), rgba(10,8,6,0.92) 0%, rgba(4,3,2,0.96) 100%);
+        border: 1px solid rgba(255,255,255,0.06);
+        border-top-color: rgba(255,255,255,0.14);
+        border-bottom-color: rgba(0,0,0,0.12);
+        cursor: pointer;
+        min-height: 7rem;
+        backdrop-filter: blur(14px) saturate(140%);
+        box-shadow: 0 4px 16px rgba(0,0,0,0.28), 0 1px 0 rgba(255,255,255,0.06) inset;
+        transition: transform 0.25s cubic-bezier(.16,1,.3,1),
+                    border-color 0.3s ease,
+                    box-shadow 0.3s ease;
+    }
+    .action-tile:hover {
+        transform: translateY(-2px);
+        border-top-color: rgba(255,255,255,0.22);
+        border-color: rgba(var(--a), 0.16);
+        box-shadow: 0 8px 30px rgba(0,0,0,0.32), 0 0 16px rgba(var(--a), 0.06), 0 1px 0 rgba(255,255,255,0.08) inset;
+    }
+    /* Chromatic refraction top edge */
+    .action-tile::before {
+        content: '';
+        position: absolute;
+        top: 0; left: 6%; right: 6%; height: 1px;
+        background: linear-gradient(90deg, transparent, rgba(var(--a),0.16) 30%, rgba(255,255,255,0.20) 50%, rgba(var(--b),0.14) 70%, transparent);
+        pointer-events: none; z-index: 2;
+    }
+    .action-tile::after {
+        content: '';
+        position: absolute;
+        top: 0; right: 0;
+        width: 120px; height: 120px;
+        background: radial-gradient(circle, rgba(var(--a), 0.05) 0%, transparent 70%);
+        pointer-events: none;
+    }
+    .action-tile .tile-icon {
+        width: 3.5rem; height: 3.5rem;
+        border-radius: var(--r-btn);
+        display: flex; align-items: center; justify-content: center;
+        background: linear-gradient(var(--light-angle), rgba(10,8,6,0.90) 0%, rgba(4,3,2,0.94) 100%);
+        border: 1px solid rgba(255,255,255,0.10);
+        border-top-color: rgba(255,255,255,0.18);
+        border-bottom-color: rgba(0,0,0,0.12);
+        box-shadow: 0 2px 8px rgba(0,0,0,0.20), 0 1px 0 rgba(255,255,255,0.08) inset;
+        flex-shrink: 0;
+    }
+    .action-tile .tile-arrow {
+        opacity: 0.5;
+        transform: translateX(0);
+        transition: opacity 0.2s, transform 0.2s;
+    }
+    .action-tile:hover .tile-arrow {
+        opacity: 1;
+        transform: translateX(4px);
+    }
+
+    /* Dimmed tiles — no AI model configured yet */
+    .action-tile.tile-dimmed {
+        opacity: 0.45;
+        pointer-events: none;
+        filter: grayscale(0.4);
+    }
+    .action-tile.tile-dimmed .tile-icon { opacity: 0.5; }
+
+    /* Pulsing border for Router CTA tile */
+    @keyframes routerPulse {
+        0%,100% { border-color: rgba(var(--b), 0.25); box-shadow: 0 4px 16px rgba(0,0,0,0.28), 0 0 0 rgba(var(--b),0); }
+        50%     { border-color: rgba(var(--b), 0.50); box-shadow: 0 4px 16px rgba(0,0,0,0.28), 0 0 18px rgba(var(--b),0.12); }
+    }
+    .action-tile.tile-pulse {
+        animation: routerPulse 2.4s ease-in-out infinite;
+    }
+
+    /* Urgent banner pulsing left border */
+    .urgent-item {
+        border-left: 3px solid #E13943;
+        animation: urgentPulse 3s ease-in-out infinite;
+    }
+    @keyframes urgentPulse {
+        0%,100% { border-left-color: #E13943; }
+        50%     { border-left-color: rgba(225, 57, 67, 0.4); }
+    }
+
+    /* Milestone progress bar — glass capsule/tube */
+    .milestone-bar {
+        height: 8px;
+        border-radius: 4px;
+        background: rgba(255,255,255,0.04);
+        border: 1px solid rgba(255,255,255,0.06);
+        border-top-color: rgba(0,0,0,0.12);
+        border-bottom-color: rgba(255,255,255,0.10);
+        box-shadow: inset 0 2px 4px rgba(0,0,0,0.30), 0 1px 0 rgba(255,255,255,0.05);
+        overflow: hidden;
+    }
+    .milestone-fill {
+        height: 100%;
+        border-radius: 3px;
+        background: linear-gradient(180deg, rgba(var(--a-light),0.9) 0%, rgba(var(--a),0.8) 45%, rgba(var(--a-dark),0.9) 100%);
+        box-shadow: 0 1px 0 rgba(255,255,255,0.25) inset, 0 -1px 0 rgba(0,0,0,0.15) inset, 0 0 8px rgba(var(--a),0.20);
+        transition: width 1s cubic-bezier(.16,1,.3,1);
+        position: relative;
+    }
+    /* Specular glint on fill */
+    .milestone-fill::before {
+        content: '';
+        position: absolute; top: 0; left: 0; right: 0; height: 50%;
+        background: linear-gradient(180deg, rgba(255,255,255,0.30) 0%, transparent 100%);
+        border-radius: 3px 3px 50% 50%;
+    }
+
+    /* Quick-tip banner */
+    .tip-banner {
+        position: relative;
+        overflow: hidden;
+    }
+    .tip-banner::after {
+        content: '';
+        position: absolute;
+        top: 0; right: 0;
+        width: 80px; height: 80px;
+        background: radial-gradient(circle, rgba(var(--b), 0.06) 0%, transparent 70%);
+        pointer-events: none;
+    }
+    .runtime-help-link {
+        color: rgba(229, 231, 235, 0.78);
+        text-decoration: underline;
+        text-underline-offset: 2px;
+    }
+    .runtime-help-link:hover {
+        color: rgba(255, 255, 255, 0.96);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- GREETING + BOT INSIGHT -->
+<header class="mb-6 reveal">
+    <h2 class="text-2xl font-semibold text-white mb-1 tracking-tight" id="greeting">Dashboard</h2>
+    <p class="text-sm text-secondary" id="greetingSub">Overview, metrics, and quick-jump tiles. <a href="/pulse" class="text-teal no-underline hover:underline">← Back to Pulse</a></p>
+</header>
+
+<section id="modelSetupBanner" class="info-panel mb-6 reveal border-l-2 {{ model_setup_guidance.border_class }}" {% if not model_setup_guidance.show_banner %}style="display:none;"{% endif %}>
+    <div class="p-5 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+        <div>
+            <p class="text-sm font-semibold text-white mb-1" id="modelSetupBannerTitle">{{ model_setup_guidance.title }}</p>
+            <p class="text-sm text-secondary" id="modelSetupBannerDetail">{{ model_setup_guidance.detail }}</p>
+        </div>
+        <div class="flex flex-wrap gap-2">
+            <a id="modelSetupBannerPrimary" href="{{ model_setup_guidance.primary_href }}" class="px-3 py-2 rounded-lg border border-teal/30 text-sm text-teal hover:bg-teal/10 transition no-underline">{{ model_setup_guidance.primary_label }}</a>
+            <a id="modelSetupBannerSecondary" href="{{ model_setup_guidance.secondary_href or '#' }}" class="px-3 py-2 rounded-lg border border-gold/30 text-sm text-gold hover:bg-gold/10 transition no-underline" {% if not model_setup_guidance.secondary_href %}style="display:none;"{% endif %}>{{ model_setup_guidance.secondary_label or '' }}</a>
+        </div>
+    </div>
+</section>
+
+<!-- Bot observation - clickable, leads to most relevant page -->
+<a href="/inbox" id="botInsightCard" class="action-tile block no-underline mb-6 reveal stagger-1">
+    <div class="flex items-start gap-4">
+        <div class="tile-icon bg-surface-elevated">
+            <i data-lucide="sparkles" class="w-5 h-5 text-teal"></i>
+        </div>
+        <div class="flex-1 min-w-0">
+            <div class="flex items-center gap-2 mb-1">
+                <h3 class="text-sm font-semibold text-white">{{ bot_name }}</h3>
+                <span class="text-[10px] text-gray-500">just now</span>
+            </div>
+            <p class="text-sm text-gray-300 leading-relaxed" id="botInsightText">
+                <span class="text-gray-500 insight-shimmer">Looking at your workspace...</span>
+            </p>
+        </div>
+        <div class="tile-arrow text-gray-500 flex items-center pt-1">
+            <i data-lucide="arrow-right" class="w-4 h-4"></i>
+        </div>
+    </div>
+</a>
+
+<!-- URGENT ITEMS (only shown when something pressing) -->
+<div id="urgentSection" class="mb-6 reveal stagger-2" style="display:none;">
+    <h3 class="text-xs text-gray-400 uppercase tracking-wider font-semibold mb-3 flex items-center gap-2">
+        <i data-lucide="alert-triangle" class="w-3.5 h-3.5 text-coral"></i> Needs Attention
+    </h3>
+    <div id="urgentList" class="space-y-2"></div>
+</div>
+
+<!-- SINCE LAST VISIT — momentum line -->
+<div id="momentumLine" class="mb-5 reveal stagger-2" style="display:none;">
+    <div class="flex items-center gap-3 text-sm text-gray-400">
+        <i data-lucide="zap" class="w-3.5 h-3.5 text-teal flex-shrink-0"></i>
+        <span id="momentumText"></span>
+    </div>
+</div>
+
+<!-- PROACTIVE NUDGES (ideas before you ask) -->
+<div id="nudgeSection" class="mb-6 reveal stagger-2" style="display:none;">
+    <h3 class="text-xs text-gray-400 uppercase tracking-wider font-semibold mb-3 flex items-center gap-2">
+        <i data-lucide="lightbulb" class="w-3.5 h-3.5 text-purple-400"></i> Suggestions
+    </h3>
+    <div id="nudgeList" class="space-y-2"></div>
+</div>
+
+
+
+<!-- WHAT TO DO NEXT - smart action tiles -->
+<h3 class="text-xs text-gray-400 uppercase tracking-wider font-semibold mb-3 reveal stagger-3 flex items-center gap-2">
+    <i data-lucide="compass" class="w-3.5 h-3.5 text-gray-500"></i> Jump In
+</h3>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6" id="actionTiles">
+
+    <!-- 1. Choose how AI runs -->
+    <a href="/router" id="tileRouter" class="action-tile no-underline reveal stagger-3" style="display:none;">
+        <div class="flex items-start gap-4">
+            <div class="tile-icon bg-surface-elevated">
+                <i data-lucide="shield" class="w-6 h-6 text-gold"></i>
+            </div>
+            <div class="flex-1 min-w-0">
+                <h3 class="text-base font-semibold text-white mb-1" id="routerTileTitle">{{ model_setup_guidance.router_tile_title or 'Choose how AI runs' }}</h3>
+                <p class="text-sm text-secondary" id="routerHint">{{ model_setup_guidance.router_hint or 'Run locally, in the cloud, or both. You control where data goes.' }}</p>
+            </div>
+            <div class="tile-arrow text-gray-500 flex items-center pt-1"><i data-lucide="arrow-right" class="w-4 h-4"></i></div>
+        </div>
+    </a>
+
+    <!-- 2. Teach & repair knowledge -->
+    <a href="/teach" class="action-tile no-underline reveal stagger-4">
+        <div class="flex items-start gap-4">
+            <div class="tile-icon bg-surface-elevated">
+                <i data-lucide="brain" class="w-6 h-6 text-purple-400"></i>
+            </div>
+            <div class="flex-1 min-w-0">
+                <h3 class="text-base font-semibold text-white mb-1">Teach &amp; Repair Knowledge</h3>
+                <p class="text-sm text-secondary">Add facts, fill gaps the assistant found, and watch answers improve over time.</p>
+            </div>
+            <div class="tile-arrow text-gray-500 flex items-center pt-1"><i data-lucide="arrow-right" class="w-4 h-4"></i></div>
+        </div>
+    </a>
+
+    <!-- 3. Have a conversation that creates work -->
+    <a href="/inbox" class="action-tile no-underline reveal stagger-4" data-needs-ai>
+        <div class="flex items-start gap-4">
+            <div class="tile-icon bg-surface-elevated">
+                <i data-lucide="message-square" class="w-6 h-6 text-teal"></i>
+            </div>
+            <div class="flex-1 min-w-0">
+                <h3 class="text-base font-semibold text-white mb-1">Conversations &rarr; Work</h3>
+                <p class="text-sm text-secondary" id="conversationHint">Ask a question, make a decision, assign work &mdash; the assistant extracts action items with dates and owners automatically.</p>
+            </div>
+            <div class="tile-arrow text-gray-500 flex items-center pt-1"><i data-lucide="arrow-right" class="w-4 h-4"></i></div>
+        </div>
+    </a>
+
+    <!-- 4. Review tracked work (hidden until actions exist) -->
+    <a href="/actions" id="tileActionsMain" class="action-tile no-underline reveal stagger-5" style="display:none;" data-needs-ai>
+        <div class="flex items-start gap-4">
+            <div class="tile-icon bg-surface-elevated">
+                <i data-lucide="list-checks" class="w-6 h-6 text-teal"></i>
+            </div>
+            <div class="flex-1 min-w-0">
+                <h3 class="text-base font-semibold text-white mb-1">Work from Conversations</h3>
+                <p class="text-sm text-secondary" id="actionMainHint">Review action items, decisions, and follow-ups the assistant found in your conversations &mdash; each traced back to its source.</p>
+            </div>
+            <div class="tile-arrow text-gray-500 flex items-center pt-1"><i data-lucide="arrow-right" class="w-4 h-4"></i></div>
+        </div>
+    </a>
+</div>
+
+<!-- INFERENCE SAVINGS TILE (shown only when there's data) -->
+<div class="glass-card p-4 mb-6 reveal stagger-5" id="savingsTile" style="display:none;">
+    <div class="flex items-center gap-4">
+        <div class="tile-icon bg-surface-elevated" style="width:2.75rem;height:2.75rem;border-radius:0.8rem;">
+            <i data-lucide="piggy-bank" class="w-5 h-5 text-teal"></i>
+        </div>
+        <div class="flex-1 min-w-0">
+            <div class="flex items-center gap-2 mb-0.5">
+                <span class="text-xs text-gray-400 uppercase tracking-wider font-semibold">Local-first savings</span>
+            </div>
+            <p class="text-lg font-semibold text-white" id="savingsAmount">&mdash;</p>
+            <p class="text-xs text-secondary" id="savingsDetail"></p>
+        </div>
+        <div class="text-right text-sm">
+            <div class="text-gray-400 text-xs mb-1">Requests</div>
+            <div class="text-white font-mono" id="savingsRequests">&mdash;</div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+    /* Helpers */
+    function escDash(s) { if(!s) return '\u2014'; const d=document.createElement('div'); d.textContent=s; return d.innerHTML; }
+
+    /* Time-aware greeting */
+    (function() {
+        const h = new Date().getHours();
+        const el = document.getElementById('greeting');
+        let period = 'Good evening';
+        if (h < 12) period = 'Good morning';
+        else if (h < 17) period = 'Good afternoon';
+        el.textContent = 'Dashboard \u2014 ' + period;
+    })();
+
+    const initialModelSetupGuidance = {{ model_setup_guidance | tojson | safe }};
+    let dashboardSummaryPromise = null;
+
+    function applyModelSetupGuidance(guidance) {
+        const banner = document.getElementById('modelSetupBanner');
+        const title = document.getElementById('modelSetupBannerTitle');
+        const detail = document.getElementById('modelSetupBannerDetail');
+        const primary = document.getElementById('modelSetupBannerPrimary');
+        const secondary = document.getElementById('modelSetupBannerSecondary');
+        if (!banner || !title || !detail || !primary || !secondary) return;
+
+        if (!guidance || !guidance.show_banner) {
+            banner.style.display = 'none';
+            return;
+        }
+
+        banner.style.display = '';
+        banner.classList.remove('border-coral', 'border-gold', 'border-teal');
+        if (guidance.border_class) banner.classList.add(guidance.border_class);
+        title.textContent = guidance.title || '';
+        detail.textContent = guidance.detail || '';
+        primary.href = guidance.primary_href || '/router';
+        primary.textContent = guidance.primary_label || 'Open Model Router';
+
+        if (guidance.secondary_href && guidance.secondary_label) {
+            secondary.style.display = '';
+            secondary.href = guidance.secondary_href;
+            secondary.textContent = guidance.secondary_label;
+        } else {
+            secondary.style.display = 'none';
+        }
+    }
+
+    applyModelSetupGuidance(initialModelSetupGuidance);
+
+    function fetchDashboardSummary() {
+        if (!dashboardSummaryPromise) {
+            dashboardSummaryPromise = apiCall('/api/v1/dashboard/summary', { silentErrors: true }).then(function(data) {
+                if (!data || !data.success) dashboardSummaryPromise = null;
+                return data;
+            });
+        }
+        return dashboardSummaryPromise;
+    }
+
+    /* Bot Insight - personalized observation that links to most relevant page */
+    async function loadBotInsight() {
+        const textEl = document.getElementById('botInsightText');
+        const cardEl = document.getElementById('botInsightCard');
+        if (!textEl) return;
+        try {
+            const data = await fetchDashboardSummary();
+            if (!data || !data.success) return;
+
+            const parts = [];
+            let bestLink = '/inbox';
+            const a = data.analytics || null;
+
+            if (a) {
+                const taskStatuses = a.tasks_by_status || {};
+                const overdueCount = a.tasks_overdue || 0;
+                const openCount = (taskStatuses.todo || 0) + (taskStatuses.in_progress || 0) + (taskStatuses.blocked || 0);
+                const doneCount = taskStatuses.done || 0;
+
+                if (overdueCount > 0) {
+                    parts.push('You have <strong class="text-coral">' + overdueCount + ' overdue</strong> action item' + (overdueCount > 1 ? 's' : '') + ' \u2014 probably first priority today.');
+                    bestLink = '/actions';
+                } else if (openCount > 0) {
+                    parts.push(openCount + ' action item' + (openCount > 1 ? 's are' : ' is') + ' in progress \u2014 steady momentum.');
+                } else if (doneCount > 0) {
+                    parts.push('All action items complete \u2014 nice work!');
+                }
+            }
+
+            const unreadCnt = data.unread_count || 0;
+            if (unreadCnt > 0) {
+                parts.push('<strong class="text-teal">' + unreadCnt + ' unread</strong> conversation' + (unreadCnt > 1 ? 's' : '') + ' waiting.');
+                if (!parts[0] || !parts[0].includes('overdue')) bestLink = '/inbox';
+            }
+
+            const docCount = ((data.knowledge || {}).documents || {}).count || 0;
+            if (docCount === 0) {
+                parts.push('Knowledge base is empty \u2014 <strong>teach me something</strong> to get started.');
+                bestLink = '/teach';
+            } else if (docCount < 5) {
+                parts.push('Only ' + docCount + ' knowledge doc' + (docCount > 1 ? 's' : '') + ' so far \u2014 the more you teach, the better I get.');
+            }
+
+            const activeConcerns = data.concerns || [];
+            if (activeConcerns.length > 0) {
+                parts.push('\u201C' + escDash(activeConcerns[0].topic) + '\u201D keeps coming up \u2014 might be worth documenting.');
+                if (!parts[0] || (!parts[0].includes('overdue') && !unreadCnt)) bestLink = '/gaps';
+            }
+
+            if (parts.length === 0) {
+                parts.push("No action items, no unread chats, and no gaps to review. You're all caught up \u2014 <a href='/teach' class='text-teal hover:underline'>teach me something</a> to keep building momentum.");
+            }
+
+            textEl.innerHTML = parts.join(' ');
+            cardEl.href = bestLink;
+        } catch (e) {
+            textEl.innerHTML = '<span class="text-gray-500">Loading\u2026</span>';
+        }
+    }
+
+    /* Urgent items - only rendered when something genuinely needs attention */
+    async function loadUrgentItems() {
+        try {
+            const data = await fetchDashboardSummary();
+            if (!data || !data.success) return;
+
+            const items = [];
+            const a = data.analytics || null;
+            const unreadCnt = data.unread_count || 0;
+
+            if (a) {
+                const overdueCount = a.tasks_overdue || 0;
+                if (overdueCount > 0) {
+                    items.push('<a href="/actions" class="urgent-item info-panel p-3 flex items-center justify-between block no-underline hover:ring-1 hover:ring-coral/20 transition rounded-lg"><span class="text-sm text-gray-300"><span class="text-coral font-semibold">' + overdueCount + '</span> overdue action item' + (overdueCount > 1 ? 's' : '') + '</span><span class="text-xs text-gray-400">Review \u2192</span></a>');
+                }
+            }
+
+            if (unreadCnt > 3) {
+                items.push('<a href="/inbox" class="info-panel p-3 flex items-center justify-between block no-underline hover:ring-1 hover:ring-teal/20 transition rounded-lg" style="border-left:3px solid rgba(var(--a),0.7)"><span class="text-sm text-gray-300"><span class="text-teal font-semibold">' + unreadCnt + '</span> unread conversation' + (unreadCnt > 1 ? 's' : '') + '</span><span class="text-xs text-gray-400">View \u2192</span></a>');
+            }
+
+            const activeConcerns = (data.concerns || []).slice(0, 2);
+            activeConcerns.forEach(function(c) {
+                items.push('<div class="info-panel p-3 flex items-center justify-between rounded-lg" style="border-left:3px solid #83781B"><div><span class="text-sm text-gray-300">' + escDash(c.topic) + '</span><span class="text-xs text-gold font-semibold ml-2">' + (c.query_count || 0) + '\u00D7 asked</span></div><button onclick="resolveConcern(' + c.id + ', this)" class="text-xs text-gray-500 hover:text-teal transition" title="Mark resolved">\u2713 Resolve</button></div>');
+            });
+
+            const section = document.getElementById('urgentSection');
+            const list = document.getElementById('urgentList');
+            if (items.length > 0) {
+                section.style.display = '';
+                list.innerHTML = items.join('');
+            }
+        } catch(e) {}
+    }
+
+    /* Smart tile visibility - show/hide based on actual data */
+    async function loadDynamicTiles() {
+        try {
+            const data = await fetchDashboardSummary();
+            if (!data || !data.success) return;
+
+            const a = data.analytics || null;
+            const unreadCnt = data.unread_count || 0;
+
+            // Update conversation hint with unread count
+            if (unreadCnt > 0) {
+                const hint = document.getElementById('conversationHint');
+                if (hint) hint.textContent = unreadCnt + ' unread conversation' + (unreadCnt > 1 ? 's' : '') + ' waiting for you.';
+            }
+
+            // Update main actions tile hint when open actions exist
+            if (a) {
+                const taskStatuses = a.tasks_by_status || {};
+                const openCount = (taskStatuses.todo || 0) + (taskStatuses.in_progress || 0) + (taskStatuses.blocked || 0);
+                if (openCount > 0) {
+                    const tile = document.getElementById('tileActionsMain');
+                    if (tile) tile.style.display = '';
+                    const hint = document.getElementById('actionMainHint');
+                    const overdueCount = a.tasks_overdue || 0;
+                    if (overdueCount > 0) {
+                        if (hint) hint.textContent = openCount + ' open, ' + overdueCount + ' overdue \u2014 time to catch up.';
+                    } else {
+                        if (hint) hint.textContent = openCount + ' action item' + (openCount > 1 ? 's' : '') + ' in progress.';
+                    }
+                }
+            }
+
+            // Show router tile + dim AI-dependent tiles if default model not yet chosen
+            const providerSummary = data.provider_summary || {};
+            const onboarding = providerSummary.onboarding_state || {};
+            const setupGuidance = providerSummary.model_setup_guidance || initialModelSetupGuidance;
+            applyModelSetupGuidance(setupGuidance);
+            if (!onboarding.phase1_saved) {
+                const rt = document.getElementById('tileRouter');
+                if (rt) {
+                    rt.style.display = '';
+                    rt.classList.add('tile-pulse');
+                }
+                const rh = document.getElementById('routerHint');
+                if (rh) {
+                    rh.textContent = setupGuidance.router_hint || 'Open Model Router to finish AI setup.';
+                }
+                const rtTitle = document.getElementById('routerTileTitle');
+                if (rtTitle) {
+                    rtTitle.textContent = setupGuidance.router_tile_title || 'Choose Default AI';
+                }
+                // Dim tiles that depend on a working AI model
+                document.querySelectorAll('[data-needs-ai]').forEach(function(tile) {
+                    tile.classList.add('tile-dimmed');
+                    tile.setAttribute('title', 'Set up an AI model first');
+                });
+            }
+
+            // Re-init icons for newly visible tiles
+            if (typeof lucide !== 'undefined') lucide.createIcons();
+        } catch(e) {}
+    }
+
+    async function resolveConcern(id, btn) {
+        btn.disabled = true; btn.textContent = '\u2026';
+        try {
+            const resp = await fetch('/api/v1/concerns/' + id + '/resolve', {
+                method: 'POST', headers: {'Content-Type': 'application/json', 'X-CSRF-Protection': '1'},
+            });
+            if (resp.ok) { btn.closest('.info-panel').style.opacity = '0.3'; btn.textContent = '\u2713 Resolved'; btn.style.color = '#EFAAC4'; }
+            else { btn.textContent = 'Error'; btn.disabled = false; }
+        } catch (_) { btn.textContent = 'Error'; btn.disabled = false; }
+    }
+
+    /* Inference savings tile */
+    async function loadSavings() {
+        try {
+            const data = await fetchDashboardSummary();
+            if (!data || !data.success) return;
+            const s = data.savings;
+            if (!s || !s.total_requests) return;
+            const tile = document.getElementById('savingsTile');
+            if (!tile) return;
+            tile.style.display = '';
+            const saved = s.total_savings_usd || 0;
+            document.getElementById('savingsAmount').textContent =
+                saved > 0 ? `$${saved.toFixed(2)} saved` : 'Running locally \u2014 $0 cloud spend';
+            const actual = s.total_actual_cost_usd || 0;
+            const equiv = s.total_cloud_equivalent_usd || 0;
+            const detail = equiv > 0
+                ? `Cloud equivalent would be $${equiv.toFixed(2)} \u00B7 Last ${s.period_days} days`
+                : `${s.total_requests.toLocaleString()} inferences \u00B7 Last ${s.period_days} days`;
+            document.getElementById('savingsDetail').textContent = detail;
+            document.getElementById('savingsRequests').textContent = s.total_requests.toLocaleString();
+        } catch (_) {}
+    }
+
+    /* Proactive nudge cards — ideas before you ask */
+    async function loadNudges() {
+        try {
+            const data = await fetchDashboardSummary();
+            if (!data || !data.success) return;
+            const nudges = data.nudges || [];
+            if (!nudges.length) return;
+            const section = document.getElementById('nudgeSection');
+            const list = document.getElementById('nudgeList');
+            if (!section || !list) return;
+
+            const catIcons = {actions:'check-square',gaps:'puzzle',pipeline:'git-branch',concerns:'flag',general:'sparkles'};
+            const catColors = {actions:'text-teal',gaps:'text-purple-400',pipeline:'text-gold',concerns:'text-coral',general:'text-gray-300'};
+
+            list.innerHTML = nudges.map(function(n) {
+                const icon = catIcons[n.category] || 'sparkles';
+                const color = catColors[n.category] || 'text-gray-300';
+                const actionBtn = n.category === 'actions' && n.action_hint
+                    ? '<button onclick="nudgeQuickAction(\'' + escDash(n.action_hint).replace(/'/g, "\\'") + '\')" class="text-xs text-teal border border-teal/30 rounded-md px-2 py-1 hover:bg-teal/10 transition flex-shrink-0">Mark done</button>'
+                    : n.category === 'gaps'
+                    ? '<a href="/gaps" class="text-xs text-purple-400 border border-purple-400/30 rounded-md px-2 py-1 hover:bg-purple-400/10 transition flex-shrink-0 no-underline">Teach</a>'
+                    : '<a href="/inbox" class="text-xs text-teal border border-teal/30 rounded-md px-2 py-1 hover:bg-teal/10 transition flex-shrink-0 no-underline">Open chat</a>';
+                return '<div class="info-panel p-3 rounded-lg flex items-start gap-3">'
+                    + '<i data-lucide="' + icon + '" class="w-4 h-4 ' + color + ' flex-shrink-0 mt-0.5"></i>'
+                    + '<div class="flex-1 min-w-0">'
+                    + '<p class="text-sm text-gray-300">' + escDash(n.hook) + '</p>'
+                    + '<p class="text-xs text-gray-500 mt-0.5">' + escDash(n.suggestion) + '</p>'
+                    + '</div>'
+                    + actionBtn
+                    + '</div>';
+            }).join('');
+            section.style.display = '';
+        } catch (_) {}
+    }
+
+    /* One-tap action from nudge cards */
+    async function nudgeQuickAction(hint) {
+        try {
+            const m = hint.match(/(\d+)/);
+            if (!m) { window.location.href = '/actions'; return; }
+            const id = m[1];
+            const data = await apiCall('/api/v1/actions/' + id + '/mark-done', { method: 'POST' });
+            if (data.success) {
+                showToast('Marked done \u2713', 'success');
+                dashboardSummaryPromise = null;
+                loadNudges(); loadBotInsight(); loadUrgentItems(); loadDynamicTiles();
+            } else {
+                showToast(data.error || 'Could not complete', 'error');
+            }
+        } catch (_) { window.location.href = '/actions'; }
+    }
+
+    /* Since-last-visit momentum line */
+    async function loadMomentum() {
+        try {
+            const data = await fetchDashboardSummary();
+            if (!data || !data.success) return;
+
+            const lastVisit = localStorage.getItem('mk_last_dashboard_visit');
+            const now = new Date().toISOString();
+            localStorage.setItem('mk_last_dashboard_visit', now);
+            if (!lastVisit) return;
+
+            const a = data.analytics || {};
+            const parts = [];
+            const tasksDone = (a.tasks_by_status || {}).done || 0;
+            const openCount = ((a.tasks_by_status || {}).todo || 0)
+                + ((a.tasks_by_status || {}).in_progress || 0);
+            const gapsResolved = (data.open_gaps_count != null)
+                ? null : 0;
+            const unread = data.unread_count || 0;
+
+            if (tasksDone > 0) parts.push('<strong class="text-teal">' + tasksDone + '</strong> action' + (tasksDone > 1 ? 's' : '') + ' completed');
+            if (openCount > 0) parts.push('<strong class="text-white">' + openCount + '</strong> in progress');
+            if (unread > 0) parts.push('<strong class="text-teal">' + unread + '</strong> unread conversation' + (unread > 1 ? 's' : ''));
+
+            const gapCount = data.open_gaps_count || 0;
+            if (gapCount > 0) parts.push('<strong class="text-purple-400">' + gapCount + '</strong> knowledge gap' + (gapCount > 1 ? 's' : '') + ' to fill');
+
+            if (!parts.length) return;
+            const el = document.getElementById('momentumLine');
+            const text = document.getElementById('momentumText');
+            if (!el || !text) return;
+            text.innerHTML = 'Right now: ' + parts.join(' \u00B7 ');
+            el.style.display = '';
+        } catch (_) {}
+    }
+
+    /* Init - fire all loaders in parallel */
+    Promise.all([
+        loadBotInsight(),
+        loadUrgentItems(),
+        loadDynamicTiles(),
+        loadSavings(),
+        loadNudges(),
+        loadMomentum(),
+    ]).then(function() {
+        if (typeof lucide !== 'undefined') lucide.createIcons();
+    });
+</script>
+{% endblock %}

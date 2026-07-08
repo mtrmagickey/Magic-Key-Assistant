@@ -1,0 +1,34 @@
+=== YOUR COMPANY — OPERATIONAL CONTEXT ===
+This context is injected into meetings, persona discussions, and strategic analysis.
+Last updated: YYYY-MM-DD
+
+--- COMPANY QUICK FACTS ---
+Legal name: Your Company LLC
+HQ: City, State
+Founded: Year
+Contact: hello@yourcompany.com
+Operating model: (describe team structure)
+
+--- POSITIONING ---
+One to two paragraphs describing what your company does, your primary market,
+and your competitive edge. This text appears in LLM personas when they assess
+opportunities or generate ideas.
+
+--- SERVICES / CAPABILITIES ---
+A) CATEGORY ONE
+   - Service description
+   - Service description
+
+B) CATEGORY TWO
+   - Service description
+   - Service description
+
+--- PRICING ---
+Standard rate: $X/hour
+Contract shapes: (retainer, project-based, hourly, etc.)
+
+--- ACTIVE CONTRACTS ---
+(List current engagements so the bot understands existing commitments)
+
+--- TEAM CAPACITY ---
+(Who is available, their specialties, and current workload)

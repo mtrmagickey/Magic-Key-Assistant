@@ -1,0 +1,137 @@
+
+
+# ============================================================
+# SECRETS - NEVER COMMIT THESE
+# ============================================================
+.env
+*.env
+LeisureLLM/.env
+**/.env
+**/.admin_token
+.admin_token
+
+# ============================================================
+# Logs and Data
+# ============================================================
+*.log
+LeisureLLM/leisurellm.log
+
+# Hash files (can contain sensitive doc paths)
+LeisureLLM/hashes.csv
+LeisureLLM/hashes_v2.csv
+LeisureLLM/hashes_v3.csv
+
+# Databases
+*.db
+*.db-*
+LeisureLLM/*.db
+# Explicit belt-and-suspenders for SQLite sidecar files (WAL/SHM can hold
+# live, uncheckpointed private data — never commit these)
+assistant.db
+assistant.db-wal
+assistant.db-shm
+LeisureLLM/assistant.db
+LeisureLLM/assistant.db-wal
+LeisureLLM/assistant.db-shm
+
+# ============================================================
+# Python
+# ============================================================
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual environments
+.venv/
+venv/
+venv312/
+ENV/
+env/
+
+# ============================================================
+# IDE / Editor
+# ============================================================
+.vscode/settings.json
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# ============================================================
+# Caches and generated assets (regenerable)
+# ============================================================
+.pytest_cache/
+.ruff_cache/
+.launcher.lock
+LeisureLLM/.tiktoken_cache/
+node_modules/
+
+# ============================================================
+# Chroma vector stores (large, regenerable)
+# ============================================================
+LeisureLLM/chroma/
+LeisureLLM/chroma_v2/
+LeisureLLM/chroma_v3/
+LeisureLLM/chroma_v3_backup_*/
+
+# ============================================================
+# Deployment-specific data (not part of the product)
+# ============================================================
+LeisureLLM/docs/
+LeisureLLM/prompts/operational_context.txt
+LeisureLLM/prompts/system_prompt_backup.txt
+LeisureLLM/config/org_profile.yaml
+LeisureLLM/config/workflows.yaml
+LeisureLLM/config/bot_settings.json
+LeisureLLM/config/.setup_complete
+LeisureLLM/config/onboarding_session.json
+LeisureLLM/config/onboarding_transcript.jsonl
+LeisureLLM/config/onboarding_diff.json
+LeisureLLM/.seed_complete
+LeisureLLM/.foundational_gaps_seeded
+LeisureLLM/.capture_sprint_complete
+LeisureLLM/backups/
+
+# ============================================================
+# Test / scratch artifacts
+# ============================================================
+test_*.txt
+test_health_report.json
+temp_js_check.js
+test_chroma_tmp*/
+
+# ============================================================
+# Build outputs (PyInstaller intermediates)
+# ============================================================
+build/
+
+# ============================================================
+# Developer-only scripts and data
+# ============================================================
+_mtr_sequester/
+_keep/
+_audit.py
+_dead_code.py
+_naming_check.py
+manage_gaps.py
+update_llm.py
+LeisureLLM/admin/server_backup_pre_split.py
+/Output

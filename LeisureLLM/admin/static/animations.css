@@ -1,0 +1,474 @@
+/* ================================================================
+   Magic Key Assistant — Animation & Micro-interaction Layer
+   (static/animations.css)
+
+   Additive layer on top of style.css.  Pure CSS where possible;
+   data-attributes + IntersectionObserver wired in base.html JS.
+   ================================================================ */
+
+/* ─── 1. SCROLL-REVEAL  ─────────────────────────────────────────── */
+/* Elements with .reveal start invisible and animate in when the
+   Intersection Observer adds .revealed.  Each child can carry
+   data-reveal-delay="N" (0-based index) for automatic staggering. */
+
+.reveal {
+    opacity: 0;
+    transform: translateY(18px) scale(0.98);
+    transition: opacity 0.6s cubic-bezier(.16,1,.3,1),
+                transform 0.6s cubic-bezier(.16,1,.3,1);
+    will-change: opacity, transform;
+}
+.reveal.revealed {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+}
+
+/* Directional variants */
+.reveal-left {
+    opacity: 0;
+    transform: translateX(-24px);
+    transition: opacity 0.6s cubic-bezier(.16,1,.3,1),
+                transform 0.6s cubic-bezier(.16,1,.3,1);
+    will-change: opacity, transform;
+}
+.reveal-left.revealed { opacity: 1; transform: translateX(0); }
+
+.reveal-right {
+    opacity: 0;
+    transform: translateX(24px);
+    transition: opacity 0.6s cubic-bezier(.16,1,.3,1),
+                transform 0.6s cubic-bezier(.16,1,.3,1);
+    will-change: opacity, transform;
+}
+.reveal-right.revealed { opacity: 1; transform: translateX(0); }
+
+.reveal-scale {
+    opacity: 0;
+    transform: scale(0.92);
+    transition: opacity 0.5s cubic-bezier(.16,1,.3,1),
+                transform 0.5s cubic-bezier(.16,1,.3,1);
+    will-change: opacity, transform;
+}
+.reveal-scale.revealed { opacity: 1; transform: scale(1); }
+
+/* Stagger delays — applied via inline --d or these utility classes */
+.stagger-1  { transition-delay: 0.06s; }
+.stagger-2  { transition-delay: 0.12s; }
+.stagger-3  { transition-delay: 0.18s; }
+.stagger-4  { transition-delay: 0.24s; }
+.stagger-5  { transition-delay: 0.30s; }
+.stagger-6  { transition-delay: 0.36s; }
+.stagger-7  { transition-delay: 0.42s; }
+.stagger-8  { transition-delay: 0.48s; }
+.stagger-9  { transition-delay: 0.54s; }
+.stagger-10 { transition-delay: 0.60s; }
+.stagger-11 { transition-delay: 0.66s; }
+.stagger-12 { transition-delay: 0.72s; }
+
+/* ─── 2. SKELETON / SHIMMER LOADING ──────────────────────────────── */
+.skeleton {
+    position: relative;
+    overflow: hidden;
+    background: rgba(255,255,255,0.04);
+    border-radius: 8px;
+    color: transparent !important;
+}
+.skeleton * { visibility: hidden; }
+.skeleton::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+        90deg,
+        transparent 0%,
+        rgba(255,255,255,0.06) 40%,
+        rgba(var(--a),0.06) 50%,
+        rgba(255,255,255,0.06) 60%,
+        transparent 100%
+    );
+    background-size: 200% 100%;
+    animation: skeletonSweep 1.8s ease-in-out infinite;
+}
+@keyframes skeletonSweep {
+    0%   { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+}
+
+/* Skeleton shapes */
+.skeleton-text { height: 0.875rem; border-radius: 6px; }
+.skeleton-text.w-3\/4 { width: 75%; }
+.skeleton-text.w-1\/2 { width: 50%; }
+.skeleton-heading { height: 1.5rem; width: 40%; border-radius: 8px; }
+.skeleton-circle { border-radius: 50%; }
+.skeleton-card { min-height: 120px; border-radius: 16px; }
+
+/* ─── 3. COUNTER-UP ANIMATION ────────────────────────────────────── */
+/* JS-driven. The counter-up function targets [data-count-to]. */
+.counter-value {
+    display: inline-block;
+    font-variant-numeric: tabular-nums;
+}
+
+/* ─── 4. CARD HOVER GLOW  ───────────────────────────────────────── */
+/* Adds an animated radial glow that follows the cursor (set via
+   --glow-x, --glow-y from JS mousemove). */
+.glow-card {
+    position: relative;
+    overflow: hidden;
+}
+.glow-card::before {
+    content: '';
+    position: absolute;
+    width: 280px;
+    height: 280px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(var(--a),0.08) 0%, transparent 70%);
+    transform: translate(-50%,-50%);
+    left: var(--glow-x, 50%);
+    top: var(--glow-y, 50%);
+    opacity: 0;
+    transition: opacity 0.4s ease;
+    pointer-events: none;
+    z-index: 0;
+}
+.glow-card:hover::before {
+    opacity: 1;
+}
+
+/* Border shimmer sweep — a single light that animates across the top edge */
+.border-shimmer {
+    position: relative;
+    overflow: hidden;
+}
+.border-shimmer::after {
+    content: '';
+    position: absolute;
+    top: 0; left: -100%;
+    width: 60%;
+    height: 1px;
+    background: linear-gradient(90deg,
+        transparent,
+        rgba(var(--a),0.25),
+        rgba(var(--b),0.18),
+        transparent
+    );
+    animation: borderShimmer 12s ease-in-out infinite;
+    pointer-events: none;
+    z-index: 2;
+}
+@keyframes borderShimmer {
+    0%   { left: -60%; }
+    100% { left: 160%; }
+}
+
+/* ─── 5. ENHANCED BUTTONS — RIPPLE ───────────────────────────────── */
+.btn-glossy,
+.btn-warm,
+.btn-info {
+    position: relative;
+    overflow: hidden;
+}
+/* The ripple <span> is injected by JS on click */
+.ripple-effect {
+    position: absolute;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.25);
+    transform: scale(0);
+    animation: rippleExpand 0.6s ease-out forwards;
+    pointer-events: none;
+    z-index: 5;
+}
+@keyframes rippleExpand {
+    0%   { transform: scale(0); opacity: 1; }
+    100% { transform: scale(4); opacity: 0; }
+}
+
+/* Button press spring */
+.btn-glossy:active,
+.btn-warm:active,
+.btn-info:active {
+    transform: scale(0.97);
+    transition-duration: 0.08s;
+}
+
+/* ─── 6. ANIMATED FOCUS RING ─────────────────────────────────────── */
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+    outline: none;
+    box-shadow:
+        inset 0 2px 4px rgba(0,0,0,0.15),
+        0 0 0 2px rgba(var(--a),0.15),
+        0 0 0 4px rgba(var(--a),0.06);
+    border-color: rgba(var(--a),0.5);
+    transition: box-shadow 0.3s cubic-bezier(.16,1,.3,1),
+                border-color 0.3s ease;
+}
+
+/* ─── 7. ENHANCED MODAL ──────────────────────────────────────────── */
+.modal-content {
+    transform: scale(0.95) translateY(12px);
+    transition: transform 0.35s cubic-bezier(.16,1,.3,1),
+                opacity 0.3s ease;
+    opacity: 0;
+}
+.modal-overlay.active .modal-content {
+    transform: scale(1) translateY(0);
+    opacity: 1;
+}
+
+/* ─── 8. ENHANCED TOAST ──────────────────────────────────────────── */
+.toast {
+    transform: translateY(100%) translateX(0) scale(0.95);
+    border-radius: 16px;
+}
+.toast.show {
+    transform: translateY(0) translateX(0) scale(1);
+}
+/* Toast progress bar (auto-dismiss visual) */
+.toast::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    height: 2px;
+    border-radius: 0 0 16px 16px;
+    background: linear-gradient(90deg, rgb(var(--a)), rgb(var(--b)));
+    animation: toastProgress 3.5s linear forwards;
+    pointer-events: none;
+}
+.toast.error::after {
+    background: linear-gradient(90deg, #E13943, #c62d36);
+}
+@keyframes toastProgress {
+    0%   { width: 100%; }
+    100% { width: 0%; }
+}
+
+/* ─── 9. RESPONSIVE SIDEBAR ──────────────────────────────────────── */
+/* Mobile hamburger & drawer (< 1024px) */
+.sidebar-toggle {
+    display: none;
+    position: fixed;
+    top: 1rem;
+    left: 1rem;
+    z-index: 30;
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    background: rgba(var(--ink),0.92);
+    backdrop-filter: blur(16px);
+    border: 1px solid rgba(255,255,255,0.08);
+    box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+    cursor: pointer;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+    color: rgba(var(--canvas),0.7);
+}
+.sidebar-toggle:hover {
+    border-color: rgba(var(--a),0.3);
+    color: rgb(var(--a));
+}
+
+.sidebar-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.6);
+    backdrop-filter: blur(4px);
+    z-index: 18;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+.sidebar-overlay.active {
+    opacity: 1;
+}
+
+@media (max-width: 1023px) {
+    .sidebar-toggle { display: flex; }
+    .sidebar-overlay { display: block; pointer-events: none; }
+    .sidebar-overlay.active { pointer-events: auto; }
+
+    .sidebar {
+        transform: translateX(-100%);
+        transition: transform 0.35s cubic-bezier(.16,1,.3,1);
+        z-index: 25 !important;
+    }
+    .sidebar.open {
+        transform: translateX(0);
+    }
+
+    .app-main {
+        margin-left: 0 !important;
+        padding: 1.25rem !important;
+        padding-top: 4.5rem !important;
+    }
+}
+
+/* Tablet tweaks */
+@media (min-width: 1024px) and (max-width: 1279px) {
+    .app-main {
+        padding: 1.5rem !important;
+    }
+}
+
+/* ─── 10. SMOOTH TABLE ROW ENTRANCE ──────────────────────────────── */
+.data-table tbody tr {
+    opacity: 0;
+    animation: rowSlideIn 0.4s ease-out forwards;
+}
+/* Stagger rows — first 20 rows get individual delays */
+.data-table tbody tr:nth-child(1)  { animation-delay: 0.02s; }
+.data-table tbody tr:nth-child(2)  { animation-delay: 0.04s; }
+.data-table tbody tr:nth-child(3)  { animation-delay: 0.06s; }
+.data-table tbody tr:nth-child(4)  { animation-delay: 0.08s; }
+.data-table tbody tr:nth-child(5)  { animation-delay: 0.10s; }
+.data-table tbody tr:nth-child(6)  { animation-delay: 0.12s; }
+.data-table tbody tr:nth-child(7)  { animation-delay: 0.14s; }
+.data-table tbody tr:nth-child(8)  { animation-delay: 0.16s; }
+.data-table tbody tr:nth-child(9)  { animation-delay: 0.18s; }
+.data-table tbody tr:nth-child(10) { animation-delay: 0.20s; }
+.data-table tbody tr:nth-child(11) { animation-delay: 0.22s; }
+.data-table tbody tr:nth-child(12) { animation-delay: 0.24s; }
+.data-table tbody tr:nth-child(13) { animation-delay: 0.26s; }
+.data-table tbody tr:nth-child(14) { animation-delay: 0.28s; }
+.data-table tbody tr:nth-child(15) { animation-delay: 0.30s; }
+.data-table tbody tr:nth-child(n+16) { animation-delay: 0.32s; }
+
+@keyframes rowSlideIn {
+    from { opacity: 0; transform: translateX(-8px); }
+    to   { opacity: 1; transform: translateX(0); }
+}
+
+/* ─── 11. INFO-PANEL MICRO-INTERACTION ───────────────────────────── */
+.info-panel {
+    transition: all 0.3s cubic-bezier(.16,1,.3,1);
+}
+.info-panel:hover {
+    transform: translateX(4px);
+    box-shadow: -3px 0 0 rgb(var(--a)),
+                0 2px 12px rgba(0,0,0,0.2);
+}
+
+/* ─── 12. NAV ITEM ─ SMOOTH ICON BOUNCE ON HOVER ────────────────── */
+.nav-item:hover i {
+    animation: navIconBounce 0.4s cubic-bezier(.16,1,.3,1);
+}
+@keyframes navIconBounce {
+    0%   { transform: scale(1); }
+    40%  { transform: scale(1.2); }
+    70%  { transform: scale(0.95); }
+    100% { transform: scale(1); }
+}
+
+/* ─── 13. BADGE — SUBTLE PULSE ON CHANGE ─────────────────────────── */
+.badge-pulse {
+    animation: badgePop 0.4s cubic-bezier(.16,1,.3,1);
+}
+@keyframes badgePop {
+    0%   { transform: scale(1); }
+    50%  { transform: scale(1.15); }
+    100% { transform: scale(1); }
+}
+
+/* ─── 14. TOGGLE SWITCH — IMPROVED ───────────────────────────────── */
+.toggle input:checked + .slider::before {
+    box-shadow:
+        0 2px 6px rgba(var(--a),0.4),
+        0 0 12px rgba(var(--a),0.2),
+        0 1px 0 rgba(255,255,255,0.3) inset;
+}
+.toggle .slider {
+    transition: background 0.3s ease,
+                border-color 0.3s ease,
+                box-shadow 0.3s ease;
+}
+.toggle .slider::before {
+    transition: transform 0.3s cubic-bezier(.16,1,.3,1),
+                background 0.3s ease,
+                box-shadow 0.3s ease;
+}
+
+/* ─── 15. STAT VALUE ─ GLOW ON LOAD ──────────────────────────────── */
+.stat-value[data-loaded] {
+    animation: statGlow 1s ease-out;
+    text-shadow: 0 0 20px rgba(var(--a),0.3);
+}
+@keyframes statGlow {
+    0%   { text-shadow: 0 0 30px rgba(var(--a),0.5); }
+    100% { text-shadow: 0 0 0px rgba(var(--a),0); }
+}
+
+/* ─── 16. DONUT CHART ─ ANIMATED FILL  ────────────────────────────── */
+.mini-donut {
+    transition: background 0.8s ease;
+}
+
+/* ─── 17. SCROLLBAR — SMOOTH FADE ────────────────────────────────── */
+::-webkit-scrollbar-thumb {
+    transition: background 0.2s ease;
+}
+
+/* ─── 18. DOT MENU — SCALE ENTRANCE ─────────────────────────────── */
+.dot-menu-drop {
+    transform-origin: top right;
+    transform: scale(0.9);
+    opacity: 0;
+    transition: transform 0.2s cubic-bezier(.16,1,.3,1),
+                opacity 0.15s ease;
+}
+.dot-menu.open .dot-menu-drop {
+    display: block;
+    transform: scale(1);
+    opacity: 1;
+}
+
+/* ─── 19. ACTION CARD — ENHANCED HOVER ───────────────────────────── */
+.action-card {
+    transition: all 0.4s cubic-bezier(.16,1,.3,1);
+}
+.action-card:hover {
+    border-top-color: rgba(255,255,255,0.20);
+    box-shadow:
+        0 12px 32px rgba(0,0,0,0.32),
+        0 0 20px rgba(var(--a),0.06),
+        inset 0 1px 0 rgba(255,255,255,0.10);
+}
+
+/* ─── 20. GLASS CARD — SUBTLE HOVER HIGHLIGHT ──────────────────────── */
+/* Removed continuous breathing animation to prevent flicker */
+
+/* ─── 21. SCANLINE TEXTURE — for large empty panels ──────────────── */
+.scanline-texture {
+    position: relative;
+}
+.scanline-texture::after {
+    content: '';
+    position: absolute; inset: 0;
+    background: repeating-linear-gradient(
+        0deg,
+        transparent 0px,
+        transparent 3px,
+        rgba(255,255,255,0.012) 3px,
+        rgba(255,255,255,0.012) 4px
+    );
+    pointer-events: none;
+    border-radius: inherit;
+    z-index: 1;
+    mix-blend-mode: overlay;
+}
+
+/* ─── 22. REDUCED MOTION ─────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+    .reveal, .reveal-left, .reveal-right, .reveal-scale {
+        opacity: 1 !important;
+        transform: none !important;
+    }
+    .orb, .bokeh, .light-ray { display: none; }
+}

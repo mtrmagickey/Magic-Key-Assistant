@@ -1,0 +1,2021 @@
+{% extends "base.html" %}
+{% block title %}Model Router — {{ bot_name }}{% endblock %}
+
+{% block head %}
+<style>
+    /* Gold accent overrides for Model Router page */
+    .glass-card {
+        background: linear-gradient(145deg, rgba(131,120,27,0.03) 0%, rgba(6,5,4,0.93) 50%, rgba(4,3,2,0.96) 100%);
+        border-color: rgba(131,120,27,0.15);
+    }
+    .glass-card:hover { border-color: rgba(131,120,27,0.25); box-shadow: 0 12px 48px rgba(0,0,0,0.4), 0 0 32px rgba(131,120,27,0.1); }
+    .info-panel { border-color: rgba(131,120,27,0.08); }
+    .info-panel:hover { border-color: rgba(131,120,27,0.2); background: linear-gradient(135deg, rgba(131,120,27,0.08) 0%, rgba(0,0,0,0.3) 100%); }
+
+    .btn-glossy {
+        background: linear-gradient(180deg, #A89C3A 0%, #83781B 40%, #685F12 100%);
+        box-shadow: 0 4px 16px rgba(131,120,27,0.4), 0 1px 0 rgba(255,255,255,0.25) inset;
+    }
+    .btn-glossy:hover { background: linear-gradient(180deg, #A89C3A 0%, #A89C3A 40%, #83781B 100%); box-shadow: 0 8px 32px rgba(131,120,27,0.5); }
+
+    .badge-warn { background: linear-gradient(135deg, rgba(131,120,27,0.2) 0%, rgba(131,120,27,0.05) 100%); border: 1px solid rgba(131,120,27,0.3); }
+    .badge-muted { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); }
+
+    .backend-card { transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); }
+    .backend-card:hover { transform: translateY(-2px); }
+    .backend-card.disabled { opacity: 0.75; }
+    .backend-card button,
+    .backend-card a {
+        max-width: 100%;
+        overflow-wrap: anywhere;
+    }
+
+    .tab-btn { transition: all 0.3s ease; position: relative; border-radius: 10px; border: 1px solid transparent; }
+    .tab-btn:not(.active):hover { background: rgba(255,255,255,0.05); border-color: rgba(255,255,255,0.06); }
+    .tab-btn.active { border-color: rgba(255,255,255,0.1); box-shadow: 0 2px 12px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.06); }
+
+    select, input[type="text"], textarea {
+        background: rgba(4,3,2,0.94);
+        border: 1px solid rgba(131,120,27,0.22);
+        color: #e5e5e5;
+        border-radius: 10px;
+        transition: all 0.2s ease;
+        position: relative; z-index: 10;
+    }
+    select:focus, input[type="text"]:focus, textarea:focus { outline: none; border-color: rgba(131,120,27,0.5); box-shadow: 0 0 0 3px rgba(131,120,27,0.15); }
+    select option { background: #1a1a1a; color: #e5e5e5; padding: 8px; }
+
+    .model-dropdown { max-height: 180px; overflow-y: auto; cursor: pointer; }
+    .model-dropdown option { padding: 8px 12px; cursor: pointer; }
+    .model-dropdown option:checked { background: linear-gradient(90deg, rgba(131,120,27,0.4) 0%, rgba(131,120,27,0.2) 100%); color: white; font-weight: 500; }
+    .model-dropdown::-webkit-scrollbar { width: 6px; }
+    .model-dropdown::-webkit-scrollbar-thumb { background: rgba(131,120,27,0.3); border-radius: 3px; }
+
+    /* Model Library */
+    .lib-table { width:100%; border-collapse:separate; border-spacing:0; }
+    .lib-table th {
+        text-align:left; font-size:0.65rem; text-transform:uppercase; letter-spacing:0.06em;
+        color:rgba(255,255,255,0.3); padding:0.5rem 0.75rem; font-weight:500;
+        border-bottom:1px solid rgba(255,255,255,0.06);
+    }
+    .lib-table td { padding:0.65rem 0.75rem; border-bottom:1px solid rgba(255,255,255,0.03); vertical-align:middle; }
+    .lib-table tr { transition:background 0.15s ease; }
+    .lib-table tbody tr:hover { background:rgba(131,120,27,0.04); }
+    .lib-row-installed td:first-child { box-shadow:inset 3px 0 0 rgba(45,212,191,0.5); }
+
+    .lib-pill {
+        display:inline-block; font-size:0.6rem; padding:0.15rem 0.5rem; border-radius:6px; font-weight:500;
+    }
+    .lib-pill-installed { background:rgba(45,212,191,0.1); color:rgba(45,212,191,0.8); }
+    .lib-pill-available { background:rgba(255,255,255,0.04); color:rgba(255,255,255,0.35); }
+    .lib-pill-upgrade  { background:rgba(244,114,182,0.1); color:rgba(244,114,182,0.8); }
+    .lib-pill-cat      { background:rgba(131,120,27,0.08); color:rgba(131,120,27,0.7); }
+
+    .lib-action {
+        font-size:0.7rem; padding:0.3rem 0.85rem; border-radius:8px; border:none; cursor:pointer;
+        font-weight:500; transition:all 0.2s; white-space:nowrap;
+    }
+    .lib-action:disabled { opacity:0.3; cursor:not-allowed; }
+    .lib-install  { background:rgba(131,120,27,0.15); color:rgba(131,120,27,0.9); }
+    .lib-install:hover  { background:rgba(131,120,27,0.3); }
+    .lib-upgrade  { background:rgba(244,114,182,0.12); color:rgba(244,114,182,0.85); }
+    .lib-upgrade:hover  { background:rgba(244,114,182,0.24); }
+    .lib-remove   { background:none; color:rgba(255,255,255,0.2); font-size:0.65rem; padding:0.2rem 0.5rem; }
+    .lib-remove:hover   { color:rgba(244,63,94,0.7); }
+
+    .lib-progress-bar { width:100%; height:3px; border-radius:2px; background:rgba(255,255,255,0.04); overflow:hidden; margin-top:4px; display:none; }
+    .lib-progress-bar .bar { height:100%; width:0%; background:linear-gradient(90deg,rgba(131,120,27,0.6),rgba(45,212,191,0.5)); transition:width 0.3s; border-radius:2px; }
+    .lib-status-text { font-size:0.6rem; color:rgba(255,255,255,0.3); margin-top:2px; display:none; }
+
+    .lib-filter {
+        font-size:0.7rem; padding:0.3rem 0.75rem; border-radius:8px; border:1px solid rgba(255,255,255,0.06);
+        background:transparent; color:rgba(255,255,255,0.35); cursor:pointer; transition:all 0.2s;
+    }
+    .lib-filter:hover { border-color:rgba(131,120,27,0.2); color:rgba(131,120,27,0.65); }
+    .lib-filter.active { background:rgba(131,120,27,0.1); border-color:rgba(131,120,27,0.25); color:rgba(131,120,27,0.9); }
+
+    .lib-upgrade-banner {
+        background:linear-gradient(135deg,rgba(244,114,182,0.06),rgba(131,120,27,0.04));
+        border:1px solid rgba(244,114,182,0.12); border-radius:12px;
+        padding:0.75rem 1rem; margin-bottom:0.75rem;
+    }
+
+    /* Collapsible sections (used within tab panels) */
+    .section-toggle {
+        display:flex; align-items:center; justify-content:space-between;
+        padding:0.85rem 1.25rem; cursor:pointer; user-select:none;
+        transition:background 0.15s;
+    }
+    .section-toggle:hover { background:rgba(131,120,27,0.04); }
+    .section-body {
+        max-height:0; overflow:hidden;
+        transition:max-height 0.4s cubic-bezier(0.4,0,0.2,1);
+    }
+    .section-body.open { max-height:5000px; overflow:visible; }
+    .section-chevron {
+        transition:transform 0.3s ease; color:rgba(255,255,255,0.5); flex-shrink:0;
+        width:1.5rem; height:1.5rem;
+        padding:0.3rem;
+        border-radius:6px; background:rgba(255,255,255,0.06);
+        box-sizing:content-box;
+    }
+    .section-chevron:hover { background:rgba(255,255,255,0.12); color:rgba(255,255,255,0.8); }
+    .section-chevron.open { transform:rotate(180deg); }
+
+    /* Top-level Model Router tabs */
+    .mr-tab-content { display:none; }
+    .mr-tab-content.active { display:block; }
+
+    /* Model Library Drawer (uses generic collapsible) */
+    .lib-drawer-badge {
+        display:inline-flex; align-items:center; justify-content:center;
+        font-size:0.6rem; font-weight:600; min-width:1.1rem; height:1.1rem;
+        border-radius:6px; padding:0 0.3rem;
+    }
+    .lib-badge-installed { background:rgba(45,212,191,0.12); color:rgba(45,212,191,0.8); }
+    .lib-badge-upgrade  { background:rgba(244,114,182,0.12); color:rgba(244,114,182,0.8); }
+
+    /* llama.cpp GGUF downloader */
+    .lcpp-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:0.65rem; }
+    .lcpp-preset {
+        text-align:left; border:1px solid rgba(192,132,252,0.25); background:rgba(192,132,252,0.06);
+        border-radius:10px; padding:0.65rem 0.75rem; transition:all 0.2s ease; cursor:pointer;
+    }
+    .lcpp-preset:hover { border-color:rgba(192,132,252,0.45); background:rgba(192,132,252,0.12); }
+    .lcpp-preset:disabled { opacity:0.5; cursor:not-allowed; }
+    .lcpp-preset-name { display:block; font-size:0.74rem; font-weight:600; color:rgba(255,255,255,0.9); }
+    .lcpp-preset-meta { display:block; font-size:0.65rem; color:rgba(255,255,255,0.45); margin-top:0.15rem; }
+    .lcpp-progress-wrap { height:6px; background:rgba(255,255,255,0.05); border-radius:99px; overflow:hidden; }
+    .lcpp-progress-bar { height:100%; width:0%; background:linear-gradient(90deg, rgba(192,132,252,0.75), rgba(45,212,191,0.7)); transition:width 0.2s ease; }
+
+    /* Pipeline profile cards */
+    .profile-card {
+        border:1px solid rgba(255,255,255,0.08); background:rgba(255,255,255,0.03);
+        border-radius:12px; padding:0.85rem 1rem; cursor:pointer; transition:all 0.2s ease;
+        position:relative; overflow:hidden;
+    }
+    .profile-card:hover { border-color:rgba(255,255,255,0.18); background:rgba(255,255,255,0.06); }
+    .profile-card.active { border-color:rgba(192,132,252,0.5); background:rgba(192,132,252,0.08); }
+    .profile-card.active::before {
+        content:''; position:absolute; top:0; left:0; right:0; height:2px;
+        background:linear-gradient(90deg, #C084FC, #2DD4BF);
+    }
+    .profile-card .profile-name { font-size:0.82rem; font-weight:600; color:rgba(255,255,255,0.92); }
+    .profile-card .profile-desc { font-size:0.68rem; color:rgba(255,255,255,0.45); margin-top:0.25rem; line-height:1.4; }
+    .profile-card .profile-metrics { display:flex; gap:0.35rem; margin-top:0.55rem; flex-wrap:wrap; }
+    .profile-card .profile-metric {
+        font-size:0.58rem; padding:0.16rem 0.42rem; border-radius:999px;
+        border:1px solid rgba(255,255,255,0.1); color:rgba(255,255,255,0.68); background:rgba(255,255,255,0.04);
+    }
+    .profile-card .profile-metric strong { color:rgba(255,255,255,0.9); font-weight:600; }
+    .profile-card .profile-metric.topology-local { border-color:rgba(45,212,191,0.22); background:rgba(45,212,191,0.1); }
+    .profile-card .profile-metric.topology-hybrid { border-color:rgba(192,132,252,0.22); background:rgba(192,132,252,0.1); }
+    .profile-card .profile-metric.topology-cloud { border-color:rgba(96,165,250,0.22); background:rgba(96,165,250,0.1); }
+    .profile-card .profile-metric.speed-fast { border-color:rgba(34,197,94,0.2); background:rgba(34,197,94,0.1); }
+    .profile-card .profile-metric.speed-medium { border-color:rgba(250,204,21,0.2); background:rgba(250,204,21,0.1); }
+    .profile-card .profile-metric.speed-slow { border-color:rgba(251,113,133,0.2); background:rgba(251,113,133,0.1); }
+    .profile-card .profile-metric.quality-good { border-color:rgba(148,163,184,0.2); background:rgba(148,163,184,0.1); }
+    .profile-card .profile-metric.quality-better { border-color:rgba(192,132,252,0.2); background:rgba(192,132,252,0.1); }
+    .profile-card .profile-metric.quality-best { border-color:rgba(45,212,191,0.2); background:rgba(45,212,191,0.1); }
+    .profile-filter-row { display:flex; flex-wrap:wrap; gap:0.6rem; margin-bottom:0.65rem; }
+    .profile-filter-group { display:flex; align-items:center; gap:0.35rem; flex-wrap:wrap; }
+    .profile-filter-label { font-size:0.62rem; color:rgba(255,255,255,0.45); text-transform:uppercase; letter-spacing:0.06em; }
+    .profile-filter-btn {
+        font-size:0.62rem; padding:0.2rem 0.55rem; border-radius:999px;
+        border:1px solid rgba(255,255,255,0.1); color:rgba(255,255,255,0.6); background:rgba(255,255,255,0.03);
+        transition:all 0.2s ease;
+    }
+    .profile-filter-btn:hover { border-color:rgba(255,255,255,0.2); color:rgba(255,255,255,0.85); }
+    .profile-filter-btn.active { border-color:rgba(192,132,252,0.45); color:rgba(192,132,252,0.9); background:rgba(192,132,252,0.1); }
+    .profile-card .profile-roles { display:flex; gap:0.4rem; margin-top:0.5rem; flex-wrap:wrap; }
+    .profile-card .profile-role-badge {
+        font-size:0.6rem; padding:0.15rem 0.45rem; border-radius:6px;
+        background:rgba(255,255,255,0.06); color:rgba(255,255,255,0.5); border:1px solid rgba(255,255,255,0.08);
+    }
+    .profile-card .profile-role-badge.cloud { background:rgba(96,165,250,0.1); color:rgba(96,165,250,0.7); border-color:rgba(96,165,250,0.15); }
+    .profile-card .profile-role-badge.local { background:rgba(45,212,191,0.1); color:rgba(45,212,191,0.7); border-color:rgba(45,212,191,0.15); }
+    .profile-card .profile-role-badge.off { opacity:0.35; }
+    .profile-card .profile-unavail { font-size:0.62rem; color:rgba(255,255,255,0.3); margin-top:0.35rem; font-style:italic; }
+    .profile-card:not(.can-apply) { opacity:0.5; cursor:not-allowed; }
+</style>
+{% endblock %}
+
+{% block content %}
+<header class="header-scrim flex justify-between items-center mb-6 reveal">
+    <div>
+        <h2 class="text-2xl font-semibold text-white mb-1 tracking-tight">How AI Runs</h2>
+        <p class="text-sm text-secondary">Keep answers on this device by default, selectively use cloud models when you want more power, or combine both. You stay in control.</p>
+    </div>
+    <div class="flex gap-3">
+        <button onclick="refreshBackends()" class="px-4 py-2.5 btn-chrome text-gray-300 font-medium hover:text-white transition-colors flex items-center gap-1.5">
+            <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i> Refresh
+        </button>
+        <button onclick="testPipeline()" id="testBtn" class="btn-glossy px-5 py-2.5 text-midnight font-semibold">
+            <span class="relative z-10">Test Pipeline</span>
+        </button>
+    </div>
+</header>
+
+{% if model_setup_guidance.show_banner %}
+<section id="routerPrereqBanner" class="info-panel mb-6 reveal border-l-2 {{ model_setup_guidance.border_class }}">
+    <div class="p-5 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+        <div>
+            <p class="text-sm font-semibold text-white mb-1">{{ model_setup_guidance.title }}</p>
+            <p class="text-sm text-secondary">{{ model_setup_guidance.detail }}</p>
+        </div>
+        <div class="flex flex-wrap gap-2">
+            {% if model_setup_guidance.state_key == 'provider_not_detected' %}
+            <button onclick="showMrTab('providers')" class="px-3 py-2 rounded-lg border border-white/10 text-sm text-gray-300 hover:text-white hover:border-white/20 transition">Open Providers</button>
+            <a href="/settings" class="px-3 py-2 rounded-lg border border-gold/30 text-sm text-gold hover:bg-gold/10 transition no-underline">Open Settings</a>
+            {% elif model_setup_guidance.state_key == 'provider_not_connected' %}
+            <button onclick="showMrTab('providers')" class="px-3 py-2 rounded-lg border border-gold/30 text-sm text-gold hover:bg-gold/10 transition">Open Providers</button>
+            <button onclick="refreshBackends()" class="px-3 py-2 rounded-lg border border-white/10 text-sm text-gray-300 hover:text-white hover:border-white/20 transition">Refresh Providers</button>
+            {% else %}
+            <button onclick="openDefaultModelTab()" class="px-3 py-2 rounded-lg border border-teal/30 text-sm text-teal hover:bg-teal/10 transition">Open Default Model settings</button>
+            {% endif %}
+        </div>
+    </div>
+</section>
+{% endif %}
+
+<!-- Top-level tab navigation -->
+<div class="flex gap-2 mb-6 reveal stagger-2 border-b border-white/10 pb-4 flex-wrap items-center">
+    <button onclick="showMrTab('pipeline')" id="mr-tab-pipeline" class="px-5 py-2.5 rounded-lg font-medium text-gold bg-gold/15 transition-all flex items-center gap-1.5">
+        <i data-lucide="git-branch" class="w-4 h-4"></i> Pipeline
+    </button>
+    <button onclick="showMrTab('providers')" id="mr-tab-providers" class="px-5 py-2.5 rounded-lg font-medium text-gray-400 hover:bg-white/5 transition-all flex items-center gap-1.5">
+        <i data-lucide="plug" class="w-4 h-4"></i> Providers
+    </button>
+    <button onclick="showMrTab('profiles')" id="mr-tab-profiles" class="px-5 py-2.5 rounded-lg font-medium text-gray-400 hover:bg-white/5 transition-all flex items-center gap-1.5">
+        <i data-lucide="layout-template" class="w-4 h-4"></i> Profiles
+    </button>
+    <button onclick="showMrTab('models')" id="mr-tab-models" class="px-5 py-2.5 rounded-lg font-medium text-gray-400 hover:bg-white/5 transition-all flex items-center gap-1.5">
+        <i data-lucide="boxes" class="w-4 h-4"></i> Models
+    </button>
+    {% if backends.get('llamacpp') %}
+    <button onclick="showMrTab('local')" id="mr-tab-local" class="px-5 py-2.5 rounded-lg font-medium text-gray-400 hover:bg-white/5 transition-all flex items-center gap-1.5">
+        <i data-lucide="download-cloud" class="w-4 h-4"></i> Local Models
+    </button>
+    {% endif %}
+</div>
+
+<!-- ═══ Tab: Providers ═══════════════════════════════════════════════ -->
+<div id="mr-content-providers" class="mr-tab-content">
+<section class="glass-card mb-6">
+    <div class="p-5">
+    <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+        {% for name, backend in backends.items() %}
+        <div class="backend-card glass-card p-4 {{ 'disabled' if backend.status != 'ready' else '' }}">
+            <div class="flex items-start justify-between mb-3 relative z-10">
+                <div class="flex items-center gap-3">
+                    <span class="text-2xl">{{ backend.icon }}</span>
+                    <div>
+                        <h4 class="font-medium text-white">{{ backend.display_name }}</h4>
+                        <p class="text-xs text-gray-400">{{ 'Local' if backend.type == 'ollama' else 'Cloud' }} · {{ backend.type }}</p>
+                    </div>
+                </div>
+                {% if backend.status == 'ready' %}
+                <span class="badge px-2 py-1 rounded-full text-teal text-xs font-medium">● Ready</span>
+                {% elif backend.status == 'key_set' %}
+                <span class="badge-warn px-2 py-1 rounded-full text-gold text-xs font-medium">◐ Key Set</span>
+                {% elif backend.status == 'installed_not_running' %}
+                <span class="badge-warn px-2 py-1 rounded-full text-gold text-xs font-medium">◐ Not Running</span>
+                {% else %}
+                <span class="badge-muted px-2 py-1 rounded-full text-gray-400 text-xs font-medium">○ Not Setup</span>
+                {% endif %}
+            </div>
+            <p class="text-sm text-secondary mb-3 relative z-10">{{ backend.description }}</p>
+            <div class="relative z-10">
+                {% if backend.status == 'ready' %}
+                {% if backend.type == 'llamacpp' %}
+                <div>
+                    <span class="text-sm text-teal block">✓ {{ backend.models | length }} GGUF model{{ 's' if backend.models|length != 1 else '' }} ready</span>
+                    <button onclick="selectBackendForPhase('initial', 'llamacpp')" class="text-xs mt-1.5 px-2.5 py-1 rounded border border-purple-400/35 text-purple-300 hover:bg-purple-400/10 transition">Use llama.cpp for Default Model</button>
+                </div>
+                {% else %}
+                <span class="text-sm text-teal">✓ {{ backend.models | length }} models</span>
+                {% endif %}
+                {% elif backend.status == 'running_no_models' %}
+                <div>
+                    <span class="text-sm text-gold mb-1 block">No models yet — pull one:</span>
+                    <div class="flex gap-2 mt-1 flex-wrap">
+                        <button onclick="pullModelFromRouter('gemma3:4b',this)" class="text-xs px-2 py-1 rounded border border-teal/30 text-teal hover:bg-teal/10 transition">gemma3:4b (3.3 GB)</button>
+                        <button onclick="pullModelFromRouter('qwen3.5',this)" class="text-xs px-2 py-1 rounded border border-white/10 text-gray-400 hover:border-teal/30 hover:text-teal transition">qwen3.5 (6.6 GB)</button>
+                        <button onclick="pullModelFromRouter('qwen3.5:4b',this)" class="text-xs px-2 py-1 rounded border border-white/10 text-gray-400 hover:border-teal/30 hover:text-teal transition">qwen3.5:4b (3.4 GB)</button>
+                    </div>
+                    <p id="routerPullStatus" class="text-xs text-gray-500 mt-1 hidden"></p>
+                </div>
+                {% elif backend.status == 'key_set' %}
+                <button onclick="refreshBackends()" class="text-sm text-gold underline hover:no-underline">Click Refresh to connect</button>
+                {% elif backend.status == 'installed_not_running' %}
+                {% if backend.type == 'llamacpp' %}
+                <div>
+                    {% if backend.models and backend.models|length > 0 %}
+                    <button onclick="startLlamaCppFromRouter(this)" class="text-sm text-purple-300 hover:underline">▶ Start llama.cpp server</button>
+                    <p class="text-xs text-gray-400 mt-1.5">After it starts: click "Use llama.cpp for Default Model".</p>
+                    {% else %}
+                    <p class="text-xs text-gray-400 mb-2">llama.cpp is installed, but no GGUF model is available yet.</p>
+                    <button onclick="showMrTab('local')" class="text-xs px-3 py-1.5 rounded-lg border border-purple-400/30 text-purple-400 hover:bg-purple-400/10 hover:border-purple-400/50 transition font-medium">Download a GGUF Model</button>
+                    {% endif %}
+                </div>
+                {% else %}
+                <button onclick="startOllamaFromRouter(this)" class="text-sm text-teal hover:underline">▶ Start Ollama Server</button>
+                {% endif %}
+                {% elif backend.type == 'llamacpp' and backend.status == 'not_installed' %}
+                <div>
+                    <button onclick="installLlamaCppFromRouter(this)" class="text-xs px-3 py-1.5 rounded-lg border border-purple-400/30 text-purple-400 hover:bg-purple-400/10 hover:border-purple-400/50 transition font-medium">⚡ Download &amp; Install llama.cpp</button>
+                    <p class="text-xs text-gray-500 mt-1.5 lcpp-status hidden"></p>
+                    <p class="text-xs text-gray-600 mt-1">Or use <button onclick="showMrTab('local')" class="text-purple-400 hover:underline inline">One-Click Setup</button> in the Local Models tab to install everything at once.</p>
+                </div>
+                {% elif backend.requires_key %}
+                <a href="/settings" class="text-sm text-gold hover:underline">→ {{ backend.setup_hint }}</a>
+                {% else %}
+                <a href="/" class="text-sm text-teal hover:underline">→ {{ backend.setup_hint }}</a>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</section>
+</div>
+
+<!-- ═══ Tab: Profiles ════════════════════════════════════════════════ -->
+<div id="mr-content-profiles" class="mr-tab-content">
+<section class="glass-card mb-6">
+    <div class="p-5">
+    <div class="flex items-center justify-between mb-3">
+        <p class="text-sm text-secondary">Each profile shows three tradeoffs up front: local/cloud/hybrid topology, anticipated speed, and anticipated quality.</p>
+        <button onclick="reAutoConfigPipeline(this)" class="px-3 py-1.5 rounded-lg border border-white/10 text-gray-400 hover:text-white hover:border-white/20 transition text-xs flex items-center gap-1.5 flex-shrink-0 ml-4">
+            <i data-lucide="scan" class="w-3.5 h-3.5"></i> Re-detect
+        </button>
+    </div>
+
+    <div class="profile-filter-row">
+        <div class="profile-filter-group" data-filter-group="topology">
+            <span class="profile-filter-label">Topology</span>
+            <button class="profile-filter-btn active" onclick="setPresetFilter('topology','all',this)">All</button>
+            <button class="profile-filter-btn" onclick="setPresetFilter('topology','Local',this)">Local</button>
+            <button class="profile-filter-btn" onclick="setPresetFilter('topology','Hybrid',this)">Hybrid</button>
+            <button class="profile-filter-btn" onclick="setPresetFilter('topology','Cloud',this)">Cloud</button>
+        </div>
+        <div class="profile-filter-group" data-filter-group="speed">
+            <span class="profile-filter-label">Speed</span>
+            <button class="profile-filter-btn active" onclick="setPresetFilter('speed','all',this)">All</button>
+            <button class="profile-filter-btn" onclick="setPresetFilter('speed','Fast',this)">Fast</button>
+            <button class="profile-filter-btn" onclick="setPresetFilter('speed','Medium',this)">Medium</button>
+            <button class="profile-filter-btn" onclick="setPresetFilter('speed','Slow',this)">Slow</button>
+        </div>
+        <div class="profile-filter-group" data-filter-group="quality">
+            <span class="profile-filter-label">Quality</span>
+            <button class="profile-filter-btn active" onclick="setPresetFilter('quality','all',this)">All</button>
+            <button class="profile-filter-btn" onclick="setPresetFilter('quality','Good',this)">Good</button>
+            <button class="profile-filter-btn" onclick="setPresetFilter('quality','Better',this)">Better</button>
+            <button class="profile-filter-btn" onclick="setPresetFilter('quality','Best',this)">Best</button>
+        </div>
+    </div>
+    <p id="presetFilterSummary" class="text-xs text-gray-500 mb-2">Showing all profiles</p>
+
+    <div id="presetCards" class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
+        <!-- Populated by JS from /api/v1/router/presets -->
+        <div class="text-xs text-gray-500 col-span-full py-4 text-center">Loading profiles…</div>
+    </div>
+    <p id="presetAutoLabel" class="text-xs text-gray-500 mt-2 hidden"></p>
+    </div>
+</section>
+</div>
+
+<!-- ═══ Tab: Pipeline ════════════════════════════════════════════════ -->
+<div id="mr-content-pipeline" class="mr-tab-content active">
+<section class="glass-card glow-card mb-6" style="overflow: visible;">
+    <!-- Pipeline overview -->
+    <div class="p-5 border-b border-white/5 relative z-10">
+        <div class="info-panel p-4 mb-4 border-l-2 border-teal">
+            <div class="flex items-start gap-3">
+                <i data-lucide="shield" class="w-5 h-5 text-teal flex-shrink-0 mt-0.5"></i>
+                <div>
+                    <p class="text-sm text-white font-medium mb-1">Local, cloud, or hybrid &mdash; your choice</p>
+                    <p class="text-xs text-gray-400">Local models keep prompts on this device. Cloud models offer more power. You can use one for everyday questions and another for complex tasks &mdash; and switch any time.</p>
+                </div>
+            </div>
+        </div>
+        <p class="text-sm text-gray-300 mb-4">Most users should use one Default Model. Review is an optional second opinion, and Refine is an extra cleanup pass that most people can leave off.</p>
+        <div class="flex items-center justify-center gap-3 text-sm flex-wrap">
+            <div class="info-panel px-5 py-4 min-w-[180px] border-l-2 border-blue-400 cursor-pointer" onclick="showTab('initial')">
+                <div class="text-blue-400 font-medium mb-1">Default Model</div>
+                <div class="text-xs text-gray-400" id="flow-initial">Not configured</div>
+            </div>
+            <div class="stage-connector hidden sm:block"></div>
+            <div class="info-panel px-5 py-4 min-w-[180px] border-l-2 border-gold cursor-pointer" onclick="showTab('critique')">
+                <div class="text-gold font-medium mb-1">Review <span class="text-[10px] text-gray-400">(optional)</span></div>
+                <div class="text-xs text-gray-400" id="flow-critique">Not configured</div>
+            </div>
+            <div class="stage-connector hidden sm:block"></div>
+            <div class="info-panel px-5 py-4 min-w-[180px] border-l-2 border-teal cursor-pointer" onclick="showTab('synthesize')">
+                <div class="text-teal font-medium mb-1">Refine <span class="text-[10px] text-gray-400">(optional)</span></div>
+                <div class="text-xs text-gray-400" id="flow-synthesize">Not configured</div>
+            </div>
+        </div>
+    </div>
+    <!-- Phase tabs -->
+    <div class="flex border-b border-white/5 relative z-10">
+        <button onclick="showTab('initial')" id="tab-initial" class="tab-btn active flex-1 px-4 py-4 text-center font-medium text-blue-400 bg-blue-400/10">Default Model</button>
+        <button onclick="showTab('critique')" id="tab-critique" class="tab-btn flex-1 px-4 py-4 text-center font-medium text-gray-300 hover:bg-white/5">Review</button>
+        <button onclick="showTab('synthesize')" id="tab-synthesize" class="tab-btn flex-1 px-4 py-4 text-center font-medium text-gray-300 hover:bg-white/5">Refine</button>
+    </div>
+
+    <!-- Tab: Initial -->
+    <div id="content-initial" class="p-6" style="position: relative; z-index: 20;">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div class="space-y-4">
+                <div class="flex items-center justify-between">
+                    <h4 class="font-medium text-white">Model Configuration</h4>
+                    <label class="flex items-center gap-2 text-sm">
+                        <input type="checkbox" id="initial-enabled" checked class="rounded accent-gold">
+                        <span class="text-gray-300">Enabled</span>
+                    </label>
+                </div>
+                <div>
+                    <label class="block text-sm text-gray-400 mb-2">Backend Provider</label>
+                    <select id="initial-backend" onchange="updateModelOptions('initial')" class="w-full px-4 py-2.5">
+                        {% for name, backend in backends.items() %}
+                        <option value="{{ name }}" {{ 'selected' if pipeline and pipeline.roles.initial and pipeline.roles.initial.backend_name == name else '' }}>
+                            {{ backend.icon }} {{ backend.display_name }} {% if backend.status == 'ready' %}({{ backend.models | length }}){% elif backend.status != 'ready' %}(not configured){% endif %}
+                        </option>
+                        {% endfor %}
+                    </select>
+                    <p class="text-xs text-gray-500 mt-1" id="initial-backend-hint"></p>
+                </div>
+                <div>
+                    <label class="block text-sm text-gray-400 mb-2">Model</label>
+                    <input type="text" id="initial-model-search" placeholder="Search models..." oninput="filterModels('initial')" class="w-full px-4 py-2 mb-2">
+                    <select id="initial-model" size="5" class="w-full px-4 py-2 model-dropdown"></select>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm text-gray-400 mb-1">Creativity: <span id="initial-temp-display" class="text-gold">0.4</span></label>
+                        <p class="text-xs text-gray-400 mb-2">Lower = more factual, higher = more creative</p>
+                        <input type="range" id="initial-temp" min="0" max="2" step="0.1" value="0.4" oninput="document.getElementById('initial-temp-display').textContent = this.value" class="w-full accent-gold">
+                    </div>
+                    <div>
+                        <input type="hidden" id="initial-tokens" value="8000">
+                    </div>
+                </div>
+            </div>
+            <div class="space-y-4">
+                <div class="flex items-center justify-between">
+                    <h4 class="font-medium text-white">System Prompt</h4>
+                    <button onclick="resetPrompt('initial')" class="text-xs text-gray-500 hover:text-gold transition-colors">Reset to default</button>
+                </div>
+                <textarea id="initial-prompt" rows="6" class="w-full px-4 py-3 text-sm font-mono"></textarea>
+                <div class="mt-2 p-3 rounded-lg bg-black/90 border border-white/10">
+                    <p class="text-xs text-gray-400 uppercase tracking-wider mb-1.5 font-semibold">Injected automatically</p>
+                    <pre class="text-xs text-gray-500 font-mono whitespace-pre-wrap leading-relaxed">Context: {context}
+
+User question: {user_prompt}</pre>
+                </div>
+                <p class="text-xs text-gray-500 mt-2">Write your instructions above. The context and user question are injected automatically below your prompt.</p>
+            </div>
+        </div>
+        <details class="mt-4 p-4 rounded-lg bg-black/85 border border-white/10">
+            <summary class="text-sm text-gray-400 cursor-pointer hover:text-gold transition-colors font-medium">⚙️ Advanced Local Model Tuning (Ollama)</summary>
+            <div class="mt-3 flex flex-wrap items-center gap-3">
+                <label class="text-xs text-gray-400">Performance profile</label>
+                <select id="initial-perf" class="px-3 py-2 text-xs bg-black/80 border border-white/10 rounded">
+                    <option value="balanced">Balanced (default)</option>
+                    <option value="fast">Fast</option>
+                    <option value="quality">Quality</option>
+                </select>
+                <button onclick="applyPerfProfile('initial')" class="btn-outline px-3 py-1.5 text-xs">Apply</button>
+                <span class="text-[11px] text-gray-500">Applies to Ollama only. Use Balanced if unsure.</span>
+            </div>
+            <div class="mt-3 grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-xs text-gray-500 mb-1">Context Window (num_ctx): <span id="initial-numctx-display" class="text-gold">8192</span></label>
+                    <p class="text-xs text-gray-400 mb-1">How many tokens the model can see. Must fit your prompt + retrieved docs. Default 2048 is TOO SMALL for RAG.</p>
+                    <input type="range" id="initial-numctx" min="2048" max="32768" step="1024" value="8192" oninput="document.getElementById('initial-numctx-display').textContent = this.value" class="w-full accent-gold">
+                </div>
+                <div>
+                    <label class="block text-xs text-gray-500 mb-1">Repeat Penalty: <span id="initial-repeat-display" class="text-gold">1.1</span></label>
+                    <p class="text-xs text-gray-400 mb-1">Penalize repeated tokens. 1.0 = off, 1.1-1.2 = good for prose.</p>
+                    <input type="range" id="initial-repeat" min="1.0" max="2.0" step="0.05" value="1.1" oninput="document.getElementById('initial-repeat-display').textContent = this.value" class="w-full accent-gold">
+                </div>
+                <div>
+                    <label class="block text-xs text-gray-500 mb-1">Top-K: <span id="initial-topk-display" class="text-gold">40</span></label>
+                    <p class="text-xs text-gray-400 mb-1">Limit sampling to top K tokens. Lower = more focused.</p>
+                    <input type="range" id="initial-topk" min="1" max="100" step="1" value="40" oninput="document.getElementById('initial-topk-display').textContent = this.value" class="w-full accent-gold">
+                </div>
+                <div>
+                    <label class="block text-xs text-gray-500 mb-1">Top-P (nucleus): <span id="initial-topp-display" class="text-gold">0.9</span></label>
+                    <p class="text-xs text-gray-400 mb-1">Cumulative probability cutoff. 0.9 = focused, 1.0 = all tokens.</p>
+                    <input type="range" id="initial-topp" min="0.1" max="1.0" step="0.05" value="0.9" oninput="document.getElementById('initial-topp-display').textContent = this.value" class="w-full accent-gold">
+                </div>
+            </div>
+            <p class="text-xs text-gray-400 mt-3">These settings only apply to Ollama (local) models. Cloud providers ignore them.</p>
+        </details>
+        <div class="mt-6 pt-4 border-t border-white/5 flex justify-end">
+            <button onclick="saveRole('initial', this)" class="btn-glossy px-6 py-2.5 text-midnight font-semibold"><span class="relative z-10">Save Default Model</span></button>
+        </div>
+    </div>
+
+    <!-- Tab: Critique -->
+    <div id="content-critique" class="p-6 hidden" style="position: relative; z-index: 20;">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div class="space-y-4">
+                <div class="flex items-center justify-between">
+                    <h4 class="font-medium text-white">Model Configuration</h4>
+                    <label class="flex items-center gap-2 text-sm">
+                        <input type="checkbox" id="critique-enabled" class="rounded accent-gold">
+                        <span class="text-gray-300">Enabled</span>
+                    </label>
+                </div>
+                <div>
+                    <label class="block text-sm text-gray-400 mb-2">Backend Provider</label>
+                    <select id="critique-backend" onchange="updateModelOptions('critique')" class="w-full px-4 py-2.5">
+                        {% for name, backend in backends.items() %}
+                        <option value="{{ name }}" {{ 'selected' if pipeline and pipeline.roles.critique and pipeline.roles.critique.backend_name == name else '' }}>
+                            {{ backend.icon }} {{ backend.display_name }} {% if backend.status == 'ready' %}({{ backend.models | length }}){% elif backend.status != 'ready' %}(not configured){% endif %}
+                        </option>
+                        {% endfor %}
+                    </select>
+                    <p class="text-xs text-gray-500 mt-1" id="critique-backend-hint"></p>
+                </div>
+                <div>
+                    <label class="block text-sm text-gray-400 mb-2">Model</label>
+                    <input type="text" id="critique-model-search" placeholder="Search models..." oninput="filterModels('critique')" class="w-full px-4 py-2 mb-2">
+                    <select id="critique-model" size="5" class="w-full px-4 py-2 model-dropdown"></select>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm text-gray-400 mb-1">Creativity: <span id="critique-temp-display" class="text-gold">0.3</span></label>
+                        <p class="text-xs text-gray-400 mb-2">Lower = more factual, higher = more creative</p>
+                        <input type="range" id="critique-temp" min="0" max="2" step="0.1" value="0.3" oninput="document.getElementById('critique-temp-display').textContent = this.value" class="w-full accent-gold">
+                    </div>
+                    <div>
+                        <input type="hidden" id="critique-tokens" value="4000">
+                    </div>
+                </div>
+            </div>
+            <div class="space-y-4">
+                <div class="flex items-center justify-between">
+                    <h4 class="font-medium text-white">System Prompt</h4>
+                    <button onclick="resetPrompt('critique')" class="text-xs text-gray-500 hover:text-gold transition-colors">Reset to default</button>
+                </div>
+                <textarea id="critique-prompt" rows="6" class="w-full px-4 py-3 text-sm font-mono"></textarea>
+                <div class="mt-2 p-3 rounded-lg bg-black/90 border border-white/10">
+                    <p class="text-xs text-gray-400 uppercase tracking-wider mb-1.5 font-semibold">Injected automatically</p>
+                    <pre class="text-xs text-gray-500 font-mono whitespace-pre-wrap leading-relaxed">Original question: {user_prompt}
+Context available: {context}
+Response to review: {initial_response}</pre>
+                </div>
+            </div>
+        </div>
+        <details class="mt-4 p-4 rounded-lg bg-black/85 border border-white/10">
+            <summary class="text-sm text-gray-400 cursor-pointer hover:text-gold transition-colors font-medium">⚙️ Advanced Local Model Tuning (Ollama)</summary>
+            <div class="mt-3 grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-xs text-gray-500 mb-1">Context Window (num_ctx): <span id="critique-numctx-display" class="text-gold">8192</span></label>
+                    <p class="text-xs text-gray-400 mb-1">How many tokens the model can see.</p>
+                    <input type="range" id="critique-numctx" min="2048" max="32768" step="1024" value="8192" oninput="document.getElementById('critique-numctx-display').textContent = this.value" class="w-full accent-gold">
+                </div>
+                <div>
+                    <label class="block text-xs text-gray-500 mb-1">Repeat Penalty: <span id="critique-repeat-display" class="text-gold">1.1</span></label>
+                    <input type="range" id="critique-repeat" min="1.0" max="2.0" step="0.05" value="1.1" oninput="document.getElementById('critique-repeat-display').textContent = this.value" class="w-full accent-gold">
+                </div>
+                <div>
+                    <label class="block text-xs text-gray-500 mb-1">Top-K: <span id="critique-topk-display" class="text-gold">40</span></label>
+                    <input type="range" id="critique-topk" min="1" max="100" step="1" value="40" oninput="document.getElementById('critique-topk-display').textContent = this.value" class="w-full accent-gold">
+                </div>
+                <div>
+                    <label class="block text-xs text-gray-500 mb-1">Top-P: <span id="critique-topp-display" class="text-gold">0.9</span></label>
+                    <input type="range" id="critique-topp" min="0.1" max="1.0" step="0.05" value="0.9" oninput="document.getElementById('critique-topp-display').textContent = this.value" class="w-full accent-gold">
+                </div>
+            </div>
+            <p class="text-xs text-gray-400 mt-3">These settings only apply to Ollama (local) models.</p>
+        </details>
+        <div class="mt-6 pt-4 border-t border-white/5 flex justify-end">
+            <button onclick="saveRole('critique', this)" class="btn-glossy px-6 py-2.5 text-midnight font-semibold"><span class="relative z-10">Save Critique Model</span></button>
+        </div>
+    </div>
+
+    <!-- Tab: Synthesize -->
+    <div id="content-synthesize" class="p-6 hidden" style="position: relative; z-index: 20;">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div class="space-y-4">
+                <div class="flex items-center justify-between">
+                    <h4 class="font-medium text-white">Model Configuration</h4>
+                    <label class="flex items-center gap-2 text-sm">
+                        <input type="checkbox" id="synthesize-enabled" class="rounded accent-gold">
+                        <span class="text-gray-300">Enabled</span>
+                    </label>
+                </div>
+                <div>
+                    <label class="block text-sm text-gray-400 mb-2">Backend Provider</label>
+                    <select id="synthesize-backend" onchange="updateModelOptions('synthesize')" class="w-full px-4 py-2.5">
+                        {% for name, backend in backends.items() %}
+                        <option value="{{ name }}" {{ 'selected' if pipeline and pipeline.roles.synthesize and pipeline.roles.synthesize.backend_name == name else '' }}>
+                            {{ backend.icon }} {{ backend.display_name }} {% if backend.status == 'ready' %}({{ backend.models | length }}){% elif backend.status != 'ready' %}(not configured){% endif %}
+                        </option>
+                        {% endfor %}
+                    </select>
+                    <p class="text-xs text-gray-500 mt-1" id="synthesize-backend-hint"></p>
+                </div>
+                <div>
+                    <label class="block text-sm text-gray-400 mb-2">Model</label>
+                    <input type="text" id="synthesize-model-search" placeholder="Search models..." oninput="filterModels('synthesize')" class="w-full px-4 py-2 mb-2">
+                    <select id="synthesize-model" size="5" class="w-full px-4 py-2 model-dropdown"></select>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm text-gray-400 mb-1">Creativity: <span id="synthesize-temp-display" class="text-gold">0.5</span></label>
+                        <p class="text-xs text-gray-400 mb-2">Lower = more factual, higher = more creative</p>
+                        <input type="range" id="synthesize-temp" min="0" max="2" step="0.1" value="0.5" oninput="document.getElementById('synthesize-temp-display').textContent = this.value" class="w-full accent-gold">
+                    </div>
+                    <div>
+                        <input type="hidden" id="synthesize-tokens" value="8000">
+                    </div>
+                </div>
+            </div>
+            <div class="space-y-4">
+                <div class="flex items-center justify-between">
+                    <h4 class="font-medium text-white">System Prompt</h4>
+                    <button onclick="resetPrompt('synthesize')" class="text-xs text-gray-500 hover:text-gold transition-colors">Reset to default</button>
+                </div>
+                <textarea id="synthesize-prompt" rows="6" class="w-full px-4 py-3 text-sm font-mono"></textarea>
+                <div class="mt-2 p-3 rounded-lg bg-black/90 border border-white/10">
+                    <p class="text-xs text-gray-400 uppercase tracking-wider mb-1.5 font-semibold">Injected automatically</p>
+                    <pre class="text-xs text-gray-500 font-mono whitespace-pre-wrap leading-relaxed">Original question: {user_prompt}
+Initial response: {initial_response}
+Critique: {critique_response}</pre>
+                </div>
+            </div>
+        </div>
+        <details class="mt-4 p-4 rounded-lg bg-black/85 border border-white/10">
+            <summary class="text-sm text-gray-400 cursor-pointer hover:text-gold transition-colors font-medium">⚙️ Advanced Local Model Tuning (Ollama)</summary>
+            <div class="mt-3 grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-xs text-gray-500 mb-1">Context Window (num_ctx): <span id="synthesize-numctx-display" class="text-gold">8192</span></label>
+                    <p class="text-xs text-gray-400 mb-1">How many tokens the model can see.</p>
+                    <input type="range" id="synthesize-numctx" min="2048" max="32768" step="1024" value="8192" oninput="document.getElementById('synthesize-numctx-display').textContent = this.value" class="w-full accent-gold">
+                </div>
+                <div>
+                    <label class="block text-xs text-gray-500 mb-1">Repeat Penalty: <span id="synthesize-repeat-display" class="text-gold">1.1</span></label>
+                    <input type="range" id="synthesize-repeat" min="1.0" max="2.0" step="0.05" value="1.1" oninput="document.getElementById('synthesize-repeat-display').textContent = this.value" class="w-full accent-gold">
+                </div>
+                <div>
+                    <label class="block text-xs text-gray-500 mb-1">Top-K: <span id="synthesize-topk-display" class="text-gold">40</span></label>
+                    <input type="range" id="synthesize-topk" min="1" max="100" step="1" value="40" oninput="document.getElementById('synthesize-topk-display').textContent = this.value" class="w-full accent-gold">
+                </div>
+                <div>
+                    <label class="block text-xs text-gray-500 mb-1">Top-P: <span id="synthesize-topp-display" class="text-gold">0.9</span></label>
+                    <input type="range" id="synthesize-topp" min="0.1" max="1.0" step="0.05" value="0.9" oninput="document.getElementById('synthesize-topp-display').textContent = this.value" class="w-full accent-gold">
+                </div>
+            </div>
+            <p class="text-xs text-gray-400 mt-3">These settings only apply to Ollama (local) models.</p>
+        </details>
+        <div class="mt-6 pt-4 border-t border-white/5 flex justify-end">
+            <button onclick="saveRole('synthesize', this)" class="btn-glossy px-6 py-2.5 text-midnight font-semibold"><span class="relative z-10">Save Synthesis Model</span></button>
+        </div>
+    </div>
+</section>
+</div>
+
+<!-- ═══ Tab: Models ══════════════════════════════════════════════════ -->
+<div id="mr-content-models" class="mr-tab-content">
+<section class="glass-card glow-card mb-8">
+    <div class="p-5">
+        <div class="flex items-center gap-2 mb-3">
+            <span class="text-sm font-semibold text-white">Model Library</span>
+            <span class="text-xs text-gray-500" id="libMeta">loading...</span>
+            <span class="lib-drawer-badge lib-badge-installed" id="libBadgeInstalled" style="display:none;"></span>
+            <span class="lib-drawer-badge lib-badge-upgrade" id="libBadgeUpgrade" style="display:none;"></span>
+        </div>
+        <div class="flex items-center justify-between mb-3">
+                <div class="flex gap-1" id="libFilters">
+                    <button class="lib-filter active" onclick="setLibFilter('all',this)">All</button>
+                    <button class="lib-filter" onclick="setLibFilter('installed',this)">Installed</button>
+                    <button class="lib-filter" onclick="setLibFilter('available',this)">Available</button>
+                </div>
+                <button onclick="refreshModelLibrary()" class="lib-filter" title="Re-scan Ollama">
+                    <i data-lucide="refresh-cw" class="w-3 h-3"></i>
+                </button>
+            </div>
+            <div id="libUpgradeBanner"></div>
+        </div>
+        <div class="overflow-x-auto" style="max-height:420px;overflow-y:auto;">
+            <table class="lib-table" id="libTable">
+                <thead>
+                    <tr>
+                        <th style="min-width:200px;">Model</th>
+                        <th>Category</th>
+                        <th>Size</th>
+                        <th>Status</th>
+                        <th style="text-align:right;">Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="libBody">
+                    <tr><td colspan="5" class="text-center text-gray-600 py-8">Loading model catalog…</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</section>
+</div>
+
+<!-- ═══ Tab: Local Models ════════════════════════════════════════════ -->
+{% set lcpp_backend = backends.get('llamacpp') %}
+{% if lcpp_backend %}
+<div id="mr-content-local" class="mr-tab-content">
+<section class="glass-card mb-6">
+    <div class="p-5">
+    <p class="text-xs text-gray-400 mb-3">Install models directly from Hugging Face without manually moving files.</p>
+
+    {% if lcpp_backend.status == 'not_installed' %}
+    <div class="info-panel p-3 text-sm text-gray-300">
+        Install llama.cpp first, then this downloader will save GGUF files to
+        <span class="font-mono text-purple-300">%LOCALAPPDATA%\MagicKeyAssistant\llamacpp\models</span>.
+    </div>
+    {% else %}
+    <div class="info-panel p-3 mb-4">
+        <div class="flex items-center justify-between gap-3">
+            <div>
+                <p class="text-sm text-white font-medium">One-click setup for casual users</p>
+                <p class="text-xs text-gray-400">Auto-installs prerequisites, downloads a recommended GGUF, starts llama.cpp, and sets it as the default model.</p>
+            </div>
+            <button id="lcppAutopilotBtn" onclick="runLlamaCppAutopilot(this)" class="px-3 py-2 rounded-lg border border-purple-400/35 text-purple-300 hover:bg-purple-400/10 transition text-xs font-semibold whitespace-nowrap">
+                ✨ One-Click Setup
+            </button>
+        </div>
+        <p id="lcppAutopilotStatus" class="text-xs text-gray-500 mt-2 hidden"></p>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-5 gap-4">
+        <div class="lg:col-span-3">
+            <p class="text-xs uppercase tracking-wider text-gray-500 mb-2">Quick Picks</p>
+            <div class="lcpp-grid">
+                <button class="lcpp-preset" onclick="lcppQuickDownload('https://huggingface.co/bartowski/Qwen_Qwen3.5-9B-GGUF/resolve/main/Qwen_Qwen3.5-9B-Q4_K_M.gguf','Qwen_Qwen3.5-9B-Q4_K_M.gguf', this)">
+                    <span class="lcpp-preset-name">Qwen 3.5 9B (Q4_K_M)</span>
+                    <span class="lcpp-preset-meta">~5.5 GB · strong reasoning</span>
+                </button>
+                <button class="lcpp-preset" onclick="lcppQuickDownload('https://huggingface.co/bartowski/Qwen_Qwen3.5-35B-A3B-GGUF/resolve/main/Qwen_Qwen3.5-35B-A3B-Q4_K_M.gguf','Qwen_Qwen3.5-35B-A3B-Q4_K_M.gguf', this)">
+                    <span class="lcpp-preset-name">Qwen 3.5 35B-A3B MoE (Q4_K_M)</span>
+                    <span class="lcpp-preset-meta">~5.5 GB · 35B quality at 3B speed</span>
+                </button>
+                <button class="lcpp-preset" onclick="lcppQuickDownload('https://huggingface.co/bartowski/google_gemma-3-4b-it-GGUF/resolve/main/google_gemma-3-4b-it-Q4_K_M.gguf','google_gemma-3-4b-it-Q4_K_M.gguf', this)">
+                    <span class="lcpp-preset-name">Gemma 3 4B (Q4_K_M)</span>
+                    <span class="lcpp-preset-meta">~2.5 GB · fastest small model</span>
+                </button>
+            </div>
+        </div>
+
+        <div class="lg:col-span-2">
+            <p class="text-xs uppercase tracking-wider text-gray-500 mb-2">Custom URL</p>
+            <div class="space-y-2">
+                <input id="lcppModelUrl" type="text" placeholder="https://huggingface.co/.../model.gguf" class="w-full px-3 py-2 text-xs">
+                <input id="lcppModelFilename" type="text" placeholder="Optional filename.gguf" class="w-full px-3 py-2 text-xs">
+                <button onclick="lcppDownloadFromInputs(this)" class="w-full py-2 rounded-lg border border-purple-400/35 text-purple-300 hover:bg-purple-400/10 transition text-xs font-medium">Download GGUF</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="lcppDownloadPanel" class="mt-4 p-3 rounded-lg bg-black/75 border border-white/10 hidden">
+        <div class="flex items-center justify-between gap-2 mb-2">
+            <p id="lcppDownloadStatus" class="text-xs text-gray-300">Preparing download…</p>
+            <span id="lcppDownloadPercent" class="text-[11px] text-gray-500 font-mono">0%</span>
+        </div>
+        <div class="lcpp-progress-wrap">
+            <div id="lcppDownloadBar" class="lcpp-progress-bar"></div>
+        </div>
+        <div class="mt-2 flex items-center justify-between">
+            <span class="text-[11px] text-gray-500">Downloaded models show in Backend Providers after refresh.</span>
+            <button onclick="refreshBackends()" class="text-[11px] text-purple-300 hover:underline">Refresh now</button>
+        </div>
+    </div>
+
+    {% if lcpp_backend.models and lcpp_backend.models|length > 0 %}
+    <div class="mt-3 text-xs text-gray-400">
+        Available GGUFs: <span class="text-gray-300">{{ lcpp_backend.models | join(', ') }}</span>
+    </div>
+    {% endif %}
+    {% endif %}
+    </div>
+</section>
+</div>
+{% endif %}
+
+<!-- Test Results -->
+<section id="test-results" class="glass-card p-6 hidden reveal">
+    <h3 class="text-lg font-semibold text-white mb-4 relative z-10">🧪 Pipeline Test Results</h3>
+    <div id="test-content" class="relative z-10"></div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    const backends = {{ backends | tojson | safe }};
+    const currentPipeline = {{ pipeline | tojson | safe if pipeline else 'null' }};
+    const allModels = {};
+    const LCPP_RECOMMENDED = {
+        url: 'https://huggingface.co/bartowski/Qwen_Qwen3.5-9B-GGUF/resolve/main/Qwen_Qwen3.5-9B-Q4_K_M.gguf',
+        filename: 'Qwen_Qwen3.5-9B-Q4_K_M.gguf',
+        label: 'Qwen 3.5 9B (Q4_K_M)',
+    };
+
+    function _setLcppAutopilotStatus(message, kind = 'info') {
+        const el = document.getElementById('lcppAutopilotStatus');
+        if (!el) return;
+        el.classList.remove('hidden');
+        el.textContent = message;
+        el.style.color = kind === 'error' ? '#E13943' : kind === 'ok' ? '#C084FC' : '';
+    }
+
+    function _setLcppDownloadProgress(percent, message) {
+        const panel = document.getElementById('lcppDownloadPanel');
+        const bar = document.getElementById('lcppDownloadBar');
+        const pct = document.getElementById('lcppDownloadPercent');
+        const status = document.getElementById('lcppDownloadStatus');
+        if (!panel || !bar || !pct || !status) return;
+        panel.classList.remove('hidden');
+        const value = Math.max(0, Math.min(100, Number(percent || 0)));
+        bar.style.width = `${value}%`;
+        pct.textContent = `${value}%`;
+        if (message) status.textContent = message;
+    }
+
+    async function lcppQuickDownload(url, filename, btn) {
+        await lcppDownloadModel(url, filename, btn);
+    }
+
+    async function lcppDownloadFromInputs(btn) {
+        const urlEl = document.getElementById('lcppModelUrl');
+        const fileEl = document.getElementById('lcppModelFilename');
+        const url = (urlEl?.value || '').trim();
+        const filename = (fileEl?.value || '').trim();
+        if (!url) {
+            showToast('Paste a GGUF URL first', 'error');
+            return;
+        }
+        await lcppDownloadModel(url, filename || null, btn);
+    }
+
+    async function lcppDownloadModel(url, filename, btn, options = {}) {
+        if (!options.skipInstalledCheck && (!backends.llamacpp || backends.llamacpp.status === 'not_installed')) {
+            showToast('Install llama.cpp first', 'error');
+            return;
+        }
+
+        const origText = btn ? btn.textContent : '';
+        if (btn) { btn.disabled = true; btn.textContent = 'Downloading…'; }
+        _setLcppDownloadProgress(0, 'Starting download…');
+
+        try {
+            const payload = { url };
+            if (filename) payload.filename = filename;
+
+            const resp = await fetch('/api/v1/llamacpp/models/download', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json', 'X-CSRF-Protection': '1'},
+                body: JSON.stringify(payload),
+            });
+
+            const reader = resp.body.getReader();
+            const decoder = new TextDecoder();
+            let buffer = '';
+
+            while (true) {
+                const {done, value} = await reader.read();
+                if (done) break;
+                buffer += decoder.decode(value, {stream: true});
+
+                const events = buffer.split('\n\n');
+                buffer = events.pop() || '';
+
+                for (const rawEvent of events) {
+                    const line = rawEvent.split('\n').find(l => l.startsWith('data: '));
+                    if (!line) continue;
+                    try {
+                        const msg = JSON.parse(line.slice(6));
+                        if (msg.percent != null || msg.message) {
+                            _setLcppDownloadProgress(msg.percent ?? 0, msg.message || 'Downloading…');
+                        }
+                        if (msg.done) {
+                            if (msg.success) {
+                                _setLcppDownloadProgress(100, msg.message || 'Download complete');
+                                showToast('GGUF downloaded successfully');
+                                setTimeout(() => refreshBackends(), 1000);
+                            } else {
+                                _setLcppDownloadProgress(0, `✕ ${msg.message || 'Download failed'}`);
+                                showToast(msg.message || 'Download failed', 'error');
+                            }
+                        }
+                    } catch (_) {}
+                }
+            }
+        } catch (e) {
+            _setLcppDownloadProgress(0, '✕ Network error during download');
+            showToast('Network error while downloading GGUF', 'error');
+        } finally {
+            if (btn) { btn.disabled = false; btn.textContent = origText; }
+        }
+    }
+
+    async function runLlamaCppAutopilot(btn) {
+        const origText = btn.textContent;
+        btn.disabled = true;
+        btn.textContent = 'Working…';
+        _setLcppAutopilotStatus('Checking llama.cpp status…');
+
+        try {
+            let statusResp = await fetch('/api/v1/llamacpp/status');
+            let lcpp = await statusResp.json();
+
+            if (!lcpp.installed) {
+                _setLcppAutopilotStatus('Installing llama.cpp binary…');
+                const installResp = await fetch('/api/v1/llamacpp/install', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json', 'X-CSRF-Protection': '1'},
+                    body: JSON.stringify({}),
+                });
+                const reader = installResp.body.getReader();
+                const decoder = new TextDecoder();
+                let buffer = '';
+                let installOk = false;
+                while (true) {
+                    const {done, value} = await reader.read();
+                    if (done) break;
+                    buffer += decoder.decode(value, {stream: true});
+                    const events = buffer.split('\n\n');
+                    buffer = events.pop() || '';
+                    for (const rawEvent of events) {
+                        const line = rawEvent.split('\n').find(l => l.startsWith('data: '));
+                        if (!line) continue;
+                        try {
+                            const msg = JSON.parse(line.slice(6));
+                            if (msg.message) _setLcppAutopilotStatus(msg.message);
+                            if (msg.done) {
+                                installOk = !!msg.success;
+                                if (!installOk) throw new Error(msg.message || 'Install failed');
+                            }
+                        } catch (_) {}
+                    }
+                }
+                if (!installOk) throw new Error('Install failed');
+            }
+
+            // Re-read status after install
+            statusResp = await fetch('/api/v1/llamacpp/status');
+            lcpp = await statusResp.json();
+
+            if (!lcpp.available_models || lcpp.available_models.length === 0) {
+                _setLcppAutopilotStatus(`Downloading ${LCPP_RECOMMENDED.label}… this may take a while.`);
+                await lcppDownloadModel(LCPP_RECOMMENDED.url, LCPP_RECOMMENDED.filename, null, {skipInstalledCheck: true});
+            }
+
+            _setLcppAutopilotStatus('Starting llama.cpp server…');
+            const startData = await apiCall('/api/v1/llamacpp/start', { method: 'POST' });
+            if (!startData.success) throw new Error(startData.message || 'Could not start llama.cpp');
+
+            const startedModel = startData?.status?.model_loaded || '';
+
+            // Keep local page state aligned so saveRole() works without requiring reload.
+            if (!backends.llamacpp) backends.llamacpp = {models: []};
+            backends.llamacpp.status = 'ready';
+            backends.llamacpp.models = startedModel ? [startedModel] : (backends.llamacpp.models || []);
+
+            _setLcppAutopilotStatus('Setting the default model backend to llama.cpp…');
+            const backendSelect = document.getElementById('initial-backend');
+            if (backendSelect) backendSelect.value = 'llamacpp';
+            updateModelOptions('initial');
+
+            const modelSelect = document.getElementById('initial-model');
+            if (modelSelect) {
+                if (startedModel && !Array.from(modelSelect.options).some(o => o.value === startedModel)) {
+                    const opt = document.createElement('option');
+                    opt.value = startedModel;
+                    opt.textContent = startedModel;
+                    modelSelect.appendChild(opt);
+                }
+                if (startedModel) modelSelect.value = startedModel;
+                else if (modelSelect.options.length > 0) modelSelect.selectedIndex = 0;
+            }
+
+            await saveRole('initial');
+
+            _setLcppAutopilotStatus('Done. llama.cpp is running and the default model is configured.', 'ok');
+            showTab('initial');
+            showToast('llama.cpp is ready to use');
+        } catch (err) {
+            _setLcppAutopilotStatus(`Setup failed: ${err.message || err}`, 'error');
+            showToast('llama.cpp setup failed', 'error');
+        } finally {
+            btn.disabled = false;
+            btn.textContent = origText;
+        }
+    }
+
+    async function startOllamaFromRouter(btn) {
+        const origText = btn.textContent;
+        btn.textContent = 'Starting…';
+        btn.disabled = true;
+        try {
+            const data = await apiCall('/api/v1/ollama/start', { method: 'POST' });
+            if (data.success) {
+                btn.textContent = '✓ Running — reloading…';
+                btn.style.color = '#EFAAC4';
+                setTimeout(() => window.location.reload(), 1000);
+            } else {
+                btn.textContent = data.message || 'Could not start';
+                btn.style.color = '#E13943';
+                setTimeout(() => { btn.textContent = origText; btn.disabled = false; btn.style.color = ''; }, 3000);
+            }
+        } catch(e) {
+            btn.textContent = 'Network error';
+            btn.style.color = '#E13943';
+            setTimeout(() => { btn.textContent = origText; btn.disabled = false; btn.style.color = ''; }, 3000);
+        }
+    }
+
+    async function pullModelFromRouter(modelName, btn) {
+        const ollama = backends.ollama || {};
+        if (!ollama || (ollama.status !== 'ready' && ollama.status !== 'running_no_models')) {
+            showToast(getBackendSetupMessage('ollama'), 'error');
+            focusBackendSetup('ollama');
+            return;
+        }
+        const origText = btn.textContent;
+        btn.textContent = 'Pulling…';
+        btn.disabled = true;
+        const status = document.getElementById('routerPullStatus');
+        if (status) { status.classList.remove('hidden'); status.textContent = `Downloading ${modelName}…`; }
+        try {
+            const resp = await fetch('/api/v1/ollama/pull', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json', 'X-CSRF-Protection': '1'},
+                body: JSON.stringify({model: modelName}),
+            });
+            const contentType = resp.headers.get('content-type') || '';
+            if (!contentType.includes('text/event-stream') || !resp.body) {
+                const data = await resp.json().catch(() => ({}));
+                throw new Error(data.error || data.message || 'Could not start the model download.');
+            }
+            const reader = resp.body.getReader();
+            const decoder = new TextDecoder();
+            let buffer = '';
+            while (true) {
+                const {done, value} = await reader.read();
+                if (done) break;
+                buffer += decoder.decode(value, {stream: true});
+                const lines = buffer.split('\n');
+                buffer = lines.pop();
+                for (const line of lines) {
+                    if (!line.startsWith('data: ')) continue;
+                    try {
+                        const msg = JSON.parse(line.slice(6));
+                        if (msg.progress && status) status.textContent = msg.progress;
+                        if (msg.done) {
+                            if (msg.error) {
+                                if (status) { status.textContent = '✕ ' + msg.error; status.style.color = '#E13943'; }
+                                btn.textContent = origText; btn.disabled = false;
+                            } else {
+                                if (status) { status.textContent = `✓ ${modelName} ready!`; status.style.color = '#EFAAC4'; }
+                                setTimeout(() => window.location.reload(), 1200);
+                            }
+                        }
+                    } catch(_) {}
+                }
+            }
+        } catch(e) {
+            btn.textContent = origText; btn.disabled = false;
+            if (status) { status.textContent = e.message || 'Could not start model download'; status.style.color = '#E13943'; }
+        }
+    }
+
+    const defaultPrompts = {
+        initial: `You are a helpful AI assistant. Answer the user's question based on the provided context.\n\nProvide a clear, accurate response.`,
+        critique: `Review the following response and identify any issues, gaps, or areas for improvement.\n\nList specific improvements needed.`,
+        synthesize: `Create a final, polished response by incorporating the critique feedback.\n\nProduce an improved final answer.`
+    };
+
+    // Hard-coded context injection — appended automatically, NOT user-editable
+    const contextInjection = {
+        initial: `Context: {context}\n\nUser question: {user_prompt}`,
+        critique: `Original question: {user_prompt}\nContext available: {context}\nResponse to review: {initial_response}`,
+        synthesize: `Original question: {user_prompt}\nInitial response: {initial_response}\nCritique: {critique_response}`
+    };
+    const onboardingState = {{ onboarding_state | tojson | safe }};
+    const modelSetupGuidance = {{ model_setup_guidance | tojson | safe }};
+
+    document.addEventListener('DOMContentLoaded', () => {
+        ['initial', 'critique', 'synthesize'].forEach(role => {
+            updateModelOptions(role);
+            loadSavedConfig(role);
+        });
+        updateFlowDisplay();
+    });
+
+    function getBackendSetupMessage(backendName) {
+        const backend = backends[backendName];
+        if (!backend) return 'Choose a provider before saving this stage.';
+        if (backend.status === 'key_set') {
+            return 'This API key is saved, but the provider is not connected yet. Click Refresh above, then try saving again.';
+        }
+        if (backend.requires_key) {
+            return 'This provider needs an API key in Settings before you can save it.';
+        }
+        if (backend.type === 'llamacpp' && backend.status === 'not_installed') {
+            return 'llama.cpp is not installed yet. Install it in Local Models or choose a different provider.';
+        }
+        if (backend.status === 'installed_not_running') {
+            return backend.type === 'llamacpp'
+                ? 'llama.cpp is installed but not running yet. Start it from Providers, then try again.'
+                : 'Ollama is installed but not running yet. Start Ollama from Providers, then try again.';
+        }
+        if (backend.status === 'running_no_models') {
+            return 'Ollama is running, but no chat model is available yet. Pull a model in Providers, then save again.';
+        }
+        if (!onboardingState.provider_detected) {
+            return modelSetupGuidance.detail || 'Set up one AI provider before you save the default model. Install Ollama locally or add a cloud API key in Settings.';
+        }
+        if (!onboardingState.provider_connected) {
+            return modelSetupGuidance.detail || 'A provider was detected, but it is not connected yet. Start it or refresh it, then save again.';
+        }
+        return 'Configure this backend first.';
+    }
+
+    function focusBackendSetup(backendName) {
+        const backend = backends[backendName];
+        if (!backend) return;
+        if (backend.requires_key && backend.status === 'no_key') return;
+        if (backend.type === 'llamacpp' && backend.status === 'not_installed') {
+            showMrTab('local');
+            return;
+        }
+        showMrTab('providers');
+    }
+
+    function updateFlowDisplay() {
+        ['initial', 'critique', 'synthesize'].forEach(role => {
+            const el = document.getElementById(`flow-${role}`);
+            if (currentPipeline?.roles?.[role]) {
+                const cfg = currentPipeline.roles[role];
+                const short = (cfg.model || '').length > 20 ? cfg.model.substring(0, 20) + '...' : cfg.model;
+                el.innerHTML = `<span class="text-white">${short}</span><br><span class="text-gray-500 text-xs">${cfg.backend_name}</span>`;
+            }
+        });
+    }
+
+    function showTab(role) {
+        ['initial', 'critique', 'synthesize'].forEach(r => {
+            document.getElementById(`content-${r}`).classList.add('hidden');
+            document.getElementById(`tab-${r}`).className = 'tab-btn flex-1 px-4 py-4 text-center font-medium text-gray-400 hover:bg-white/5';
+        });
+        document.getElementById(`content-${role}`).classList.remove('hidden');
+        const colors = { initial: 'text-blue-400 bg-blue-400/10', critique: 'text-gold bg-gold/10', synthesize: 'text-teal bg-teal/10' };
+        document.getElementById(`tab-${role}`).className = `tab-btn active flex-1 px-4 py-4 text-center font-medium ${colors[role]}`;
+    }
+
+    function openDefaultModelTab() {
+        showMrTab('pipeline');
+        showTab('initial');
+        const target = document.getElementById('tab-initial') || document.getElementById('content-initial');
+        if (target) {
+            target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+    }
+
+    function updateModelOptions(role) {
+        const backendSelect = document.getElementById(`${role}-backend`);
+        const modelSelect = document.getElementById(`${role}-model`);
+        const hintEl = document.getElementById(`${role}-backend-hint`);
+        const backend = backends[backendSelect.value];
+        if (!backend) return;
+
+        if (backend.status === 'ready') {
+            hintEl.textContent = '';
+        } else if (backend.status === 'key_set') {
+            hintEl.innerHTML = '⚠️ Click Refresh above to connect';
+            hintEl.className = 'text-xs text-gold mt-1';
+        } else if (backend.requires_key) {
+            hintEl.innerHTML = '⚠️ <a href="/settings" class="underline">Configure API key in Settings</a>, or <a href="#" onclick="showMrTab(\'providers\');return false" class="underline">view Providers</a>';
+            hintEl.className = 'text-xs text-gold mt-1';
+        } else if (backend.type === 'llamacpp') {
+            hintEl.innerHTML = '⚠️ <a href="#" onclick="showMrTab(\'local\');return false" class="underline">Set up in Local Models</a> or <a href="#" onclick="showMrTab(\'providers\');return false" class="underline">view Providers</a>';
+            hintEl.className = 'text-xs text-gold mt-1';
+        } else {
+            hintEl.innerHTML = '⚠️ <a href="#" onclick="showMrTab(\'providers\');return false" class="underline">Set up in Providers</a>';
+            hintEl.className = 'text-xs text-gold mt-1';
+        }
+
+        // Filter out embedding-only models (nomic, etc.) — not usable for chat
+        const embeddingPattern = /^nomic[-\s]|^nomic$/i;
+        allModels[role] = (backend.models || []).filter(m => !embeddingPattern.test(m));
+        modelSelect.innerHTML = '';
+
+        if (allModels[role].length === 0) {
+            const opt = document.createElement('option');
+            opt.textContent = backend.status === 'ready' ? 'No models' : 'Not connected';
+            opt.disabled = true;
+            modelSelect.appendChild(opt);
+        } else {
+            allModels[role].forEach(model => {
+                const opt = document.createElement('option');
+                opt.value = model; opt.textContent = model;
+                if (currentPipeline?.roles?.[role]?.model === model) opt.selected = true;
+                modelSelect.appendChild(opt);
+            });
+        }
+    }
+
+    function filterModels(role) {
+        const search = document.getElementById(`${role}-model-search`).value.toLowerCase();
+        const modelSelect = document.getElementById(`${role}-model`);
+        const currentSelected = modelSelect.value;
+        modelSelect.innerHTML = '';
+        (allModels[role] || []).filter(m => m.toLowerCase().includes(search)).forEach(model => {
+            const opt = document.createElement('option');
+            opt.value = model; opt.textContent = model;
+            if (model === currentSelected) opt.selected = true;
+            modelSelect.appendChild(opt);
+        });
+    }
+
+    function loadSavedConfig(role) {
+        document.getElementById(`${role}-prompt`).value = defaultPrompts[role];
+        if (!currentPipeline?.roles?.[role]) return;
+        const config = currentPipeline.roles[role];
+        document.getElementById(`${role}-enabled`).checked = config.enabled !== false;
+
+        const backendSelect = document.getElementById(`${role}-backend`);
+        if (config.backend_name) {
+            for (let i = 0; i < backendSelect.options.length; i++) {
+                if (backendSelect.options[i].value === config.backend_name) { backendSelect.selectedIndex = i; break; }
+            }
+        }
+        updateModelOptions(role);
+
+        if (config.model) {
+            const modelSelect = document.getElementById(`${role}-model`);
+            for (let i = 0; i < modelSelect.options.length; i++) {
+                if (modelSelect.options[i].value === config.model) { modelSelect.selectedIndex = i; break; }
+            }
+        }
+        if (config.temperature !== undefined) {
+            document.getElementById(`${role}-temp`).value = config.temperature;
+            document.getElementById(`${role}-temp-display`).textContent = config.temperature;
+        }
+        if (config.max_tokens) document.getElementById(`${role}-tokens`).value = config.max_tokens;
+        if (config.system_prompt_override) {
+            // Strip the hard-coded context injection suffix if present
+            let saved = config.system_prompt_override;
+            const suffix = '\n\n' + contextInjection[role];
+            if (saved.endsWith(suffix)) saved = saved.slice(0, -suffix.length);
+            document.getElementById(`${role}-prompt`).value = saved;
+        }
+        // Restore Ollama advanced options
+        if (config.ollama_options) {
+            const opts = config.ollama_options;
+            if (opts.num_ctx !== undefined) {
+                document.getElementById(`${role}-numctx`).value = opts.num_ctx;
+                document.getElementById(`${role}-numctx-display`).textContent = opts.num_ctx;
+            }
+            if (opts.repeat_penalty !== undefined) {
+                document.getElementById(`${role}-repeat`).value = opts.repeat_penalty;
+                document.getElementById(`${role}-repeat-display`).textContent = opts.repeat_penalty;
+            }
+            if (opts.top_k !== undefined) {
+                document.getElementById(`${role}-topk`).value = opts.top_k;
+                document.getElementById(`${role}-topk-display`).textContent = opts.top_k;
+            }
+            if (opts.top_p !== undefined) {
+                document.getElementById(`${role}-topp`).value = opts.top_p;
+                document.getElementById(`${role}-topp-display`).textContent = opts.top_p;
+            }
+        }
+    }
+
+    function resetPrompt(role) {
+        document.getElementById(`${role}-prompt`).value = defaultPrompts[role];
+        showToast('Prompt reset to default');
+    }
+
+    function applyPerfProfile(role) {
+        const select = document.getElementById(`${role}-perf`);
+        if (!select) return;
+        const profile = select.value;
+        const profiles = {
+            fast: { num_ctx: 4096, repeat_penalty: 1.05, top_k: 20, top_p: 0.8 },
+            balanced: { num_ctx: 8192, repeat_penalty: 1.1, top_k: 40, top_p: 0.9 },
+            quality: { num_ctx: 12288, repeat_penalty: 1.15, top_k: 60, top_p: 0.95 },
+        };
+        const p = profiles[profile];
+        if (!p) return;
+        document.getElementById(`${role}-numctx`).value = p.num_ctx;
+        document.getElementById(`${role}-numctx-display`).textContent = p.num_ctx;
+        document.getElementById(`${role}-repeat`).value = p.repeat_penalty;
+        document.getElementById(`${role}-repeat-display`).textContent = p.repeat_penalty;
+        document.getElementById(`${role}-topk`).value = p.top_k;
+        document.getElementById(`${role}-topk-display`).textContent = p.top_k;
+        document.getElementById(`${role}-topp`).value = p.top_p;
+        document.getElementById(`${role}-topp-display`).textContent = p.top_p;
+        showToast(`Performance profile applied: ${profile}`);
+    }
+
+    async function saveRole(role, btn) {
+        const backend = document.getElementById(`${role}-backend`).value;
+        const model = document.getElementById(`${role}-model`).value;
+        if (!backends[backend] || backends[backend].status !== 'ready') {
+            showToast(getBackendSetupMessage(backend), 'error');
+            focusBackendSetup(backend);
+            return;
+        }
+        if (!model) { showToast('Select a model', 'error'); return; }
+
+        const originalHtml = btn ? btn.innerHTML : null;
+        if (btn) {
+            btn.disabled = true;
+            btn.innerHTML = '<span class="relative z-10">Saving…</span>';
+        }
+
+        const userPrompt = document.getElementById(`${role}-prompt`).value;
+        const fullPrompt = userPrompt + '\n\n' + contextInjection[role];
+
+        const config = {
+            enabled: document.getElementById(`${role}-enabled`).checked,
+            backend_name: backend,
+            model: model,
+            temperature: parseFloat(document.getElementById(`${role}-temp`).value),
+            max_tokens: parseInt(document.getElementById(`${role}-tokens`).value),
+            system_prompt_override: userPrompt !== defaultPrompts[role] ? fullPrompt : null,
+            ollama_options: {
+                num_ctx: parseInt(document.getElementById(`${role}-numctx`).value),
+                repeat_penalty: parseFloat(document.getElementById(`${role}-repeat`).value),
+                top_k: parseInt(document.getElementById(`${role}-topk`).value),
+                top_p: parseFloat(document.getElementById(`${role}-topp`).value),
+                stop: ["\n\nUser:", "\n\nHuman:", "---END---"]
+            }
+        };
+
+        try {
+            const data = await apiCall(`/api/v1/router/pipeline/role/${role}`, { method: 'POST', body: config });
+            if (!data.success) {
+                showToast(data.error || 'Could not save this phase', 'error');
+                return;
+            }
+            const el = document.getElementById(`flow-${role}`);
+            const short = model.length > 20 ? model.substring(0, 20) + '...' : model;
+            el.innerHTML = `<span class="text-white">${short}</span><br><span class="text-gray-500 text-xs">${data.backend_name || backend}</span>`;
+            showToast(`${roleLabels[role] || role} saved!`);
+        } catch (err) {
+            showToast(err.message || 'Could not save', 'error');
+        } finally {
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = originalHtml;
+            }
+        }
+    }
+
+    async function testPipeline() {
+        const btn = document.getElementById('testBtn');
+        const resultsDiv = document.getElementById('test-results');
+        const contentDiv = document.getElementById('test-content');
+        btn.disabled = true;
+        btn.innerHTML = '<span class="relative z-10">Running...</span>';
+        resultsDiv.classList.remove('hidden');
+        contentDiv.innerHTML = '<div class="text-center text-gray-400 py-8">Running pipeline test...</div>';
+
+        try {
+            const resp = await fetch('/api/v1/router/test', { method: 'POST' });
+            const data = await resp.json();
+            if (data.success) {
+                contentDiv.innerHTML = `
+                    <div class="mb-4 info-panel p-4"><div class="text-xs text-gray-500 mb-1">Test Prompt</div><div class="text-sm">${escapeHtml(data.prompt)}</div></div>
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-4">
+                        <div class="info-panel p-4 border-l-2 border-blue-400"><div class="text-xs text-blue-400 uppercase mb-2">Default Model</div><div class="text-sm max-h-48 overflow-y-auto">${escapeHtml(data.stages?.initial || 'N/A')}</div></div>
+                        <div class="info-panel p-4 border-l-2 border-gold"><div class="text-xs text-gold uppercase mb-2">Critique</div><div class="text-sm max-h-48 overflow-y-auto">${escapeHtml(data.stages?.critique || 'N/A')}</div></div>
+                        <div class="info-panel p-4 border-l-2 border-teal"><div class="text-xs text-teal uppercase mb-2">Synthesis</div><div class="text-sm max-h-48 overflow-y-auto">${escapeHtml(data.stages?.synthesize || 'N/A')}</div></div>
+                    </div>
+                    <div class="info-panel p-4 border-l-2 border-gold"><div class="text-sm text-gold uppercase mb-2">Final Output</div><div class="text-white">${escapeHtml(data.final)}</div></div>
+                    <div class="text-right text-sm text-gray-500 mt-3">Completed in ${data.elapsed_seconds}s</div>`;
+            } else {
+                contentDiv.innerHTML = `<div class="text-coral p-4 info-panel">Error: ${escapeHtml(data.error)}</div>`;
+            }
+        } catch (e) {
+            contentDiv.innerHTML = `<div class="text-coral p-4 info-panel">Network error: ${escapeHtml(e.message)}</div>`;
+        }
+        btn.disabled = false;
+        btn.innerHTML = '<span class="relative z-10">Test Pipeline</span>';
+    }
+
+    async function refreshBackends() {
+        showToast('Refreshing backends...');
+        const data = await apiCall('/api/v1/router/backends/refresh', { method: 'POST' });
+        if (data.success) {
+            showToast('Refreshed! Reloading...');
+            setTimeout(() => location.reload(), 1000);
+        }
+    }
+
+    async function installLlamaCppFromRouter(btn) {
+        const card = btn.closest('.backend-card');
+        const status = card.querySelector('.lcpp-status');
+        btn.disabled = true; btn.style.opacity = '0.6'; btn.textContent = 'Installing…';
+        if (status) { status.textContent = 'Downloading llama.cpp…'; status.classList.remove('hidden'); }
+        try {
+            const resp = await fetch('/api/v1/llamacpp/install', {
+                method: 'POST', headers: {'Content-Type': 'application/json', 'X-CSRF-Protection': '1'},
+                body: JSON.stringify({}),
+            });
+            const reader = resp.body.getReader(); const decoder = new TextDecoder(); let buffer = '';
+            while (true) {
+                const result = await reader.read();
+                if (result.done) break;
+                buffer += decoder.decode(result.value, {stream: true});
+                const lines = buffer.split('\n'); buffer = lines.pop();
+                for (const line of lines) {
+                    if (!line.startsWith('data: ')) continue;
+                    try {
+                        const msg = JSON.parse(line.slice(6));
+                        if (status && (msg.progress || msg.message)) status.textContent = msg.progress || msg.message;
+                        if (msg.done) {
+                            if (!msg.success) {
+                                if (status) { status.textContent = '✕ ' + (msg.error || msg.message || 'Install failed'); status.style.color = '#E13943'; }
+                                btn.disabled = false; btn.style.opacity = '1'; btn.textContent = '⚡ Download & Install llama.cpp';
+                            } else {
+                                if (status) { status.textContent = '✓ llama.cpp installed. Checking status…'; status.style.color = '#C084FC'; }
+                                showToast('llama.cpp installed!');
+                                setTimeout(() => location.reload(), 1200);
+                            }
+                        }
+                    } catch(_) {}
+                }
+            }
+        } catch (e) {
+            if (status) { status.textContent = 'Network error. Please try again.'; status.style.color = '#E13943'; }
+            btn.disabled = false; btn.style.opacity = '1'; btn.textContent = '⚡ Download & Install llama.cpp';
+        }
+    }
+
+    async function startLlamaCppFromRouter(btn) {
+        const origText = btn.textContent;
+        btn.textContent = 'Starting…';
+        btn.disabled = true;
+        try {
+            const data = await apiCall('/api/v1/llamacpp/start', { method: 'POST' });
+            if (data.success) {
+                btn.textContent = '✓ Running — reloading…';
+                btn.style.color = '#C084FC';
+                setTimeout(() => window.location.reload(), 1000);
+            } else {
+                btn.textContent = data.message || 'Could not start';
+                btn.style.color = '#E13943';
+                setTimeout(() => { btn.textContent = origText; btn.disabled = false; btn.style.color = ''; }, 3000);
+            }
+        } catch(e) {
+            btn.textContent = 'Network error';
+            btn.style.color = '#E13943';
+            setTimeout(() => { btn.textContent = origText; btn.disabled = false; btn.style.color = ''; }, 3000);
+        }
+    }
+
+    function selectBackendForPhase(role, backendName) {
+        const backendSelect = document.getElementById(`${role}-backend`);
+        if (!backendSelect) return;
+        backendSelect.value = backendName;
+        updateModelOptions(role);
+
+        // If this backend has models, preselect the first one for convenience.
+        const modelSelect = document.getElementById(`${role}-model`);
+        if (modelSelect && modelSelect.options.length > 0 && !modelSelect.value) {
+            modelSelect.selectedIndex = 0;
+        }
+
+        showTab(role);
+        showToast(`Selected ${backendName} for ${role}. Click the Save button to apply.`);
+    }
+
+    function escapeHtml(text) {
+        if (!text) return '';
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    // ── Collapsible sections ─────────────────────────────────────────
+    function toggleSection(id) {
+        const body = document.getElementById('body-' + id);
+        const chev = document.getElementById('chev-' + id);
+        if (!body) return;
+        const willOpen = !body.classList.contains('open');
+        body.classList.toggle('open');
+        if (chev) chev.classList.toggle('open');
+        // Persist state
+        try {
+            const key = 'mka_section_' + id;
+            localStorage.setItem(key, willOpen ? '1' : '0');
+        } catch (_) {}
+    }
+
+    // ── Top-level Model Router tabs ──────────────────────────────────
+    const _mrTabs = ['pipeline', 'providers', 'profiles', 'models', 'local'];
+
+    function showMrTab(tab) {
+        _mrTabs.forEach(t => {
+            const panel = document.getElementById('mr-content-' + t);
+            const btn = document.getElementById('mr-tab-' + t);
+            if (panel) panel.classList.remove('active');
+            if (btn) {
+                btn.classList.remove('text-gold', 'bg-gold/15');
+                btn.classList.add('text-gray-400');
+            }
+        });
+        const panel = document.getElementById('mr-content-' + tab);
+        const btn = document.getElementById('mr-tab-' + tab);
+        if (panel) panel.classList.add('active');
+        if (btn) {
+            btn.classList.add('text-gold', 'bg-gold/15');
+            btn.classList.remove('text-gray-400');
+        }
+        try { localStorage.setItem('mka_mr_tab', tab); } catch (_) {}
+
+        // Lazy-load content when first shown
+        if (tab === 'models' && !libCatalog) loadModelLibrary();
+        if (tab === 'profiles' && !document.querySelector('#presetCards .profile-card')) loadPresets();
+    }
+
+    // Restore last active tab (default to profiles on first visit)
+    (function restoreMrTab() {
+        const saved = localStorage.getItem('mka_mr_tab');
+        if (saved && document.getElementById('mr-content-' + saved)) {
+            showMrTab(saved);
+        } else if (!onboardingState.phase1_saved) {
+            showMrTab('profiles');
+        }
+    })();
+
+    // ── Model Library ─────────────────────────────────────────────────
+    let libCatalog = null;
+    let libUpgrades = null;
+    let libFilter = 'all';
+
+    async function loadModelLibrary() {
+        try {
+            const [catRes, upgRes] = await Promise.all([
+                fetch('/api/v1/models/catalog'),
+                fetch('/api/v1/models/upgrade-check'),
+            ]);
+            libCatalog = await catRes.json();
+            libUpgrades = await upgRes.json();
+            if (!libCatalog.success) throw new Error(libCatalog.error || 'Load failed');
+            renderLibMeta();
+            renderUpgradeBanner();
+            renderLibTable();
+        } catch(err) {
+            document.getElementById('libBody').innerHTML =
+                `<tr><td colspan="5" class="text-center text-red-400 py-8">Failed to load: ${err.message}</td></tr>`;
+        }
+    }
+
+    function renderLibMeta() {
+        const models = libCatalog?.models || [];
+        const installed = models.filter(m => m.installed).length;
+        const upgrades = (libUpgrades?.upgrades || []).length;
+        document.getElementById('libMeta').textContent =
+            `${installed} installed · ${models.length} in catalog`;
+        // Header badges
+        const bInst = document.getElementById('libBadgeInstalled');
+        const bUpg  = document.getElementById('libBadgeUpgrade');
+        if (installed > 0) { bInst.textContent = installed; bInst.style.display = ''; }
+        else { bInst.style.display = 'none'; }
+        if (upgrades > 0) { bUpg.textContent = `${upgrades} ↑`; bUpg.style.display = ''; }
+        else { bUpg.style.display = 'none'; }
+    }
+
+    function renderUpgradeBanner() {
+        const container = document.getElementById('libUpgradeBanner');
+        const upgrades = libUpgrades?.upgrades || [];
+        if (!upgrades.length) { container.innerHTML = ''; return; }
+        const items = upgrades.map(u =>
+            `<span class="text-white font-medium">${u.installed_display||u.installed_model}</span>` +
+            ` <span class="text-gray-500">→</span> ` +
+            `<span class="text-white font-medium">${u.upgrade_display||u.upgrade_model}</span>` +
+            `<button class="lib-action lib-upgrade ml-2" onclick="libPull('${u.upgrade_model}',this)" style="font-size:0.6rem;padding:0.2rem 0.6rem;">Upgrade</button>`
+        ).join('<br>');
+        container.innerHTML = `<div class="lib-upgrade-banner mx-5 mt-4">
+            <div class="flex items-center gap-2 mb-1">
+                <i data-lucide="sparkles" class="w-4 h-4" style="color:rgba(244,114,182,0.7);"></i>
+                <span class="text-sm font-medium" style="color:rgba(244,114,182,0.85);">Newer models available</span>
+            </div>
+            <div class="text-xs leading-relaxed" style="color:rgba(255,255,255,0.5);">${items}</div>
+        </div>`;
+        if (window.lucide) lucide.createIcons();
+    }
+
+    function setLibFilter(f, btn) {
+        libFilter = f;
+        document.querySelectorAll('#libFilters .lib-filter').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        renderLibTable();
+    }
+
+    function renderLibTable() {
+        const body = document.getElementById('libBody');
+        let models = libCatalog?.models || [];
+
+        if (libFilter === 'installed') models = models.filter(m => m.installed);
+        else if (libFilter === 'available') models = models.filter(m => !m.installed);
+
+        // Sort: installed first, then alphabetically by display name
+        models.sort((a, b) => {
+            if (a.installed !== b.installed) return b.installed ? 1 : -1;
+            return (a.display||a.model).localeCompare(b.display||b.model);
+        });
+
+        if (!models.length) {
+            body.innerHTML = '<tr><td colspan="5" class="text-center text-gray-600 py-8">No models match this filter</td></tr>';
+            return;
+        }
+
+        const upgradeMap = {};
+        (libUpgrades?.upgrades || []).forEach(u => { upgradeMap[u.installed_model] = u; });
+
+        body.innerHTML = models.map(m => {
+            const u = upgradeMap[m.model];
+
+            // Status pill
+            let statusHtml;
+            if (m.installed && u) statusHtml = '<span class="lib-pill lib-pill-upgrade">upgrade available</span>';
+            else if (m.installed) statusHtml = '<span class="lib-pill lib-pill-installed">● installed</span>';
+            else statusHtml = '<span class="lib-pill lib-pill-available">not installed</span>';
+
+            // Category pill
+            const catColors = {general:'lib-pill-cat', specialist:'lib-pill-cat', embedding:'lib-pill-cat', code:'lib-pill-cat'};
+            const catPill = `<span class="lib-pill ${catColors[m.category]||''}">${m.category||'—'}</span>`;
+
+            // Actions
+            const actions = [];
+            if (!m.installed) {
+                actions.push(`<button class="lib-action lib-install" onclick="libPull('${m.model}',this)">Install</button>`);
+            }
+            if (u) {
+                actions.push(`<button class="lib-action lib-upgrade" onclick="libPull('${u.upgrade_model}',this)">Upgrade</button>`);
+            }
+            if (m.installed && !m.required) {
+                actions.push(`<button class="lib-action lib-remove" onclick="libRemove('${m.model}',this)">remove</button>`);
+            }
+
+            // Size display
+            const sizeText = m.size_gb ? `${m.size_gb} GB` : '—';
+
+            // Sub-info
+            const sub = [m.family, m.generation ? `Gen ${m.generation}` : null, m.auto_discovered ? 'auto-discovered' : null].filter(Boolean).join(' · ');
+
+            return `<tr class="${m.installed ? 'lib-row-installed' : ''}" id="lr-${CSS.escape(m.model)}">
+                <td>
+                    <div class="text-sm text-white font-medium">${escapeHtml(m.display||m.model)}</div>
+                    <div class="text-xs text-gray-500" style="margin-top:1px;">${escapeHtml(sub)}</div>
+                    <div class="lib-progress-bar" id="lp-${CSS.escape(m.model)}"><div class="bar"></div></div>
+                    <div class="lib-status-text" id="lpt-${CSS.escape(m.model)}"></div>
+                </td>
+                <td>${catPill}</td>
+                <td class="text-sm text-gray-400">${sizeText}</td>
+                <td>${statusHtml}</td>
+                <td style="text-align:right;"><div class="flex gap-1.5 justify-end">${actions.join('')}</div></td>
+            </tr>`;
+        }).join('');
+
+        if (window.lucide) lucide.createIcons();
+    }
+
+    async function libPull(modelName, btn) {
+        btn.disabled = true;
+        btn.textContent = 'Pulling…';
+        btn.style.opacity = '0.6';
+        const bar = document.getElementById(`lp-${CSS.escape(modelName)}`);
+        const txt = document.getElementById(`lpt-${CSS.escape(modelName)}`);
+        if (bar) bar.style.display = 'block';
+        if (txt) txt.style.display = 'block';
+
+        try {
+            const resp = await fetch('/api/v1/ollama/pull', {
+                method: 'POST', headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({model: modelName}),
+            });
+            const reader = resp.body.getReader();
+            const dec = new TextDecoder();
+            let buf = '';
+            while (true) {
+                const {done, value} = await reader.read();
+                if (done) break;
+                buf += dec.decode(value, {stream: true});
+                const lines = buf.split('\n\n'); buf = lines.pop() || '';
+                for (const line of lines) {
+                    const raw = line.replace(/^data:\s*/, '').trim();
+                    if (!raw) continue;
+                    try {
+                        const evt = JSON.parse(raw);
+                        if (evt.percent != null && bar) bar.querySelector('.bar').style.width = evt.percent + '%';
+                        if (txt) {
+                            let msg = evt.progress || '';
+                            if (evt.speed) msg += ` · ${evt.speed}`;
+                            txt.textContent = msg;
+                        }
+                        if (evt.done) {
+                            if (evt.error) {
+                                btn.textContent = 'Failed';
+                                btn.style.color = 'rgba(244,63,94,0.8)';
+                                showToast(`Failed to pull ${modelName}`, 'error');
+                            } else {
+                                btn.textContent = '✓ Done';
+                                btn.style.color = 'rgba(45,212,191,0.8)';
+                                showToast(`${modelName} installed successfully`);
+                                setTimeout(() => { loadModelLibrary(); refreshBackends(); }, 1000);
+                            }
+                        }
+                    } catch(_) {}
+                }
+            }
+        } catch(e) {
+            btn.textContent = 'Error';
+            btn.style.color = 'rgba(244,63,94,0.8)';
+        }
+        setTimeout(() => {
+            if (bar) bar.style.display = 'none';
+            if (txt) txt.style.display = 'none';
+        }, 2500);
+    }
+
+    async function libRemove(modelName, btn) {
+        if (!confirm(`Remove ${modelName}? This will delete the model files from disk.`)) return;
+        btn.disabled = true;
+        btn.textContent = 'removing…';
+        try {
+            const resp = await fetch('/api/v1/ollama/remove', {
+                method: 'POST', headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({model: modelName}),
+            });
+            const data = await resp.json();
+            if (data.success) {
+                showToast(`${modelName} removed`);
+                setTimeout(() => { loadModelLibrary(); refreshBackends(); }, 500);
+            } else {
+                btn.textContent = 'failed';
+                btn.style.color = 'rgba(244,63,94,0.7)';
+                showToast(data.message || 'Remove failed', 'error');
+            }
+        } catch(e) {
+            btn.textContent = 'error';
+            btn.style.color = 'rgba(244,63,94,0.7)';
+        }
+    }
+
+    async function refreshModelLibrary() {
+        await fetch('/api/v1/models/catalog/refresh', {method: 'POST'});
+        await loadModelLibrary();
+        showToast('Model library refreshed');
+    }
+
+    // ── Pipeline Profiles ────────────────────────────────────────────
+    async function loadPresets() {
+        try {
+            const data = await apiCall('/api/v1/router/presets', { silentErrors: true });
+            if (data.success) {
+                presetCache = data.presets || [];
+                renderPresetCards(presetCache);
+            }
+            else document.getElementById('presetCards').innerHTML =
+                '<div class="text-xs text-red-400 col-span-full py-4 text-center">Failed to load profiles</div>';
+        } catch(e) {
+            document.getElementById('presetCards').innerHTML =
+                '<div class="text-xs text-red-400 col-span-full py-4 text-center">Error loading profiles</div>';
+        }
+    }
+
+    let presetCache = [];
+    const presetFilters = {
+        topology: 'all',
+        speed: 'all',
+        quality: 'all',
+    };
+
+    function setPresetFilter(kind, value, btn) {
+        presetFilters[kind] = value;
+        const group = btn.closest('[data-filter-group]');
+        if (group) {
+            group.querySelectorAll('.profile-filter-btn').forEach(b => b.classList.remove('active'));
+        }
+        btn.classList.add('active');
+        renderPresetCards(presetCache);
+    }
+
+    function getPresetUxMeta(presetName) {
+        const mapping = {
+            speed: {
+                label: 'Local Fast',
+                icon: 'zap',
+                topology: 'Local',
+                speed: 'Fast',
+                quality: 'Good',
+                privacy: 'Full',
+                cost: 'Free',
+            },
+            balanced: {
+                label: 'Local Balanced',
+                icon: 'scale',
+                topology: 'Local',
+                speed: 'Medium',
+                quality: 'Better',
+                privacy: 'Full',
+                cost: 'Free',
+            },
+            quality: {
+                label: 'Local Max Quality',
+                icon: 'gem',
+                topology: 'Local',
+                speed: 'Slow',
+                quality: 'Best',
+                privacy: 'Full',
+                cost: 'Free',
+            },
+            cloud_express: {
+                label: 'Cloud Fast',
+                icon: 'cloud',
+                topology: 'Cloud',
+                speed: 'Fast',
+                quality: 'Better',
+                privacy: 'Shared',
+                cost: 'Pay-per-use',
+            },
+            hybrid_smart: {
+                label: 'Hybrid Smart',
+                icon: 'shuffle',
+                topology: 'Hybrid',
+                speed: 'Medium',
+                quality: 'Best',
+                privacy: 'Partial',
+                cost: 'Low',
+            },
+            privacy_first: {
+                label: 'Local Private',
+                icon: 'shield',
+                topology: 'Local',
+                speed: 'Medium',
+                quality: 'Better',
+                privacy: 'Full',
+                cost: 'Free',
+            },
+        };
+        return mapping[presetName] || {
+            label: presetName,
+            icon: 'layers',
+            topology: 'Hybrid',
+            speed: 'Medium',
+            quality: 'Better',
+            privacy: 'Partial',
+            cost: 'Low',
+        };
+    }
+
+    function renderPresetCards(presets) {
+        const container = document.getElementById('presetCards');
+        const summary = document.getElementById('presetFilterSummary');
+        const activeName = currentPipeline?.name || '';
+        const roleLabels = { initial: 'Default Model', critique: 'Critique', synthesize: 'Synthesis' };
+
+        const filteredPresets = (presets || []).filter(p => {
+            const meta = getPresetUxMeta(p.name);
+            if (presetFilters.topology !== 'all' && meta.topology !== presetFilters.topology) return false;
+            if (presetFilters.speed !== 'all' && meta.speed !== presetFilters.speed) return false;
+            if (presetFilters.quality !== 'all' && meta.quality !== presetFilters.quality) return false;
+            return true;
+        });
+
+        if (summary) {
+            summary.textContent = `Showing ${filteredPresets.length} of ${(presets || []).length} profiles`;
+        }
+
+        if (!filteredPresets.length) {
+            container.innerHTML = '<div class="text-xs text-gray-500 col-span-full py-4 text-center">No profiles match these filters.</div>';
+            return;
+        }
+
+        container.innerHTML = filteredPresets.map(p => {
+            const isActive = activeName === p.name;
+            const canApply = p.can_apply;
+            const meta = getPresetUxMeta(p.name);
+            const icon = meta.icon;
+
+            const topologyClass = `topology-${meta.topology.toLowerCase()}`;
+            const speedClass = `speed-${meta.speed.toLowerCase()}`;
+            const qualityClass = `quality-${meta.quality.toLowerCase()}`;
+            const privacyClass = meta.privacy === 'Full' ? 'topology-local' : meta.privacy === 'Shared' ? 'topology-cloud' : 'topology-hybrid';
+            const costClass = meta.cost === 'Free' ? 'topology-local' : meta.cost === 'Pay-per-use' ? 'topology-cloud' : 'topology-hybrid';
+            const metricChips = `
+                <div class="profile-metrics">
+                    <span class="profile-metric ${topologyClass}">Topology: <strong>${escapeHtml(meta.topology)}</strong></span>
+                    <span class="profile-metric ${speedClass}">Speed: <strong>${escapeHtml(meta.speed)}</strong></span>
+                    <span class="profile-metric ${qualityClass}">Quality: <strong>${escapeHtml(meta.quality)}</strong></span>
+                    <span class="profile-metric ${privacyClass}">Privacy: <strong>${escapeHtml(meta.privacy)}</strong></span>
+                    <span class="profile-metric ${costClass}">Cost: <strong>${escapeHtml(meta.cost)}</strong></span>
+                </div>`;
+
+            // Build role badges
+            const badges = ['initial', 'critique', 'synthesize'].map(role => {
+                const resolved = p.resolved_models?.[role];
+                const roleDef = p.roles?.[role];
+                if (!roleDef?.enabled) {
+                    return `<span class="profile-role-badge off">${roleLabels[role]}: off</span>`;
+                }
+                if (!resolved) {
+                    return `<span class="profile-role-badge off">${roleLabels[role]}: ?</span>`;
+                }
+                const isCloud = resolved.includes('openai:') || resolved.includes('anthropic:') || resolved.includes('openrouter:');
+                const badgeClass = isCloud ? 'cloud' : 'local';
+                const shortModel = resolved.split(':').pop();
+                const display = shortModel.length > 22 ? shortModel.substring(0, 20) + '…' : shortModel;
+                return `<span class="profile-role-badge ${badgeClass}">${roleLabels[role]}: ${escapeHtml(display)}</span>`;
+            }).join('');
+
+            const unavailText = !canApply ? '<div class="profile-unavail">Missing models or API keys</div>' : '';
+            const activeLabel = isActive ? '<span style="font-size:0.6rem;color:rgba(192,132,252,0.8);margin-left:0.4rem;">● Active</span>' : '';
+
+            return `<div class="profile-card ${isActive ? 'active' : ''} ${canApply ? 'can-apply' : ''}"
+                         ${canApply ? `onclick="applyPresetFromCard('${p.name}', this)"` : ''}
+                         style="cursor:${canApply ? 'pointer' : 'not-allowed'}">
+                <div style="display:flex;align-items:center;gap:0.4rem;">
+                    <i data-lucide="${icon}" class="w-4 h-4" style="color:rgba(192,132,252,0.6);"></i>
+                    <span class="profile-name">${escapeHtml(meta.label)}</span>${activeLabel}
+                </div>
+                <div class="profile-desc">${escapeHtml(p.description)}</div>
+                ${metricChips}
+                <div class="profile-roles">${badges}</div>
+                ${unavailText}
+            </div>`;
+        }).join('');
+
+        if (window.lucide) lucide.createIcons();
+    }
+
+    async function applyPresetFromCard(presetName, card) {
+        if (card.classList.contains('applying')) return;
+        card.classList.add('applying');
+        card.style.opacity = '0.7';
+        try {
+            const data = await apiCall(`/api/v1/router/presets/${encodeURIComponent(presetName)}/apply`, { method: 'POST' });
+            if (data.success) {
+                const label = getPresetUxMeta(presetName).label;
+                showToast(`Profile "${label}" applied`);
+                // Update flow display with new roles
+                if (data.roles) {
+                    for (const [role, info] of Object.entries(data.roles)) {
+                        const el = document.getElementById(`flow-${role}`);
+                        if (el && info.model) {
+                            const short = info.model.length > 20 ? info.model.substring(0, 20) + '...' : info.model;
+                            el.innerHTML = `<span class="text-white">${short}</span><br><span class="text-gray-500 text-xs">${info.backend}</span>`;
+                        }
+                    }
+                }
+                // Mark this card as active, remove from others
+                document.querySelectorAll('.profile-card').forEach(c => c.classList.remove('active'));
+                card.classList.add('active');
+            } else {
+                showToast(data.error || 'Failed to apply profile', 'error');
+            }
+        } catch(e) {
+            showToast('Error applying profile', 'error');
+        }
+        card.classList.remove('applying');
+        card.style.opacity = '';
+    }
+
+    async function reAutoConfigPipeline(btn) {
+        const orig = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<i data-lucide="loader-2" class="w-3.5 h-3.5 animate-spin"></i> Detecting…';
+        try {
+            const data = await apiCall('/api/v1/router/auto-configure', { method: 'POST' });
+            if (data.success) {
+                showToast(`Pipeline auto-configured: ${data.preset_applied || 'done'}`);
+                const label = document.getElementById('presetAutoLabel');
+                if (label && data.decisions) {
+                    label.classList.remove('hidden');
+                    label.textContent = data.decisions.join(' · ');
+                }
+                // Reload presets and page pipeline state
+                await loadPresets();
+                setTimeout(() => location.reload(), 1200);
+            } else {
+                showToast(data.error || 'Auto-configure failed', 'error');
+            }
+        } catch(e) {
+            showToast('Network error during auto-configure', 'error');
+        }
+        btn.disabled = false;
+        btn.innerHTML = orig;
+        if (window.lucide) lucide.createIcons();
+    }
+
+    // Load library on page init
+    loadModelLibrary();
+    loadPresets();
+</script>
+{% endblock %}

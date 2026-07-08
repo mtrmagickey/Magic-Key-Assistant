@@ -1,0 +1,170 @@
+{% extends "base.html" %}
+{% block title %}Organization — {{ bot_name }}{% endblock %}
+
+{% block head %}
+<style>
+    :root { --accent-glow: rgba(131,120,27,0.15); --orb1: rgba(131,120,27,0.3); }
+    .config-section { margin-bottom:1.5rem; }
+    .config-section h4 { font-size:.875rem;font-weight:600;color:#fff;margin-bottom:.75rem;display:flex;align-items:center;gap:.5rem; }
+    .field-row { display:flex;align-items:center;gap:1rem;margin-bottom:.625rem; }
+    .field-row label { width:140px;font-size:.75rem;color:rgba(249,222,162,.78);text-transform:uppercase;letter-spacing:.04em;flex-shrink:0;font-weight:600; }
+    .field-row input, .field-row select { flex:1;background:rgba(4,3,2,.94);border:1px solid rgba(255,255,255,.15);border-radius:10px;padding:.4375rem .75rem;color:#d1d5db;font-size:.875rem;outline:none; }
+    .field-row input:focus, .field-row select:focus { border-color:rgba(239,170,196,.4); }
+</style>
+{% endblock %}
+
+{% block content %}
+<header class="header-scrim flex justify-between items-center mb-6 reveal">
+    <div>
+        <h2 class="text-2xl font-semibold text-white mb-1 tracking-tight">Organization Settings</h2>
+        <p class="text-sm text-secondary">Configure your org identity, team settings, and branding</p>
+    </div>
+</header>
+
+<div class="max-w-2xl">
+    <!-- Org Profile -->
+    <div class="glass-card glow-card p-6 reveal stagger-2">
+        <h3 class="text-lg font-semibold text-white mb-5 relative z-10 flex items-center gap-2"><i data-lucide="building-2" class="w-5 h-5 text-teal"></i> Organization Profile</h3>
+        <div class="relative z-10" id="profileForm">
+            <div class="config-section">
+                <h4>Identity</h4>
+                <div class="field-row"><label>Org Name</label><input type="text" id="pOrgName" placeholder="My Company"></div>
+                <div class="field-row"><label>Tagline</label><input type="text" id="pTagline" placeholder="What you do in one line"></div>
+                <div class="field-row"><label>Timezone</label><select id="pTimezone"></select></div>
+                <p class="text-xs text-gray-400 -mt-1 mb-3 pl-[156px]">Used for reminders, review cadence, and time-based summaries.</p>
+            </div>
+            <div class="config-section">
+                <h4>Team Mode</h4>
+                <div class="field-row">
+                    <label>Mode</label>
+                    <select id="pMode">
+                        <option value="solo">Solo (1 person)</option>
+                        <option value="small">Small Team (2-6)</option>
+                        <option value="team">Team (7+)</option>
+                    </select>
+                </div>
+            </div>
+            {% if operation_mode != 'solo' %}
+            <div class="config-section">
+                <h4>Discord Channels</h4>
+                <div class="field-row"><label>General</label><input type="text" id="pChGeneral" placeholder="Channel ID"></div>
+                <div class="field-row"><label>Assistant Output</label><input type="text" id="pChBot" placeholder="Channel ID"></div>
+                <div class="field-row"><label>Alerts</label><input type="text" id="pChAlerts" placeholder="Channel ID"></div>
+            </div>
+            {% endif %}
+            <div class="config-section">
+                <h4>Branding</h4>
+                <div class="field-row"><label>Assistant Name</label><input type="text" id="pBotName" placeholder="{{ bot_name }}"></div>
+                <div class="field-row"><label>Accent Color</label><input type="text" id="pAccentColor" placeholder="#EFAAC4"></div>
+            </div>
+            <button onclick="saveProfile()" class="btn-glossy py-2.5 px-6 text-sm w-full mt-2 relative z-10"><span class="relative z-10">Save Profile</span></button>
+        </div>
+    </div>
+</div>
+
+<!-- Config File Status -->
+<div class="glass-card glow-card p-6 mt-6 reveal stagger-4 max-w-2xl">
+    <h3 class="text-lg font-semibold text-white mb-4 relative z-10">📁 Configuration Files</h3>
+    <div class="relative z-10">
+        <div class="info-panel p-4">
+            <div class="flex justify-between items-center">
+                <div>
+                    <div class="text-sm font-medium text-white">org_profile.yaml</div>
+                    <div class="text-xs text-gray-500">Organization identity and team config</div>
+                </div>
+                <span id="profileStatus" class="badge px-2.5 py-1 rounded-md text-xs">Loading...</span>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const COMMON_TIMEZONES = [
+    'UTC',
+    'Europe/London',
+    'Europe/Paris',
+    'Europe/Berlin',
+    'America/New_York',
+    'America/Chicago',
+    'America/Denver',
+    'America/Los_Angeles',
+    'America/Toronto',
+    'Australia/Sydney',
+    'Asia/Dubai',
+    'Asia/Singapore',
+    'Asia/Tokyo',
+    'Asia/Kolkata',
+    'Pacific/Auckland',
+];
+
+function availableTimezones() {
+    try {
+        if (typeof Intl.supportedValuesOf === 'function') {
+            return Intl.supportedValuesOf('timeZone');
+        }
+    } catch (_) {}
+    return COMMON_TIMEZONES;
+}
+
+function populateTimezoneOptions(selectedValue) {
+    const timezoneSelect = document.getElementById('pTimezone');
+    if (!timezoneSelect) return;
+
+    const guessedTimezone = (Intl.DateTimeFormat && Intl.DateTimeFormat().resolvedOptions().timeZone) || 'UTC';
+    const timezones = Array.from(new Set([guessedTimezone].concat(availableTimezones()).concat(COMMON_TIMEZONES))).sort();
+    timezoneSelect.innerHTML = timezones.map(function(zone) {
+        return '<option value="' + zone + '">' + zone.replace(/_/g, ' ') + '</option>';
+    }).join('');
+    timezoneSelect.value = selectedValue || guessedTimezone || 'UTC';
+}
+
+async function loadProfile() {
+    const d = await apiCall('/api/v1/org/profile');
+    document.getElementById('profileStatus').textContent = d.exists ? 'Configured' : 'Not Set';
+    document.getElementById('profileStatus').className = d.exists
+        ? 'badge px-2.5 py-1 rounded-md text-xs text-teal'
+        : 'badge-gold px-2.5 py-1 rounded-md text-xs text-gold';
+    if(!d.success || !d.profile) return;
+    const p = d.profile;
+    document.getElementById('pOrgName').value = p.org_name || p.name || '';
+    document.getElementById('pTagline').value = p.tagline || '';
+    populateTimezoneOptions(p.timezone || '');
+    document.getElementById('pMode').value = p.mode || 'solo';
+    const ch = p.channels || {};
+    const chG = document.getElementById('pChGeneral');
+    const chB = document.getElementById('pChBot');
+    const chA = document.getElementById('pChAlerts');
+    if (chG) chG.value = ch.general || '';
+    if (chB) chB.value = ch.bot_output || ch.bot || '';
+    if (chA) chA.value = ch.alerts || '';
+    const br = p.branding || {};
+    document.getElementById('pBotName').value = br.bot_name || '';
+    document.getElementById('pAccentColor').value = br.accent_color || '';
+}
+
+async function saveProfile() {
+    const body = {
+        org_name: document.getElementById('pOrgName').value,
+        tagline: document.getElementById('pTagline').value,
+        timezone: document.getElementById('pTimezone').value,
+        mode: document.getElementById('pMode').value,
+        channels: document.getElementById('pChGeneral') ? {
+            general: document.getElementById('pChGeneral').value || null,
+            bot_output: document.getElementById('pChBot').value || null,
+            alerts: document.getElementById('pChAlerts').value || null,
+        } : undefined,
+        branding: {
+            bot_name: document.getElementById('pBotName').value || null,
+            accent_color: document.getElementById('pAccentColor').value || null,
+        },
+    };
+    const d = await apiCall('/api/v1/org/profile', {method:'POST', body});
+    if(d.success) { showToast('Profile saved'); loadProfile(); }
+}
+
+populateTimezoneOptions('');
+loadProfile();
+</script>
+{% endblock %}

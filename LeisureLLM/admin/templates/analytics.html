@@ -1,0 +1,332 @@
+{% extends "base.html" %}
+{% block title %}Progress — {{ bot_name }}{% endblock %}
+
+{% block head %}
+<style>
+    :root { --accent-glow: rgba(239,170,196,0.2); }
+
+    /* === Hero stat cards — top row ═══════════════════════════════ */
+    .hero-stat {
+        position: relative;
+        padding: 1.5rem 1.75rem;
+        border-radius: var(--r-card);
+        overflow: hidden;
+        background: linear-gradient(var(--light-angle), rgba(10,8,6,0.92) 0%, rgba(4,3,2,0.96) 100%);
+        border: 1px solid rgba(255,255,255,0.06);
+        border-top-color: rgba(255,255,255,0.14);
+        border-bottom-color: rgba(0,0,0,0.12);
+        backdrop-filter: blur(14px) saturate(140%);
+        box-shadow: 0 4px 16px rgba(0,0,0,0.30), 0 1px 0 rgba(255,255,255,0.06) inset;
+        transition: all .3s ease;
+    }
+    .hero-stat:hover {
+        border-top-color: rgba(255,255,255,0.22);
+        transform: translateY(-1px);
+        box-shadow: 0 6px 24px rgba(0,0,0,0.32), 0 0 16px rgba(var(--a),0.06);
+    }
+    .hero-stat::before {
+        content:''; position:absolute; top:0; left:8%; right:8%; height:1px;
+        background:linear-gradient(90deg,transparent,rgba(255,255,255,0.18) 50%,transparent);
+        pointer-events:none;
+    }
+    .hero-stat .hero-value {
+        font-size: 2.5rem; font-weight: 800; line-height: 1.1;
+        color: #fff; font-variant-numeric: tabular-nums;
+    }
+    .hero-stat .hero-label {
+        font-size: .72rem; text-transform: uppercase; letter-spacing: .06em;
+        color: rgba(255,255,255,0.75); margin-top: .35rem; font-weight: 600;
+    }
+    .hero-stat .hero-icon {
+        position: absolute; top: 1.25rem; right: 1.5rem;
+        width: 42px; height: 42px; border-radius: 12px;
+        display: flex; align-items: center; justify-content: center;
+        background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.06);
+    }
+    .hero-stat .hero-icon i { width: 20px; height: 20px; }
+
+    /* Accent color variants */
+    .hero-stat.accent-teal .hero-value { color: #34d399; }
+    .hero-stat.accent-teal .hero-icon { color: #34d399; }
+    .hero-stat.accent-coral .hero-value { color: #E13943; }
+    .hero-stat.accent-coral .hero-icon { color: #E13943; }
+    .hero-stat.accent-blue .hero-value { color: rgb(var(--b-light)); }
+    .hero-stat.accent-blue .hero-icon { color: rgb(var(--b-light)); }
+    .hero-stat.accent-gold .hero-value { color: rgb(var(--c-light)); }
+    .hero-stat.accent-gold .hero-icon { color: rgb(var(--c-light)); }
+
+    /* === Doughnut charts — larger and centered ═══════════════════ */
+    .doughnut-wrap { position:relative; width:220px; height:220px; margin:0 auto; }
+    .doughnut-center {
+        position:absolute; inset:0; display:flex; flex-direction:column;
+        align-items:center; justify-content:center; pointer-events:none;
+    }
+    .doughnut-center .total-value {
+        font-size:1.75rem; font-weight:700; color:#fff;
+        font-variant-numeric:tabular-nums; line-height:1;
+    }
+    .doughnut-center .total-label {
+        font-size:.6rem; text-transform:uppercase; letter-spacing:.05em;
+        color:rgba(255,255,255,0.65); margin-top:.25rem; font-weight:600;
+    }
+    .doughnut-legend { display:flex; flex-wrap:wrap; gap:0.5rem 1rem; justify-content:center; margin-top:1rem; }
+    .doughnut-legend-item { display:flex; align-items:center; gap:0.4rem; font-size:0.72rem; color:#b0b7c3; letter-spacing:0.01em; }
+    .doughnut-legend-dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+    .doughnut-legend-count { color:#b9c0cc; font-variant-numeric:tabular-nums; font-weight:600; }
+
+    /* === Attention alerts  ═══════════════════════════════════════ */
+    .alert-item {
+        display:flex; align-items:center; gap:.75rem;
+        padding:.875rem 1rem; border-radius:var(--r-input);
+        background:linear-gradient(var(--light-angle),rgba(8,6,5,0.93) 0%,rgba(4,3,2,0.96) 100%);
+        border:1px solid rgba(255,255,255,0.08);
+        border-left:3px solid; transition:all .3s ease; text-decoration:none;
+    }
+    .alert-item:hover { transform:translateX(4px); box-shadow:0 2px 12px rgba(0,0,0,0.2); }
+    .alert-item.alert-danger { border-left-color:#E13943; }
+    .alert-item.alert-warn { border-left-color:rgb(var(--c-light)); }
+
+    /* === Recent items ═══════════════════════════════════════════ */
+    .recent-item {
+        display:flex; justify-content:space-between; align-items:center;
+        padding:.625rem .875rem; border-radius:8px;
+        background:rgba(6,5,4,0.94); border:1px solid rgba(255,255,255,0.06);
+        transition:all .2s ease;
+    }
+    .recent-item:hover { background:rgba(var(--a),0.05); border-color:rgba(var(--a),0.1); }
+</style>
+<script src="/static/chart.umd.min.js"></script>
+{% endblock %}
+
+{% block content %}
+<header class="header-scrim flex justify-between items-center mb-6 reveal">
+    <div>
+        <h2 class="text-2xl font-semibold text-white mb-1 tracking-tight">Progress</h2>
+        <p class="text-sm text-secondary">How your action items, meetings, and knowledge are tracking over time</p>
+    </div>
+    <button onclick="loadAll()" class="btn-chrome py-2 px-4 text-sm flex items-center gap-1.5"><i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i> Refresh</button>
+</header>
+
+<!-- Hero KPI cards -->
+<div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6 reveal stagger-1">
+    <a href="/actions" class="hero-stat accent-teal no-underline" title="Action items currently open">
+        <div class="hero-value" id="sOpenActions">—</div>
+        <div class="hero-label">Open Actions</div>
+        <div class="hero-icon"><i data-lucide="check-square"></i></div>
+    </a>
+    <a href="/actions" class="hero-stat accent-coral no-underline" title="Open action items past due date">
+        <div class="hero-value" id="sOverdue">—</div>
+        <div class="hero-label">Overdue</div>
+        <div class="hero-icon"><i data-lucide="alert-circle"></i></div>
+    </a>
+    <a href="/meetings" class="hero-stat accent-blue no-underline" title="Total recorded meeting notes">
+        <div class="hero-value" id="sMeetings">—</div>
+        <div class="hero-label">Meeting Notes</div>
+        <div class="hero-icon"><i data-lucide="file-text"></i></div>
+    </a>
+    <a href="/gaps" class="hero-stat accent-gold no-underline" title="Knowledge gaps not yet resolved">
+        <div class="hero-value" id="sOpenGaps">—</div>
+        <div class="hero-label">Open Gaps</div>
+        <div class="hero-icon"><i data-lucide="puzzle"></i></div>
+    </a>
+</div>
+
+<!-- Status breakdown charts + alerts -->
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+    <div class="glass-card p-6 reveal stagger-2">
+        <h3 class="text-base font-semibold text-white mb-5 flex items-center gap-2"><i data-lucide="pie-chart" class="w-4 h-4 text-teal"></i> Action Items</h3>
+        <div class="doughnut-wrap">
+            <canvas id="taskDoughnut"></canvas>
+            <div class="doughnut-center">
+                <span class="total-value" id="taskTotal">0</span>
+                <span class="total-label">Total</span>
+            </div>
+        </div>
+        <div id="taskDoughnutLegend" class="doughnut-legend"></div>
+    </div>
+
+    <div class="glass-card p-6 reveal stagger-3">
+        <h3 class="text-base font-semibold text-white mb-5 flex items-center gap-2"><i data-lucide="pie-chart" class="w-4 h-4 text-teal"></i> Knowledge Gaps</h3>
+        <div class="doughnut-wrap">
+            <canvas id="gapsDoughnut"></canvas>
+            <div class="doughnut-center">
+                <span class="total-value" id="gapsTotal">0</span>
+                <span class="total-label">Total</span>
+            </div>
+        </div>
+        <div id="gapsDoughnutLegend" class="doughnut-legend"></div>
+    </div>
+
+    <div class="glass-card p-6 reveal stagger-4">
+        <h3 class="text-base font-semibold text-white mb-4 flex items-center gap-2"><i data-lucide="alert-triangle" class="w-4 h-4 text-amber-400"></i> Attention Needed</h3>
+        <div id="alerts" class="space-y-3">
+            <div class="empty-state" style="padding:1.5rem 1rem;"><p class="text-gray-500 text-sm">Nothing needs attention right now. Alerts appear when action items are overdue or gaps pile up.</p></div>
+        </div>
+    </div>
+</div>
+
+<!-- Recently completed -->
+<div class="glass-card p-6 reveal stagger-5 mb-6">
+    <h3 class="text-base font-semibold text-white mb-4 flex items-center gap-2"><i data-lucide="flag" class="w-4 h-4 text-teal"></i> Recently Completed Action Items</h3>
+    <div id="recentDone" class="space-y-2">
+        <div class="empty-state" style="padding:1.5rem 1rem;"><p class="text-gray-500 text-sm">Completed actions will show up here. <a href="/actions" class="text-teal hover:underline">Create your first action item</a> to get started.</p></div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function esc(s) { return s||'—'; }
+
+/* ── Doughnut chart helper ── */
+let _taskDoughnutChart = null;
+let _gapsDoughnutChart = null;
+
+function createDoughnut(canvasId, legendId, totalId, data, colorMap) {
+    const canvas = document.getElementById(canvasId);
+    if (!canvas) return null;
+    const ctx = canvas.getContext('2d');
+    const labels = Object.keys(data);
+    const values = Object.values(data);
+    const total = values.reduce((a,b) => a+b, 0);
+    const colors = labels.map(k => colorMap[k] || 'rgba(107,114,128,0.5)');
+
+    // Update center total
+    const totalEl = document.getElementById(totalId);
+    if (totalEl) totalEl.textContent = total;
+
+    if (total === 0) {
+        // Show empty state in canvas area
+        const wrap = canvas.closest('.doughnut-wrap');
+        if (wrap) {
+            const center = wrap.querySelector('.doughnut-center');
+            if (center) center.innerHTML = '<span class="total-label" style="font-size:.8rem;color:rgba(255,255,255,0.55);">No data yet</span>';
+        }
+        return null;
+    }
+
+    const chart = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: labels.map(l => l.replace(/_/g,' ')),
+            datasets: [{
+                data: values,
+                backgroundColor: colors,
+                borderColor: 'rgba(0,0,0,0.4)',
+                borderWidth: 2,
+                hoverOffset: 8,
+                borderRadius: 3,
+                spacing: 2,
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            cutout: '68%',
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    backgroundColor: 'rgba(35,30,26,0.95)',
+                    borderColor: 'rgba(239,170,196,0.3)',
+                    borderWidth: 1,
+                    titleColor: '#fff',
+                    bodyColor: '#9ca3af',
+                    padding: 14,
+                    cornerRadius: 10,
+                    titleFont: { weight: '600', size: 13 },
+                    bodyFont: { size: 12 },
+                    callbacks: {
+                        label: function(ctx) {
+                            const pct = total > 0 ? Math.round(ctx.raw / total * 100) : 0;
+                            return ` ${ctx.label}: ${ctx.raw} (${pct}%)`;
+                        }
+                    }
+                }
+            },
+            animation: {
+                animateRotate: true,
+                duration: 800,
+                easing: 'easeOutQuart',
+            }
+        }
+    });
+
+    // Build legend
+    const legendEl = document.getElementById(legendId);
+    if (legendEl) {
+        legendEl.innerHTML = labels.map((l, i) => {
+            const pct = total > 0 ? Math.round(values[i] / total * 100) : 0;
+            const label = l.replace(/_/g,' ');
+            return `<div class="doughnut-legend-item" title="${label}: ${values[i]} (${pct}%)"><span class="doughnut-legend-dot" style="background:${colors[i]}"></span>${label} <span class="doughnut-legend-count">${values[i]}</span></div>`;
+        }).join('');
+    }
+
+    return chart;
+}
+
+const statusColors = {
+    todo: 'rgba(96,165,250,0.85)', in_progress: 'rgba(251,191,36,0.85)',
+    done: 'rgba(52,211,153,0.85)', cancelled: 'rgba(107,114,128,0.5)',
+    blocked: 'rgba(248,113,113,0.85)',
+};
+
+const gapColors = {
+    open: 'rgba(251,191,36,0.85)', in_progress: 'rgba(96,165,250,0.85)',
+    resolved: 'rgba(52,211,153,0.85)',
+};
+
+async function loadAll() {
+    const d = await apiCall('/api/v1/analytics/overview');
+    if(!d.success) {
+        document.getElementById('alerts').innerHTML = '<div class="empty-state" style="padding:1.5rem 1rem;"><p class="text-gray-500 text-sm">Data is not available yet. Start using the assistant to generate analytics.</p></div>';
+        document.getElementById('recentDone').innerHTML = '<div class="empty-state" style="padding:1.5rem 1rem;"><p class="text-gray-500 text-sm">No data available yet.</p></div>';
+        return;
+    }
+    const a = d.analytics;
+
+    // Top hero stats
+    const taskStatuses = a.tasks_by_status || {};
+    const openTasks = (taskStatuses.todo||0) + (taskStatuses.in_progress||0) + (taskStatuses.blocked||0);
+    document.getElementById('sOpenActions').textContent = openTasks;
+    document.getElementById('sMeetings').textContent = a.meetings_total || 0;
+
+    const gapStatuses = a.gaps_by_status || {};
+    document.getElementById('sOpenGaps').textContent = gapStatuses.open || 0;
+    document.getElementById('sOverdue').textContent = a.tasks_overdue || 0;
+
+    // Doughnut — Task Status
+    if (_taskDoughnutChart) _taskDoughnutChart.destroy();
+    _taskDoughnutChart = createDoughnut('taskDoughnut', 'taskDoughnutLegend', 'taskTotal', taskStatuses, statusColors);
+
+    // Doughnut — Knowledge Gaps
+    if (_gapsDoughnutChart) _gapsDoughnutChart.destroy();
+    _gapsDoughnutChart = createDoughnut('gapsDoughnut', 'gapsDoughnutLegend', 'gapsTotal', gapStatuses, gapColors);
+
+    // Alerts
+    const alerts = [];
+    if(a.tasks_overdue > 0) alerts.push(`<a href="/actions" class="alert-item alert-danger no-underline"><i data-lucide="alert-circle" class="w-4 h-4 flex-shrink-0" style="color:#E13943"></i><span class="text-sm text-gray-300"><span class="font-semibold" style="color:#E13943">${a.tasks_overdue}</span> overdue action item${a.tasks_overdue>1?'s':''} — click to view</span></a>`);
+    if(gapStatuses.open > 10) alerts.push(`<a href="/gaps" class="alert-item alert-warn no-underline"><i data-lucide="puzzle" class="w-4 h-4 flex-shrink-0" style="color:rgb(var(--c-light))"></i><span class="text-sm text-gray-300"><span class="font-semibold" style="color:rgb(var(--c-light))">${gapStatuses.open}</span> unresolved knowledge gaps — click to view</span></a>`);
+
+    if(!alerts.length) alerts.push(`<div class="flex items-center gap-2 p-3" style="color:#34d399;"><i data-lucide="check-circle" class="w-4 h-4"></i><span class="text-sm">All clear — no issues detected</span></div>`);
+    document.getElementById('alerts').innerHTML = alerts.join('');
+
+    // Recently completed tasks
+    const doneTasks = a.recent_done || [];
+    if(doneTasks.length) {
+        document.getElementById('recentDone').innerHTML = doneTasks.map(t =>
+            `<div class="recent-item">
+                <span class="text-sm text-gray-300 flex items-center gap-2"><i data-lucide="check" class="w-3.5 h-3.5" style="color:#34d399"></i>${esc(t.title)}</span>
+                <span class="text-xs text-gray-500 flex-shrink-0">${t.done_date || ''}</span>
+            </div>`
+        ).join('');
+    } else {
+        document.getElementById('recentDone').innerHTML = '<div class="empty-state" style="padding:1.5rem 1rem;"><p class="text-gray-500 text-sm">No recently completed actions. Completed actions will appear here as you close them on the <a href="/actions" class="text-teal hover:underline">Actions</a> page.</p></div>';
+    }
+
+    // Re-init lucide icons for dynamically injected content
+    if (typeof lucide !== 'undefined') lucide.createIcons();
+}
+
+loadAll();
+</script>
+{% endblock %}

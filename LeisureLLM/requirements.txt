@@ -1,0 +1,62 @@
+# Core dependencies
+discord.py>=2.3.2
+langchain>=0.2.0
+langchain-core>=0.2.0
+langchain-openai>=0.1.8
+langchain-ollama>=0.3.0      # Local Ollama embeddings (nomic-embed-text)
+langchain-text-splitters>=0.2.0
+openai>=1.30.1
+tiktoken>=0.7.0
+chromadb>=0.4.24,<1.5          # Pin: >=1.5 may change pydantic compat
+pandas>=2.2.2
+regex>=2024.5.15
+python-dotenv>=1.0.1
+PyYAML>=6.0
+aiosqlite>=0.20.0  # SQLite async driver (no installation required!)
+tenacity>=8.2.0  # Retry logic for LLM calls
+
+# Admin web UI
+fastapi>=0.111.0
+uvicorn>=0.29.0
+jinja2>=3.1.0  # Template engine for admin GUI
+markdown>=3.5.0  # Markdown → HTML rendering for in-app guide
+pydantic>=2.7.0
+aiohttp>=3.9.0  # Async HTTP client (Ollama, webhooks)
+httpx>=0.27.0  # Sync/async HTTP client (secret tests, web sprint)
+keyring>=25.0.0  # Secure credential storage
+psutil>=5.9.0  # Hardware/RAM detection for device capability
+python-multipart>=0.0.7  # File upload support (multipart form data)
+
+# Document loaders and parsers
+langchain-community>=0.2.1
+langchain-chroma>=0.1.0
+unstructured>=0.12.6  # Transitive: used by langchain UnstructuredWordDocumentLoader
+pypdf>=3.17.4  # Transitive: used by langchain PyPDFLoader
+python-docx>=1.1.2  # Transitive: used by langchain UnstructuredWordDocumentLoader
+
+# Web tools
+requests>=2.31.0  # Transitive: used by tavily-python, tiktoken, unstructured
+beautifulsoup4>=4.12.3
+tavily-python>=0.3.0
+
+# Retrieval quality
+sentence-transformers>=2.2.0  # Cross-encoder reranker for RAG (optional but recommended)
+
+# ============================================================
+# Testing — install via: pip install -e ".[dev]"  (see pyproject.toml)
+# ============================================================
+# pytest>=8.0.0
+# pytest-asyncio>=0.23.0
+# pytest-cov>=4.1.0
+# pytest-mock>=3.12.0
+
+# ============================================================
+# Desktop / system-tray
+# ============================================================
+pystray>=0.19.5     # System-tray icon (Windows / macOS / Linux)
+Pillow>=10.0.0      # Image handling for tray icon
+
+# ============================================================
+# Build / packaging (optional — only needed to create .exe)
+# ============================================================
+# pyinstaller>=6.0.0

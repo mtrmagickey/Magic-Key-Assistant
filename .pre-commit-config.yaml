@@ -1,0 +1,55 @@
+# Pre-commit hooks for local development
+# Install: pip install pre-commit && pre-commit install
+
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.4.4
+    hooks:
+      # Run the linter
+      - id: ruff
+        args: [--fix, --exit-non-zero-on-fix]
+        files: ^(LeisureLLM|tests)/.*\.py$
+        exclude: ^LeisureLLM/admin/server_backup_pre_split\.py$
+      # Run the formatter
+      - id: ruff-format
+        files: ^(LeisureLLM|tests)/.*\.py$
+        exclude: ^LeisureLLM/admin/server_backup_pre_split\.py$
+
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.6.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-added-large-files
+        args: ['--maxkb=1000']
+      - id: check-merge-conflict
+
+  # Secret scanning — blocks commits that contain credentials/keys/tokens
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.18.4
+    hooks:
+      - id: gitleaks
+
+  - repo: local
+    hooks:
+      # Guard against re-introducing private data: SQLite DB/WAL/SHM sidecars
+      # (can hold live private data) and the private knowledge base directory.
+      - id: block-private-data
+        name: block private data (DB files, private knowledge base)
+        entry: >-
+          Refusing commit: private data must never be committed. This matches a
+          SQLite DB/WAL/SHM file or the private knowledge base under
+          LeisureLLM/docs/. Remove these files before committing.
+        language: fail
+        files: '(\.db($|-)|(^|/)assistant\.db|^LeisureLLM/docs/)'
+
+  - repo: local
+    hooks:
+      - id: pytest-check
+        name: pytest-check
+        entry: python -m pytest tests/ -x -q
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages: [push]  # Only run on push, not every commit

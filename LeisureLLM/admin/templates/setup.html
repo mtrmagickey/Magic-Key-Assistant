@@ -1,0 +1,1219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ bot_name }} - Setup</title>
+    <link rel="stylesheet" href="/static/fonts/inter.css">
+    <link rel="stylesheet" href="/static/tailwind.css?v=2">
+    <link rel="stylesheet" href="/static/style.css?v=5">
+    <style>
+        :root {
+            color-scheme: dark;
+        }
+
+        /* ── Background atmosphere ────────────────────────────────────── */
+        body {
+            margin: 0;
+            font-family: Inter, sans-serif;
+            font-weight: 400;
+            background: #110e0c;
+            color: #e5e7eb;
+            overflow-x: hidden;
+            -webkit-font-smoothing: antialiased;
+            text-rendering: optimizeLegibility;
+        }
+
+        .setup-bg {
+            position: fixed;
+            inset: 0;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        .setup-bg .bg-grad {
+            position: absolute;
+            inset: 0;
+            background:
+                radial-gradient(ellipse 70% 50% at 50% -8%, rgba(239, 170, 196, 0.16) 0%, transparent 52%),
+                radial-gradient(ellipse 50% 40% at 85% 70%, rgba(126, 163, 204, 0.10) 0%, transparent 55%),
+                radial-gradient(ellipse 40% 35% at 12% 85%, rgba(249, 222, 162, 0.08) 0%, transparent 50%),
+                linear-gradient(180deg, #16120f 0%, #110e0c 100%);
+        }
+
+        .setup-bg .bg-bokeh {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(70px);
+            opacity: 0.12;
+            animation: bokehDrift 28s ease-in-out infinite alternate;
+        }
+
+        .setup-bg .bg-bokeh-1 {
+            width: 300px;
+            height: 300px;
+            top: -6%;
+            left: 62%;
+            background: rgba(239, 170, 196, 0.5);
+        }
+
+        .setup-bg .bg-bokeh-2 {
+            width: 240px;
+            height: 240px;
+            bottom: 10%;
+            left: -4%;
+            background: rgba(249, 222, 162, 0.4);
+            animation-delay: -8s;
+            animation-duration: 32s;
+        }
+
+        @keyframes bokehDrift {
+            0%   { transform: translate(0, 0) scale(1); }
+            100% { transform: translate(8px, -5px) scale(1.03); }
+        }
+
+        /* ── Shell & layout ──────────────────────────────────────── */
+        .shell {
+            position: relative;
+            z-index: 1;
+            max-width: 960px;
+            margin: 0 auto;
+            min-height: 100vh;
+            padding: 48px 24px 64px;
+        }
+
+        /* ── Progress bar ────────────────────────────────────────── */
+        .progress {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            margin-bottom: 32px;
+        }
+
+        .progress-bar {
+            height: 6px;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.07);
+            transition: background 0.5s ease;
+        }
+
+        .progress-bar.done {
+            background: linear-gradient(90deg, #e2c37d, #efaac4);
+        }
+
+        .progress-bar.current {
+            background: linear-gradient(90deg, #e2c37d, #efaac4);
+            box-shadow: 0 0 12px rgba(239, 170, 196, 0.3);
+        }
+
+        /* ── Panel (glass tray) ──────────────────────────────────── */
+        .panel {
+            background: rgba(17, 14, 12, 0.92);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 18px;
+            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.25);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            padding: 32px 28px;
+        }
+
+        .banner {
+            margin-bottom: 20px;
+            border-left: 2px solid rgba(239, 170, 196, 0.55);
+        }
+
+        /* ── Step visibility + entrance animation ────────────────── */
+        .step {
+            display: none;
+        }
+
+        .step.active {
+            display: block;
+            animation: stepReveal 0.45s cubic-bezier(0.16, 1, 0.3, 1) both;
+        }
+
+        @keyframes stepReveal {
+            from {
+                opacity: 0;
+                transform: translateY(14px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* ── Typography ──────────────────────────────────────────── */
+        .eyebrow {
+            font-size: 11px;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            color: rgba(239, 170, 196, 0.75);
+            margin-bottom: 12px;
+        }
+
+        h1, h2, h3, p {
+            margin-top: 0;
+        }
+
+        h1 {
+            letter-spacing: -0.01em;
+        }
+
+        h2 {
+            letter-spacing: -0.005em;
+        }
+
+        .lede {
+            color: rgba(203, 213, 225, 0.9);
+            line-height: 1.72;
+            font-size: 15.5px;
+            max-width: 64ch;
+        }
+
+        .muted {
+            color: rgba(229, 231, 235, 0.68);
+            font-size: 14px;
+            line-height: 1.65;
+        }
+
+        .brand-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 18px;
+        }
+
+        .brand-mark {
+            width: 42px;
+            height: 42px;
+            border-radius: 14px;
+            object-fit: cover;
+            box-shadow: 0 10px 28px rgba(0, 0, 0, 0.28);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .brand-copy {
+            color: rgba(229, 231, 235, 0.72);
+            font-size: 12px;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+
+        /* ── Grid & split ────────────────────────────────────────── */
+        .grid-2 {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 16px;
+        }
+
+        .split {
+            display: grid;
+            grid-template-columns: 1.15fr 0.85fr;
+            gap: 24px;
+        }
+
+        .stack > * + * {
+            margin-top: 18px;
+        }
+
+        /* ── Card options ────────────────────────────────────────── */
+        .card-option {
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 14px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.02);
+            cursor: pointer;
+            transition: border-color 0.2s ease, background 0.2s ease;
+        }
+
+        .card-option:hover {
+            border-color: rgba(239, 170, 196, 0.25);
+            background: rgba(239, 170, 196, 0.03);
+        }
+
+        .card-option.selected {
+            border-color: rgba(239, 170, 196, 0.4);
+            background: rgba(239, 170, 196, 0.06);
+        }
+
+        .card-option input {
+            display: none;
+        }
+
+        /* ── Tags ────────────────────────────────────────────────── */
+        .tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 11px;
+            padding: 3px 9px;
+            border-radius: 999px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: #f3f4f6;
+            background: rgba(255, 255, 255, 0.04);
+        }
+
+        .tag.recommended {
+            border-color: rgba(226, 195, 125, 0.35);
+            color: #f6d88e;
+            background: rgba(226, 195, 125, 0.06);
+        }
+
+        .tag.local {
+            border-color: rgba(16, 185, 129, 0.24);
+            color: #6ee7b7;
+            background: rgba(16, 185, 129, 0.06);
+        }
+
+        .tag.cloud {
+            border-color: rgba(96, 165, 250, 0.22);
+            color: #93c5fd;
+            background: rgba(96, 165, 250, 0.06);
+        }
+
+        .tag.warning {
+            border-color: rgba(251, 191, 36, 0.22);
+            color: #fcd34d;
+            background: rgba(251, 191, 36, 0.05);
+        }
+
+        /* ── Info boxes (secondary glass) ────────────────────────── */
+        .info-box {
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            background: rgba(255, 255, 255, 0.02);
+            padding: 16px 18px;
+        }
+
+        .runtime-status-card {
+            border-radius: 14px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            background: rgba(0, 0, 0, 0.18);
+            padding: 14px;
+            margin-top: 14px;
+        }
+
+        .runtime-status-line {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .runtime-status-text {
+            font-size: 13px;
+            color: rgba(229, 231, 235, 0.74);
+            line-height: 1.55;
+            margin: 4px 0 0;
+        }
+
+        .runtime-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 12px;
+        }
+
+        .runtime-actions .btn {
+            flex: 1 1 180px;
+        }
+
+        .runtime-inline-link {
+            color: #f6d88e;
+            text-decoration: underline;
+            text-underline-offset: 2px;
+        }
+
+        .runtime-ready-banner {
+            display: none;
+            margin-bottom: 18px;
+            border-left: 2px solid rgba(16, 185, 129, 0.5);
+        }
+
+        .list {
+            margin: 12px 0 0;
+            padding-left: 18px;
+            color: rgba(229, 231, 235, 0.82);
+        }
+
+        .list li {
+            margin-bottom: 8px;
+            line-height: 1.6;
+        }
+
+        /* ── Form fields ─────────────────────────────────────────── */
+        .field {
+            margin-bottom: 18px;
+        }
+
+        .field label {
+            display: block;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: #d1d5db;
+            margin-bottom: 6px;
+        }
+
+        .field input,
+        .field select {
+            width: 100%;
+            box-sizing: border-box;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            background: rgba(8, 7, 6, 0.92);
+            color: #f3f4f6;
+            padding: 12px 14px;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .field input:focus,
+        .field select:focus {
+            outline: none;
+            border-color: rgba(239, 170, 196, 0.4);
+            box-shadow: 0 0 0 3px rgba(239, 170, 196, 0.08);
+        }
+
+        .field-help {
+            font-size: 12px;
+            color: rgba(229, 231, 235, 0.55);
+            margin-top: 6px;
+            line-height: 1.5;
+        }
+
+        /* ── Actions & buttons ───────────────────────────────────── */
+        .actions {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-top: 32px;
+        }
+
+        .btn {
+            border-radius: 12px;
+            padding: 12px 20px;
+            font-weight: 600;
+            font-size: 14px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            cursor: pointer;
+            text-decoration: none;
+            transition:
+                box-shadow 0.2s ease,
+                transform 0.15s ease,
+                background 0.2s ease;
+        }
+
+        .btn-primary {
+            color: #1a1714;
+            border: none;
+            background: linear-gradient(90deg, #e2c37d, #efaac4);
+            box-shadow: 0 2px 8px rgba(239, 170, 196, 0.15);
+        }
+
+        .btn-primary:hover {
+            box-shadow: 0 4px 12px rgba(239, 170, 196, 0.22);
+        }
+
+        .btn-primary:active {
+            box-shadow: 0 1px 4px rgba(239, 170, 196, 0.12);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .btn-secondary {
+            color: #e5e7eb;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.07);
+            border-color: rgba(255, 255, 255, 0.16);
+        }
+
+        /* ── Summary rows ────────────────────────────────────────── */
+        .summary-row {
+            display: flex;
+            justify-content: space-between;
+            gap: 16px;
+            padding: 12px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+        }
+
+        .summary-row:last-child {
+            border-bottom: none;
+        }
+
+        .summary-label {
+            color: rgba(229, 231, 235, 0.6);
+            font-size: 14px;
+        }
+
+        .summary-value {
+            color: #ffffff;
+            text-align: right;
+            font-size: 14px;
+        }
+
+        .success-box {
+            border-radius: 16px;
+            background: rgba(16, 185, 129, 0.06);
+            border: 1px solid rgba(16, 185, 129, 0.15);
+            padding: 18px;
+        }
+
+        /* ── Error & toast ───────────────────────────────────────── */
+        .error-text {
+            color: #fca5a5;
+            font-size: 13px;
+            margin-top: 14px;
+            display: none;
+        }
+
+        .toast {
+            position: fixed;
+            right: 16px;
+            bottom: 16px;
+            background: rgba(17, 14, 12, 0.96);
+            color: #fff;
+            border: 1px solid rgba(239, 170, 196, 0.24);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            padding: 12px 18px;
+            border-radius: 14px;
+            opacity: 0;
+            transform: translateY(10px);
+            transition: opacity 0.3s ease, transform 0.3s ease;
+            pointer-events: none;
+            z-index: 50;
+        }
+
+        .toast.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        @media (max-width: 860px) {
+            .shell {
+                padding: 32px 16px 48px;
+            }
+            .split {
+                grid-template-columns: 1fr;
+            }
+            .panel {
+                padding: 24px 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Background -->
+    <div class="setup-bg">
+        <div class="bg-grad"></div>
+        <div class="bg-bokeh bg-bokeh-1"></div>
+        <div class="bg-bokeh bg-bokeh-2"></div>
+    </div>
+
+    <div class="shell">
+        <div class="progress">
+            <div class="progress-bar current"></div>
+            <div class="progress-bar"></div>
+            <div class="progress-bar"></div>
+            <div class="progress-bar"></div>
+        </div>
+
+        {# model_setup_guidance banner suppressed — the setup wizard IS the guided flow #}
+
+        <section class="panel step active" id="step-0">
+            <div class="brand-row">
+                <img src="/static/icon-192.png" alt="{{ bot_name }}" class="brand-mark">
+                <div>
+                    <div class="text-sm font-semibold text-white">{{ bot_name }}</div>
+                    <div class="brand-copy">Local-first setup</div>
+                </div>
+            </div>
+            <div class="eyebrow">Setup</div>
+            <h1 class="text-3xl font-semibold text-white mb-3">Your operational workspace</h1>
+            <p class="lede mb-6">{{ bot_name }} is a workspace that thinks — it surfaces what matters, tracks what's decided, and fills gaps before you ask. Let's set it up.</p>
+
+            <div class="info-box mb-6">
+                <span class="tag local">Default path: {% if onboarding_experience.default_path == 'local_only' %}Local-only{% else %}Cloud-assisted{% endif %}</span>
+                <p class="muted" style="margin:10px 0 0;">Start by choosing the kind of intelligence backing your workspace. You can decide about cloud access later.</p>
+            </div>
+
+            <!-- What this workspace does best -->
+            <div class="grid-2 mb-6" style="gap:12px;">
+                <div class="info-box" style="flex:1;">
+                    <h3 class="text-sm font-semibold text-white mb-1" style="display:flex;align-items:center;gap:6px;"><i data-lucide="home" class="w-4 h-4 text-teal"></i> Pulse — your home screen</h3>
+                    <p class="muted mb-0">Everything that needs attention in one place. Overdue actions, pending proposals, knowledge gaps — the system tells you what matters without you asking.</p>
+                </div>
+                <div class="info-box" style="flex:1;">
+                    <h3 class="text-sm font-semibold text-white mb-1" style="display:flex;align-items:center;gap:6px;"><i data-lucide="list-checks" class="w-4 h-4 text-gold"></i> Conversations become work</h3>
+                    <p class="muted mb-0">Action items, owners, due dates, and decisions are extracted automatically — timestamped and traceable back to the conversation that created them.</p>
+                </div>
+                <div class="info-box" style="flex:1;">
+                    <h3 class="text-sm font-semibold text-white mb-1" style="display:flex;align-items:center;gap:6px;"><i data-lucide="brain" class="w-4 h-4 text-purple-400"></i> Knowledge that improves itself</h3>
+                    <p class="muted mb-0">When the assistant can&rsquo;t answer, it logs the gap. Teach it the answer once and every future interaction benefits.</p>
+                </div>
+                <div class="info-box" style="flex:1;">
+                    <h3 class="text-sm font-semibold text-white mb-1" style="display:flex;align-items:center;gap:6px;"><i data-lucide="shield" class="w-4 h-4 text-teal"></i> Your AI, your rules</h3>
+                    <p class="muted mb-0">Run AI privately on this device, use a cloud provider, or mix both. Switch any time — you stay in control.</p>
+                </div>
+            </div>
+
+            <div class="grid-2" id="goalOptions">
+                {% for intent in onboarding_experience.intents %}
+                <label class="card-option{% if loop.first %} selected{% endif %}" data-group="goal" data-value="{{ intent.key }}">
+                    <input type="radio" name="goal" value="{{ intent.key }}" {% if loop.first %}checked{% endif %}>
+                    <span class="tag recommended">Start here</span>
+                    <h3 class="text-base font-semibold text-white mt-3 mb-2">{{ intent.label }}</h3>
+                    <p class="muted mb-0">{{ intent.description }}</p>
+                </label>
+                {% endfor %}
+            </div>
+
+            <div class="actions">
+                <div class="muted">You can change these choices later.</div>
+                <button class="btn btn-primary" type="button" onclick="goToStep(1)">Continue</button>
+            </div>
+        </section>
+
+        <section class="panel step" id="step-1">
+            <div class="eyebrow">Step 2 of 4</div>
+            <h2 class="text-2xl font-semibold text-white mb-2">Choose how the assistant runs</h2>
+            <p class="muted mb-6">Pick whether you want it to run on this device or use a cloud provider. You can still finish setup even if local AI is not ready yet.</p>
+
+            <div class="info-box mb-6">
+                <h3 class="text-sm font-semibold text-white mb-2">On this screen</h3>
+                <ul class="list" style="margin-top:0;">
+                    <li>Choose local-only or cloud-assisted.</li>
+                    <li>Decide whether to open the sample workspace with example data.</li>
+                    <li>Check whether local AI is ready on this device.</li>
+                </ul>
+            </div>
+
+            <div class="panel banner runtime-ready-banner" id="runtimeReadyBanner">
+                <div class="stack" style="gap:12px;">
+                    <div>
+                        <h3 class="text-sm font-semibold text-white mb-2">Local AI is already ready on this device.</h3>
+                        <p class="muted mb-0" id="runtimeReadyBannerText">You can skip runtime setup and jump straight to the final review.</p>
+                    </div>
+                    <div class="actions" style="margin-top:0; justify-content:flex-start;">
+                        <button class="btn btn-secondary" type="button" onclick="goToStep(3)">Skip to review</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="split">
+                <div class="stack">
+                    <div class="grid-2" id="pathOptions">
+                        {% for mode in onboarding_experience.modes %}
+                        <label class="card-option{% if mode.key == onboarding_experience.default_path %} selected{% endif %}" data-group="path" data-value="{{ mode.key }}">
+                            <input type="radio" name="path" value="{{ mode.key }}" {% if mode.key == onboarding_experience.default_path %}checked{% endif %}>
+                            <div class="flex flex-wrap gap-2">
+                                <span class="tag {% if mode.key == 'local_only' %}local{% else %}cloud{% endif %}">{{ mode.label }}</span>
+                                <span class="tag {% if mode.recommended %}recommended{% else %}warning{% endif %}">{% if mode.recommended %}Recommended{% else %}Optional{% endif %}</span>
+                            </div>
+                            <h3 class="text-base font-semibold text-white mt-3 mb-2">{{ mode.short_label }}</h3>
+                            <p class="muted mb-2">{{ mode.description }}</p>
+                            <p class="text-sm text-white mb-2">{{ mode.privacy }}</p>
+                            <p class="field-help mb-0">{{ mode.status_label }}. {{ mode.detail }}</p>
+                        </label>
+                        {% endfor %}
+                    </div>
+
+                    <div class="field">
+                        <label for="operationMode">Who is this for right now?</label>
+                        <select id="operationMode">
+                            {% for work_style in onboarding_experience.work_styles %}
+                            <option value="{{ work_style.key }}">{{ work_style.label }}</option>
+                            {% endfor %}
+                        </select>
+                        <div class="field-help" id="operationModeHelp">{{ onboarding_experience.work_styles[0].description }}</div>
+                    </div>
+
+                    <div class="info-box">
+                        <h3 class="text-sm font-semibold text-white mb-2">What changes between local and cloud</h3>
+                        <ul class="list">
+                            {% for note in onboarding_experience.privacy_notes %}
+                            <li>{{ note }}</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="stack">
+                    <div class="info-box">
+                        <h3 class="text-sm font-semibold text-white mb-2">Local AI check</h3>
+                        <div id="preflightChecks" class="muted">Checking local setup...</div>
+                        <div class="runtime-status-card">
+                            <div class="runtime-status-line">
+                                <div>
+                                    <p class="text-sm font-semibold text-white" style="margin:0;">Local AI</p>
+                                    <p class="runtime-status-text" id="runtimeStatusSummary">Checking whether local AI is available on this device...</p>
+                                </div>
+                                <span class="tag" id="runtimeStatusBadge">Checking...</span>
+                            </div>
+                            <div class="runtime-actions" id="runtimeActionArea"></div>
+                            <p class="field-help" id="runtimeActionHelp" style="margin-bottom:0;">Setup can continue even if local AI is not ready yet.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="actions">
+                <button class="btn btn-secondary" type="button" onclick="goToStep(0)">Back</button>
+                <button class="btn btn-primary" type="button" onclick="goToStep(2)">Continue</button>
+            </div>
+        </section>
+
+        <section class="panel step" id="step-2">
+            <div class="eyebrow">Step 3 of 4</div>
+            <h2 class="text-2xl font-semibold text-white mb-2">Optional connections</h2>
+            <p class="muted mb-6">Only fill these in if you want cloud AI, Discord, or web search. You can leave everything blank and keep going.</p>
+
+            <div class="split">
+                <div class="stack">
+                    <div class="info-box">
+                        <div class="flex flex-wrap gap-2 mb-3">
+                            <span class="tag local">Local-only</span>
+                            <span class="tag recommended" id="localPathStatus">Preferred default</span>
+                        </div>
+                        <p class="muted mb-2" id="localPathSummary"></p>
+                        <p class="field-help mb-0">If the local runtime is not ready yet, setup can still finish and the app will try background local provisioning after first launch.</p>
+                    </div>
+
+                    <div class="info-box">
+                        <div class="flex flex-wrap gap-2 mb-3">
+                            <span class="tag cloud">Cloud-assisted</span>
+                            <span class="tag warning">Optional</span>
+                        </div>
+                        <p class="muted mb-0" id="cloudDecisionSummary"></p>
+                    </div>
+                </div>
+
+                <div class="stack">
+                    <div class="info-box">
+                        <h3 class="text-sm font-semibold text-white mb-3">Optional cloud and sharing features</h3>
+                        <p class="field-help" style="margin-top:0;">Add these only if you want cloud AI, Discord, or web search. Leave them blank if you want to start local-only.</p>
+
+                        <div class="field">
+                            <label for="discord_token">Discord bot token</label>
+                            <input id="discord_token" type="password" placeholder="Required for team mode only">
+                            <div class="field-help">Needed only if you want the assistant to connect to Discord. You can leave it blank for solo mode.</div>
+                        </div>
+
+                        <div class="field">
+                            <label for="openai_key">OpenAI key</label>
+                            <input id="openai_key" type="password" placeholder="Optional">
+                        </div>
+
+                        <div class="field">
+                            <label for="anthropic_key">Anthropic key</label>
+                            <input id="anthropic_key" type="password" placeholder="Optional">
+                        </div>
+
+                        <div class="field">
+                            <label for="tavily_key">Tavily key for web search</label>
+                            <input id="tavily_key" type="password" placeholder="Optional">
+                            <div class="field-help">Web search is separate from the assistant path and can stay off if you want the workspace to stay local-only.</div>
+                        </div>
+                    </div>
+
+                    <div class="info-box">
+                        <h3 class="text-sm font-semibold text-white mb-2">Fallback when local AI is not ready</h3>
+                        <p class="muted mb-2">{{ onboarding_experience.fallback_behavior.summary }}</p>
+                        <ul class="list">
+                            {% for item in onboarding_experience.fallback_behavior.steps %}
+                            <li>{{ item }}</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <div id="step2Error" class="error-text"></div>
+
+            <div class="actions">
+                <button class="btn btn-secondary" type="button" onclick="goToStep(1)">Back</button>
+                <button class="btn btn-primary" type="button" onclick="goToStep(3)">Review setup</button>
+            </div>
+        </section>
+
+        <section class="panel step" id="step-3">
+            <div class="eyebrow">Step 4 of 4</div>
+            <h2 class="text-2xl font-semibold text-white mb-2">Review and finish</h2>
+            <p class="muted mb-6">Quick check before your workspace opens. The goal is to get you working, not configuring.</p>
+
+            <div class="split">
+                <div class="info-box">
+                    <h3 class="text-sm font-semibold text-white mb-3">What you chose</h3>
+                    <div id="setupSummary"></div>
+                </div>
+
+                <div class="success-box">
+                    <h3 class="text-sm font-semibold text-white mb-3">What happens next</h3>
+                    <ul class="list" style="margin-top:0;">
+                        <li><strong>Pulse</strong> opens — your operational home showing what needs attention.</li>
+                        <li>The sample workspace loads if you left it on.</li>
+                        <li>Ask anything via the chat panel (always available from every page).</li>
+                        <li>If no AI model is selected yet, a banner will guide you to <strong>Model Router</strong>.</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div id="finishError" class="error-text"></div>
+
+            <div class="actions">
+                <button class="btn btn-secondary" type="button" onclick="goToStep(2)">Back</button>
+                <button class="btn btn-primary" id="finishSetupBtn" type="button" onclick="finishSetup()">Finish setup</button>
+            </div>
+        </section>
+    </div>
+
+    <div id="toast" class="toast"></div>
+
+    <script>
+    const onboardingState = {{ onboarding_state | tojson | safe }};
+    const onboardingExperience = {{ onboarding_experience | tojson | safe }};
+    const initialRuntimeReady = Boolean(onboardingState.ollama_detected && onboardingState.provider_connected && (onboardingState.local_models || []).length);
+    let setupRuntimeStatus = {
+        installed: !!onboardingState.ollama_detected,
+        running: !!onboardingState.provider_connected,
+        models: onboardingState.local_models || [],
+        pending: true,
+    };
+    let runtimeActionBusy = false;
+    let runtimeRetryAction = '';
+    let runtimeStatusOverride = null;
+    let currentStepIndex = 0;
+    let setupReviewShortcutApplied = false;
+
+    function showToast(message) {
+        const toast = document.getElementById('toast');
+        toast.textContent = message;
+        toast.classList.add('show');
+        setTimeout(() => toast.classList.remove('show'), 3000);
+    }
+
+    function localRuntimeReady(status = setupRuntimeStatus) {
+        return !!(status && status.installed && status.running && Array.isArray(status.models) && status.models.length > 0);
+    }
+
+    function setRuntimeOverride(override) {
+        runtimeStatusOverride = override;
+        renderRuntimeStatus(setupRuntimeStatus);
+    }
+
+    function maybeShortCircuitSetup() {
+        if (setupReviewShortcutApplied || !localRuntimeReady() || currentStepIndex >= 3) {
+            return;
+        }
+        setupReviewShortcutApplied = true;
+        goToStep(3);
+    }
+
+    function renderRuntimeStatus(status = setupRuntimeStatus) {
+        setupRuntimeStatus = status || setupRuntimeStatus;
+        const badge = document.getElementById('runtimeStatusBadge');
+        const summary = document.getElementById('runtimeStatusSummary');
+        const actionArea = document.getElementById('runtimeActionArea');
+        const help = document.getElementById('runtimeActionHelp');
+        const readyBanner = document.getElementById('runtimeReadyBanner');
+        const readyBannerText = document.getElementById('runtimeReadyBannerText');
+        if (!badge || !summary || !actionArea || !help || !readyBanner || !readyBannerText) return;
+
+        if (runtimeStatusOverride) {
+            badge.textContent = runtimeStatusOverride.badge || 'Working...';
+            badge.className = runtimeStatusOverride.badgeClass || 'tag warning';
+            summary.textContent = runtimeStatusOverride.summary || '';
+            actionArea.innerHTML = runtimeStatusOverride.actions || '';
+            help.innerHTML = runtimeStatusOverride.help || '';
+            readyBanner.style.display = runtimeStatusOverride.showReadyBanner ? '' : 'none';
+            if (runtimeStatusOverride.showReadyBanner) {
+                readyBannerText.textContent = runtimeStatusOverride.readyBannerText || readyBannerText.textContent;
+            }
+            return;
+        }
+
+        const models = Array.isArray(status.models) ? status.models : [];
+
+        if (status.pending) {
+            badge.textContent = 'Checking...';
+            badge.className = 'tag';
+            summary.textContent = 'Checking whether local AI is available on this device...';
+            actionArea.innerHTML = '';
+            help.textContent = 'Setup can continue even if local AI is not ready yet.';
+            readyBanner.style.display = 'none';
+            return;
+        }
+
+        if (localRuntimeReady(status)) {
+            badge.textContent = 'Ready';
+            badge.className = 'tag local';
+            summary.textContent = `Ollama is running with ${models.length} model${models.length === 1 ? '' : 's'} available.`;
+            actionArea.innerHTML = `
+                <button class="btn btn-secondary" type="button" onclick="refreshRuntimeStatus()">Refresh status</button>
+                <button class="btn btn-primary" type="button" onclick="goToStep(3)">Skip to review</button>
+            `;
+            help.textContent = 'Local AI is already available, so you only need to confirm your workspace choices.';
+            readyBanner.style.display = '';
+            readyBannerText.textContent = 'Local AI is already running with a usable model. You can jump straight to review or keep stepping through the guide.';
+            maybeShortCircuitSetup();
+            return;
+        }
+
+        readyBanner.style.display = 'none';
+
+        if (!status.installed) {
+            badge.textContent = 'Missing';
+            badge.className = 'tag warning';
+            summary.textContent = 'Local AI is not installed yet on this device.';
+            actionArea.innerHTML = `
+                <button class="btn btn-primary" type="button" id="runtimeInstallBtn" onclick="installOllamaFromSetup()">${runtimeRetryAction === 'install' ? 'Try install again' : 'Install local AI (Ollama)'}</button>
+                <button class="btn btn-secondary" type="button" onclick="refreshRuntimeStatus()">Check again</button>
+            `;
+            help.innerHTML = 'The installer opens separately. If nothing appears, <a class="runtime-inline-link" href="https://ollama.com/download" target="_blank" rel="noopener noreferrer">download Ollama directly</a>.';
+            return;
+        }
+
+        if (!status.running) {
+            badge.textContent = 'Stopped';
+            badge.className = 'tag recommended';
+            summary.textContent = 'Local AI is installed, but it is not running yet.';
+            actionArea.innerHTML = `
+                <button class="btn btn-primary" type="button" id="runtimeStartBtn" onclick="startOllamaFromSetup()">${runtimeRetryAction === 'start' ? 'Try starting again' : 'Start local AI (Ollama)'}</button>
+                <button class="btn btn-secondary" type="button" onclick="refreshRuntimeStatus()">Refresh status</button>
+            `;
+            help.textContent = 'Start the local runtime here, then continue once the app detects it.';
+            return;
+        }
+
+        badge.textContent = 'No model yet';
+        badge.className = 'tag warning';
+        summary.textContent = 'Local AI is running, but there is no chat model available yet.';
+        actionArea.innerHTML = `
+            <button class="btn btn-primary" type="button" onclick="window.location.href='/router'">Open Model Router</button>
+            <button class="btn btn-secondary" type="button" onclick="refreshRuntimeStatus()">Refresh status</button>
+        `;
+        help.textContent = 'Install a starter model in Model Router, then come back and finish setup.';
+    }
+
+    function setFinishButtonState(label, disabled = true) {
+        const finishBtn = document.getElementById('finishSetupBtn');
+        if (!finishBtn) return;
+        finishBtn.disabled = disabled;
+        finishBtn.textContent = label;
+    }
+
+    function selectedValue(name) {
+        const checked = document.querySelector(`input[name="${name}"]:checked`);
+        return checked ? checked.value : '';
+    }
+
+    function setSelectedCard(group, value) {
+        document.querySelectorAll(`[data-group="${group}"]`).forEach((card) => {
+            const active = card.getAttribute('data-value') === value;
+            card.classList.toggle('selected', active);
+            const input = card.querySelector('input');
+            if (input) {
+                input.checked = active;
+            }
+        });
+    }
+
+    function goToStep(stepIndex) {
+        currentStepIndex = stepIndex;
+        document.querySelectorAll('.step').forEach((step) => step.classList.remove('active'));
+        const target = document.getElementById(`step-${stepIndex}`);
+        /* Re-trigger the entrance animation by forcing a reflow */
+        target.style.animation = 'none';
+        target.offsetHeight; /* reflow */
+        target.style.animation = '';
+        target.classList.add('active');
+        document.querySelectorAll('.progress-bar').forEach((bar, index) => {
+            bar.classList.toggle('done', index < stepIndex);
+            bar.classList.toggle('current', index === stepIndex);
+        });
+        if (stepIndex === 2) {
+            updateConnectionStep();
+        }
+        if (stepIndex === 3) {
+            renderSummary();
+        }
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function updateOperationModeHelp() {
+        const selected = document.getElementById('operationMode').value;
+        const workStyle = (onboardingExperience.work_styles || []).find((item) => item.key === selected);
+        document.getElementById('operationModeHelp').textContent = workStyle ? workStyle.description : '';
+    }
+
+    function updateConnectionStep() {
+        const chosenPath = selectedValue('path') || onboardingExperience.default_path;
+        const localMode = (onboardingExperience.modes || []).find((mode) => mode.key === 'local_only') || {};
+        const cloudMode = (onboardingExperience.modes || []).find((mode) => mode.key === 'cloud_assisted') || {};
+        const runtimeReady = localRuntimeReady();
+        document.getElementById('localPathSummary').textContent = runtimeReady
+            ? 'Local AI is already usable on this device, so you can finish setup without adding any cloud key.'
+            : (localMode.detail || '');
+        document.getElementById('localPathStatus').textContent = runtimeReady
+            ? 'Ready on this device'
+            : (chosenPath === 'local_only' ? 'Selected path' : (localMode.status_label || 'Available later'));
+        document.getElementById('cloudDecisionSummary').textContent = chosenPath === 'cloud_assisted'
+            ? (cloudMode.privacy || '')
+            : 'You can skip cloud access for now and still finish setup. Add it later only if you need it.';
+    }
+
+    async function refreshRuntimeStatus() {
+        if (runtimeActionBusy) return;
+        runtimeStatusOverride = null;
+        renderRuntimeStatus({ ...setupRuntimeStatus, pending: true });
+        try {
+            const resp = await fetch('/api/v1/ollama/status?refresh=1');
+            if (!resp.ok) {
+                throw new Error(`Could not check Ollama status (server returned ${resp.status}).`);
+            }
+            const data = await resp.json();
+            if (data.success === false) {
+                throw new Error(data.message || 'Could not check Ollama status right now.');
+            }
+            runtimeRetryAction = '';
+            renderRuntimeStatus({
+                installed: !!data.installed,
+                running: !!data.running,
+                models: Array.isArray(data.models) ? data.models : [],
+                pending: false,
+            });
+            updateConnectionStep();
+        } catch (error) {
+            renderRuntimeStatus({ installed: false, running: false, models: [], pending: false });
+            const help = document.getElementById('runtimeActionHelp');
+            if (help) help.textContent = error.message || 'Could not check Ollama status right now.';
+            updateConnectionStep();
+        }
+    }
+
+    async function installOllamaFromSetup() {
+        if (runtimeActionBusy) return;
+        runtimeActionBusy = true;
+        const help = document.getElementById('runtimeActionHelp');
+        setRuntimeOverride({
+            badge: 'Installing',
+            badgeClass: 'tag warning',
+            summary: 'Launching the Ollama installer...',
+            actions: '<button class="btn btn-primary" type="button" disabled>Launching installer...</button><button class="btn btn-secondary" type="button" disabled>Waiting...</button>',
+            help: 'If Windows asks for permission, approve it and finish the installer before checking again.',
+        });
+
+        try {
+            const resp = await fetch('/api/v1/ollama/install', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRF-Protection': '1' },
+                body: JSON.stringify({}),
+            });
+            if (!resp.ok) {
+                throw new Error(`Could not launch the installer (server returned ${resp.status}).`);
+            }
+            const data = await resp.json();
+            if (!data.success) {
+                throw new Error(data.message || 'Could not launch the installer.');
+            }
+            runtimeRetryAction = 'install';
+            setRuntimeOverride({
+                badge: 'Install in progress',
+                badgeClass: 'tag warning',
+                summary: 'Finish the Ollama installer, then confirm it is installed.',
+                actions: '<button class="btn btn-primary" type="button" onclick="refreshRuntimeStatus()">I finished installing</button><a class="btn btn-secondary" href="https://ollama.com/download" target="_blank" rel="noopener noreferrer">Download directly</a>',
+                help: 'When the installer closes, click I finished installing. If it never opened, use the direct download link.',
+            });
+            showToast('Installer launched');
+        } catch (error) {
+            runtimeRetryAction = 'install';
+            runtimeStatusOverride = null;
+            renderRuntimeStatus({ installed: false, running: false, models: [], pending: false });
+            if (help) help.textContent = error.message || 'Could not launch the installer.';
+            showToast(error.message || 'Could not launch the installer.');
+        } finally {
+            runtimeActionBusy = false;
+        }
+    }
+
+    async function startOllamaFromSetup() {
+        if (runtimeActionBusy) return;
+        runtimeActionBusy = true;
+        const help = document.getElementById('runtimeActionHelp');
+        setRuntimeOverride({
+            badge: 'Starting',
+            badgeClass: 'tag recommended',
+            summary: 'Starting Ollama on this device...',
+            actions: '<button class="btn btn-primary" type="button" disabled>Starting Ollama...</button><button class="btn btn-secondary" type="button" disabled>Waiting...</button>',
+            help: 'This can take a few seconds. The guide will re-check status when the request finishes.',
+        });
+
+        try {
+            const resp = await fetch('/api/v1/ollama/start', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRF-Protection': '1' },
+                body: JSON.stringify({}),
+            });
+            if (!resp.ok) {
+                throw new Error(`Could not start Ollama (server returned ${resp.status}).`);
+            }
+            const data = await resp.json();
+            if (!data.success) {
+                throw new Error(data.message || 'Could not start Ollama.');
+            }
+            runtimeRetryAction = '';
+            setRuntimeOverride({
+                badge: 'Checking',
+                badgeClass: 'tag recommended',
+                summary: 'Ollama started. Checking for installed models...',
+                actions: '<button class="btn btn-primary" type="button" disabled>Checking models...</button>',
+                help: 'The guide is confirming that the local runtime is ready.',
+            });
+            await refreshRuntimeStatus();
+            showToast('Ollama started');
+        } catch (error) {
+            runtimeRetryAction = 'start';
+            runtimeStatusOverride = null;
+            renderRuntimeStatus({ ...setupRuntimeStatus, pending: false });
+            if (help) help.textContent = error.message || 'Could not start Ollama.';
+            showToast(error.message || 'Could not start Ollama.');
+        } finally {
+            runtimeActionBusy = false;
+        }
+    }
+
+    function renderSummary() {
+        const goal = (onboardingExperience.intents || []).find((item) => item.key === selectedValue('goal'));
+        const path = (onboardingExperience.modes || []).find((item) => item.key === selectedValue('path'));
+        const workStyle = (onboardingExperience.work_styles || []).find((item) => item.key === document.getElementById('operationMode').value);
+        const seedDemo = document.getElementById('seedDemoWorkspace').checked;
+        const usesCloud = Boolean(document.getElementById('openai_key').value || document.getElementById('anthropic_key').value);
+        document.getElementById('setupSummary').innerHTML = `
+            <div class="summary-row"><span class="summary-label">What you want help with</span><span class="summary-value">${goal ? goal.label : 'Not selected'}</span></div>
+            <div class="summary-row"><span class="summary-label">How AI runs</span><span class="summary-value">${path ? path.label : 'Not selected'}</span></div>
+            <div class="summary-row"><span class="summary-label">Work style</span><span class="summary-value">${workStyle ? workStyle.label : 'Not selected'}</span></div>
+            <div class="summary-row"><span class="summary-label">Sample workspace</span><span class="summary-value">${seedDemo ? 'Load example data' : 'Start empty'}</span></div>
+            <div class="summary-row"><span class="summary-label">Cloud keys added now</span><span class="summary-value">${usesCloud ? 'Yes' : 'No'}</span></div>
+        `;
+    }
+
+    async function loadPreflight() {
+        try {
+            const resp = await fetch('/api/v1/setup/preflight');
+            if (!resp.ok) {
+                throw new Error(`Could not load setup checks (server returned ${resp.status}).`);
+            }
+            const data = await resp.json();
+            if (!data.success) {
+                document.getElementById('preflightChecks').textContent = data.message || 'Could not load local setup checks.';
+                return;
+            }
+            document.getElementById('preflightChecks').innerHTML = (data.checks || []).map((check) => `
+                <div class="summary-row">
+                    <span class="summary-label">${check.name}</span>
+                    <span class="summary-value">${check.ok ? 'Ready' : 'Needs attention'} · ${check.detail}</span>
+                </div>
+            `).join('');
+        } catch (error) {
+            document.getElementById('preflightChecks').textContent = error.message || 'Could not load local setup checks.';
+        }
+    }
+
+    async function finishSetup() {
+        const finishError = document.getElementById('finishError');
+        finishError.style.display = 'none';
+        setFinishButtonState('Saving local settings...');
+        document.body.style.cursor = 'progress';
+
+        const operationMode = document.getElementById('operationMode').value;
+        const goal = selectedValue('goal');
+        const path = selectedValue('path');
+        const seedDemoWorkspace = false;
+
+        try {
+            const keyResponse = await fetch('/api/v1/setup/keys', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRF-Protection': '1' },
+                body: JSON.stringify({
+                    operation_mode: operationMode,
+                    discord_token: document.getElementById('discord_token').value || null,
+                    openai_key: document.getElementById('openai_key').value || null,
+                    anthropic_key: document.getElementById('anthropic_key').value || null,
+                    tavily_key: document.getElementById('tavily_key').value || null,
+                }),
+            });
+            if (!keyResponse.ok) {
+                throw new Error(`Could not save setup settings (server returned ${keyResponse.status}).`);
+            }
+            const keyData = await keyResponse.json();
+            if (!keyData.success) {
+                throw new Error(keyData.message || 'Could not save setup settings');
+            }
+
+            setFinishButtonState('Preparing workspace...');
+            const completeResponse = await fetch('/api/v1/setup/complete', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRF-Protection': '1' },
+                body: JSON.stringify({
+                    seed_demo_workspace: seedDemoWorkspace,
+                    goal: goal,
+                    privacy_mode: path,
+                    operation_mode: operationMode,
+                }),
+            });
+            if (!completeResponse.ok) {
+                throw new Error(`Could not finish setup (server returned ${completeResponse.status}).`);
+            }
+            const completeData = await completeResponse.json();
+            if (!completeData.success) {
+                throw new Error(completeData.message || 'Could not finish setup');
+            }
+
+            setFinishButtonState('Opening your workspace...');
+            showToast(completeData.seed && completeData.seed.reason === 'already_seeded'
+                ? 'Setup saved. Opening Pulse...'
+                : 'Setup complete — welcome to your workspace.');
+            window.location.href = '/pulse';
+        } catch (error) {
+            finishError.textContent = error.message || 'Could not finish setup.';
+            finishError.style.display = 'block';
+            setFinishButtonState('Finish setup', false);
+            document.body.style.cursor = '';
+        }
+    }
+
+    document.querySelectorAll('[data-group="goal"]').forEach((card) => {
+        card.addEventListener('click', () => setSelectedCard('goal', card.getAttribute('data-value')));
+    });
+    document.querySelectorAll('[data-group="path"]').forEach((card) => {
+        card.addEventListener('click', () => {
+            setSelectedCard('path', card.getAttribute('data-value'));
+            updateConnectionStep();
+        });
+    });
+    document.getElementById('operationMode').addEventListener('change', updateOperationModeHelp);
+
+    updateOperationModeHelp();
+    updateConnectionStep();
+    loadPreflight();
+    renderRuntimeStatus(setupRuntimeStatus);
+    if (initialRuntimeReady) {
+        maybeShortCircuitSetup();
+    }
+    refreshRuntimeStatus();
+    </script>
+</body>
+</html>

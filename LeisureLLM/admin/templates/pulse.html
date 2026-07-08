@@ -1,0 +1,397 @@
+{% extends "base.html" %}
+{% block title %}Pulse — {{ bot_name }}{% endblock %}
+
+{% block head %}
+<style>
+/* ── Pulse page — operational heartbeat ──────────────────────────────────── */
+.pulse-header { margin-bottom: 1.5rem; }
+.pulse-header h2 { margin-bottom: 0.25rem; }
+
+/* Stats bar */
+.pulse-stats {
+    display: flex; gap: 0.75rem; flex-wrap: wrap; margin-bottom: 1.5rem;
+}
+.pulse-stat {
+    display: flex; align-items: center; gap: 0.4rem;
+    padding: 0.45rem 0.85rem; border-radius: var(--r-pill);
+    background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06);
+    font-size: 0.78rem; color: rgba(255,255,255,0.6);
+    cursor: pointer; transition: all 0.2s;
+}
+.pulse-stat:hover { border-color: rgba(var(--a),0.3); background: rgba(var(--a),0.05); }
+.pulse-stat.active { border-color: rgba(var(--a),0.5); background: rgba(var(--a),0.08); color: rgb(var(--a)); }
+.pulse-stat .count { font-weight: 700; font-variant-numeric: tabular-nums; color: #fff; margin-right: 0.1rem; }
+
+/* Feed list */
+.pulse-feed { display: flex; flex-direction: column; gap: 0.5rem; }
+
+.pulse-item {
+    display: flex; align-items: center; gap: 0.85rem;
+    padding: 0.85rem 1.1rem;
+    border-radius: 14px;
+    background: rgba(6,5,4,0.93);
+    border: 1px solid rgba(255,255,255,0.08);
+    transition: all 0.25s cubic-bezier(.16,1,.3,1);
+    cursor: default;
+}
+.pulse-item:hover { border-color: rgba(255,255,255,0.14); transform: translateX(2px); }
+.pulse-item.severity-critical { border-left: 3px solid #E13943; }
+.pulse-item.severity-warning  { border-left: 3px solid #F59E0B; }
+.pulse-item.severity-info     { border-left: 3px solid rgba(var(--b),0.7); }
+
+.pulse-item .pi-icon {
+    width: 2rem; height: 2rem; flex-shrink: 0;
+    border-radius: 10px; display: flex; align-items: center; justify-content: center;
+    font-size: 0.85rem;
+}
+.pulse-item.severity-critical .pi-icon { background: rgba(225,57,67,0.12); color: #E13943; }
+.pulse-item.severity-warning  .pi-icon { background: rgba(245,158,11,0.12); color: #F59E0B; }
+.pulse-item.severity-info     .pi-icon { background: rgba(var(--b),0.12); color: rgb(var(--b)); }
+
+.pulse-item .pi-body { flex: 1; min-width: 0; }
+.pulse-item .pi-title { font-size: 0.88rem; font-weight: 600; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pulse-item .pi-detail { font-size: 0.72rem; color: rgba(255,255,255,0.45); margin-top: 0.15rem; }
+.pulse-item .pi-type {
+    font-size: 0.62rem; text-transform: uppercase; letter-spacing: 0.05em;
+    padding: 0.15rem 0.45rem; border-radius: 6px; font-weight: 700;
+    background: rgba(255,255,255,0.04); color: rgba(255,255,255,0.35);
+    white-space: nowrap;
+}
+
+.pulse-item .pi-actions { display: flex; gap: 0.35rem; flex-shrink: 0; }
+.pulse-action-btn {
+    padding: 0.35rem 0.6rem; border-radius: 8px; font-size: 0.72rem; font-weight: 600;
+    border: 1px solid rgba(255,255,255,0.08); background: rgba(255,255,255,0.03);
+    color: rgba(255,255,255,0.55); cursor: pointer; transition: all 0.2s;
+}
+.pulse-action-btn:hover { border-color: rgba(var(--a),0.4); color: rgb(var(--a)); background: rgba(var(--a),0.06); }
+.pulse-action-btn.resolve:hover { border-color: rgba(45,212,191,0.5); color: #2dd4bf; background: rgba(45,212,191,0.08); }
+.pulse-action-btn.defer:hover { border-color: rgba(245,158,11,0.4); color: #F59E0B; background: rgba(245,158,11,0.06); }
+
+/* Keyboard-active highlight */
+.pulse-item.kb-active {
+    border-color: rgba(var(--a),0.5);
+    background: rgba(var(--a),0.04);
+    box-shadow: 0 0 0 1px rgba(var(--a),0.15);
+}
+
+/* Empty state */
+.pulse-empty {
+    text-align: center; padding: 4rem 1rem;
+    color: rgba(255,255,255,0.4);
+}
+.pulse-empty-icon {
+    width: 3.5rem; height: 3.5rem; margin: 0 auto 1rem;
+    border-radius: 1rem; display: flex; align-items: center; justify-content: center;
+    background: rgba(45,212,191,0.08); color: rgba(45,212,191,0.6);
+}
+.pulse-empty h3 { font-size: 1.1rem; color: rgba(255,255,255,0.6); margin: 0 0 0.3rem; }
+.pulse-empty p { font-size: 0.82rem; max-width: 24rem; margin: 0 auto; }
+
+/* Keyboard shortcuts bar */
+.pulse-kb-bar {
+    display: flex; gap: 1rem; margin-top: 1.5rem; padding: 0.6rem 1rem;
+    border-radius: 12px; background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.04);
+    font-size: 0.68rem; color: rgba(255,255,255,0.3);
+}
+.pulse-kb-bar kbd {
+    display: inline-flex; align-items: center; justify-content: center;
+    min-width: 1.4rem; height: 1.4rem; padding: 0 0.3rem;
+    border-radius: 4px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1);
+    font-size: 0.62rem; font-weight: 700; color: rgba(255,255,255,0.5);
+    font-family: inherit; margin-right: 0.25rem;
+}
+
+/* Celebration particle */
+@keyframes particlePop {
+    0%   { transform: scale(0) rotate(0deg); opacity: 1; }
+    100% { transform: scale(1.5) rotate(45deg); opacity: 0; }
+}
+.particle-burst {
+    position: absolute; pointer-events: none; z-index: 10;
+}
+.particle-burst span {
+    position: absolute; width: 6px; height: 6px; border-radius: 50%;
+    animation: particlePop 0.6s ease-out forwards;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<header class="pulse-header reveal">
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:1rem;">
+        <div>
+            <h2 class="text-2xl font-semibold text-white tracking-tight" id="pulseGreeting">Pulse</h2>
+            <p class="text-sm text-secondary">What needs your attention right now</p>
+        </div>
+        <div style="display:flex;gap:0.5rem;flex-wrap:wrap;">
+            <button class="pulse-action-btn" style="padding:0.55rem 1rem;font-size:0.82rem;border-radius:10px;" onclick="openChatPanel()">
+                <i data-lucide="message-square" class="w-3.5 h-3.5" style="vertical-align:-2px;margin-right:0.25rem;"></i> Ask anything
+            </button>
+            <a href="/teach" class="pulse-action-btn" style="padding:0.55rem 1rem;font-size:0.82rem;border-radius:10px;text-decoration:none;">
+                <i data-lucide="pencil-line" class="w-3.5 h-3.5" style="vertical-align:-2px;margin-right:0.25rem;"></i> Teach
+            </a>
+            <a href="/dashboard" class="pulse-action-btn" style="padding:0.55rem 1rem;font-size:0.82rem;border-radius:10px;text-decoration:none;">
+                <i data-lucide="layout-dashboard" class="w-3.5 h-3.5" style="vertical-align:-2px;margin-right:0.25rem;"></i> Dashboard
+            </a>
+        </div>
+    </div>
+</header>
+
+<!-- Stats bar -->
+<div class="pulse-stats reveal stagger-2" id="pulseStats">
+    <div class="pulse-stat active" data-filter="" onclick="filterPulse('')">
+        <span class="count" id="pulseTotalCount">—</span> Everything
+    </div>
+    <div class="pulse-stat" data-filter="overdue_action" onclick="filterPulse('overdue_action')">
+        <span class="count" id="pulseOverdueCount">0</span> Overdue
+    </div>
+    <div class="pulse-stat" data-filter="pending_proposal" onclick="filterPulse('pending_proposal')">
+        <span class="count" id="pulseProposalCount">0</span> Proposals
+    </div>
+    <div class="pulse-stat" data-filter="knowledge_gap" onclick="filterPulse('knowledge_gap')">
+        <span class="count" id="pulseGapCount">0</span> Gaps
+    </div>
+    <div class="pulse-stat" data-filter="overdue_obligation" onclick="filterPulse('overdue_obligation')">
+        <span class="count" id="pulseObligationCount">0</span> Obligations
+    </div>
+    <div class="pulse-stat" data-filter="unread_thread" onclick="filterPulse('unread_thread')">
+        <span class="count" id="pulseThreadCount">0</span> Unread
+    </div>
+</div>
+
+<!-- Feed -->
+<div class="glass-card p-4 reveal stagger-3">
+    <div class="pulse-feed" id="pulseFeed">
+        <div class="pulse-empty">
+            <div class="pulse-empty-icon"><i data-lucide="loader-2" class="w-5 h-5 animate-spin"></i></div>
+            <p>Loading…</p>
+        </div>
+    </div>
+</div>
+
+<!-- Keyboard shortcuts bar -->
+<div class="pulse-kb-bar reveal stagger-4">
+    <span><kbd>j</kbd><kbd>k</kbd> Navigate</span>
+    <span><kbd>r</kbd> Resolve</span>
+    <span><kbd>d</kbd> Defer</span>
+    <span><kbd>Enter</kbd> Open</span>
+    <span><kbd>?</kbd> Help</span>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+/* Time-of-day greeting for home page */
+(function(){
+    const h = new Date().getHours();
+    const el = document.getElementById('pulseGreeting');
+    if (!el) return;
+    let period = 'Good evening';
+    if (h < 12) period = 'Good morning';
+    else if (h < 17) period = 'Good afternoon';
+    el.textContent = period;
+})();
+
+let pulseItems = [];
+let filteredItems = [];
+let activeFilter = '';
+let kbIndex = -1; // keyboard navigation index
+
+const TYPE_ICONS = {
+    overdue_action: 'alert-circle',
+    pending_proposal: 'file-check',
+    knowledge_gap: 'puzzle',
+    overdue_obligation: 'timer',
+    unread_thread: 'message-square',
+};
+
+const TYPE_LABELS = {
+    overdue_action: 'Overdue Action',
+    pending_proposal: 'Review Proposal',
+    knowledge_gap: 'Knowledge Gap',
+    overdue_obligation: 'Obligation',
+    unread_thread: 'Unread',
+};
+
+const ENTITY_LINKS = {
+    action: '/actions',
+    proposal: '/actions', // proposals link to review context
+    gap: '/gaps',
+    obligation: '/obligations',
+    thread: '/inbox',
+};
+
+async function loadPulse() {
+    try {
+        const data = await apiCall('/api/v1/pulse/feed', { silentErrors: true });
+        if (!data.success) return;
+        pulseItems = data.items || [];
+        updateStats();
+        applyFilter();
+    } catch (e) {
+        console.error('Pulse load error:', e);
+    }
+}
+
+function updateStats() {
+    const counts = {};
+    pulseItems.forEach(i => { counts[i.type] = (counts[i.type] || 0) + 1; });
+    document.getElementById('pulseTotalCount').textContent = pulseItems.length;
+    document.getElementById('pulseOverdueCount').textContent = counts.overdue_action || 0;
+    document.getElementById('pulseProposalCount').textContent = counts.pending_proposal || 0;
+    document.getElementById('pulseGapCount').textContent = counts.knowledge_gap || 0;
+    document.getElementById('pulseObligationCount').textContent = counts.overdue_obligation || 0;
+    document.getElementById('pulseThreadCount').textContent = counts.unread_thread || 0;
+}
+
+function filterPulse(type) {
+    activeFilter = type;
+    document.querySelectorAll('.pulse-stat').forEach(s => {
+        s.classList.toggle('active', s.dataset.filter === type);
+    });
+    applyFilter();
+}
+
+function applyFilter() {
+    filteredItems = activeFilter ? pulseItems.filter(i => i.type === activeFilter) : [...pulseItems];
+    kbIndex = -1;
+    renderFeed();
+}
+
+function renderFeed() {
+    const feed = document.getElementById('pulseFeed');
+    if (!filteredItems.length) {
+        feed.innerHTML = `
+            <div class="pulse-empty">
+                <div class="pulse-empty-icon"><i data-lucide="check-circle" class="w-5 h-5"></i></div>
+                <h3>All Clear</h3>
+                <p>Nothing needs your attention right now. Keep going!</p>
+            </div>`;
+        if (typeof lucide !== 'undefined') lucide.createIcons({ root: feed });
+        return;
+    }
+
+    feed.innerHTML = filteredItems.map((item, idx) => `
+        <div class="pulse-item severity-${item.severity} ${idx === kbIndex ? 'kb-active' : ''}"
+             data-idx="${idx}" data-entity-type="${item.entity_type}" data-entity-id="${item.entity_id}">
+            <div class="pi-icon"><i data-lucide="${TYPE_ICONS[item.type] || 'circle'}" class="w-4 h-4"></i></div>
+            <div class="pi-body">
+                <div class="pi-title">${escHtml(item.title)}</div>
+                <div class="pi-detail">${escHtml(item.detail || '')}</div>
+            </div>
+            <span class="pi-type">${TYPE_LABELS[item.type] || item.type}</span>
+            <div class="pi-actions">
+                <button class="pulse-action-btn resolve" onclick="event.stopPropagation();pulseResolve(${idx})" title="Resolve">✓</button>
+                <button class="pulse-action-btn defer" onclick="event.stopPropagation();pulseDefer(${idx})" title="Defer 7 days">⏳</button>
+            </div>
+        </div>
+    `).join('');
+
+    if (typeof lucide !== 'undefined') lucide.createIcons({ root: feed });
+}
+
+function escHtml(s) {
+    const d = document.createElement('div');
+    d.textContent = s || '';
+    return d.innerHTML;
+}
+
+async function pulseResolve(idx) {
+    const item = filteredItems[idx];
+    if (!item) return;
+    const el = document.querySelector(`.pulse-item[data-idx="${idx}"]`);
+    const data = await apiCall(`/api/v1/pulse/resolve/${item.entity_type}/${item.entity_id}`, { method: 'POST' });
+    if (data.success) {
+        if (el) {
+            // Celebration particle burst
+            spawnParticles(el);
+            el.style.opacity = '0';
+            el.style.transform = 'translateX(40px)';
+            el.style.transition = 'all 0.3s ease';
+        }
+        showToast(data.message || 'Resolved', 'success');
+        setTimeout(() => loadPulse(), 350);
+    }
+}
+
+async function pulseDefer(idx) {
+    const item = filteredItems[idx];
+    if (!item) return;
+    const data = await apiCall(`/api/v1/pulse/defer/${item.entity_type}/${item.entity_id}`, { method: 'POST' });
+    if (data.success) {
+        showToast(data.message || 'Deferred', 'success');
+        loadPulse();
+    }
+}
+
+function pulseOpen(idx) {
+    const item = filteredItems[idx];
+    if (!item) return;
+    const link = ENTITY_LINKS[item.entity_type];
+    if (link) window.location.href = link;
+}
+
+function spawnParticles(el) {
+    const rect = el.getBoundingClientRect();
+    const burst = document.createElement('div');
+    burst.className = 'particle-burst';
+    burst.style.left = rect.left + rect.width / 2 + 'px';
+    burst.style.top = rect.top + rect.height / 2 + 'px';
+    burst.style.position = 'fixed';
+    const colors = ['#2dd4bf', '#EFAAC4', '#F9DEA2', '#7EA3CC'];
+    for (let i = 0; i < 8; i++) {
+        const p = document.createElement('span');
+        const angle = (i / 8) * Math.PI * 2;
+        const dist = 20 + Math.random() * 20;
+        p.style.background = colors[i % colors.length];
+        p.style.left = Math.cos(angle) * dist + 'px';
+        p.style.top = Math.sin(angle) * dist + 'px';
+        p.style.animationDelay = (i * 0.03) + 's';
+        burst.appendChild(p);
+    }
+    document.body.appendChild(burst);
+    setTimeout(() => burst.remove(), 800);
+}
+
+// ── Keyboard navigation ──────────────────────────────────────────────────
+document.addEventListener('keydown', function(e) {
+    // Don't hijack if user is in an input/textarea
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') return;
+    if (!filteredItems.length) return;
+
+    if (e.key === 'j' || e.key === 'ArrowDown') {
+        e.preventDefault();
+        kbIndex = Math.min(kbIndex + 1, filteredItems.length - 1);
+        highlightKb();
+    } else if (e.key === 'k' || e.key === 'ArrowUp') {
+        e.preventDefault();
+        kbIndex = Math.max(kbIndex - 1, 0);
+        highlightKb();
+    } else if (e.key === 'r' && kbIndex >= 0) {
+        e.preventDefault();
+        pulseResolve(kbIndex);
+    } else if (e.key === 'd' && kbIndex >= 0) {
+        e.preventDefault();
+        pulseDefer(kbIndex);
+    } else if (e.key === 'Enter' && kbIndex >= 0) {
+        e.preventDefault();
+        pulseOpen(kbIndex);
+    }
+});
+
+function highlightKb() {
+    document.querySelectorAll('.pulse-item').forEach(el => el.classList.remove('kb-active'));
+    const target = document.querySelector(`.pulse-item[data-idx="${kbIndex}"]`);
+    if (target) {
+        target.classList.add('kb-active');
+        target.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    }
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────
+loadPulse();
+// Refresh every 60s
+setInterval(loadPulse, 60000);
+</script>
+{% endblock %}

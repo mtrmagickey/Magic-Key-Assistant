@@ -1,0 +1,641 @@
+{
+  "_comment": "Curated catalog of recommended local models. Edit this file to add new frontier models without code changes. The system merges this with Ollama's live model list to suggest upgrades.",
+  "_updated": "2026-03-04",
+  "_schema_version": 3,
+  "models": [
+    {
+      "model": "nomic-embed-text",
+      "display": "Nomic Embed Text",
+      "family": "nomic",
+      "size_gb": 0.3,
+      "param_b": 0.1,
+      "purpose": "Document embedding for knowledge base search",
+      "category": "embedding",
+      "min_ram_gb": 4,
+      "min_vram_gb": 0,
+      "required": true,
+      "tiers": [
+        "lite",
+        "standard",
+        "power",
+        "workstation"
+      ],
+      "enrichment_priority": 99,
+      "generation": 1,
+      "architecture": "dense"
+    },
+    {
+      "model": "phi4-mini",
+      "display": "Phi-4 Mini (3.8B)",
+      "family": "phi",
+      "size_gb": 2.4,
+      "param_b": 3.8,
+      "purpose": "Fast, lightweight reasoning — chunk enrichment, classification, VSLM routing",
+      "category": "specialist",
+      "min_ram_gb": 6,
+      "min_vram_gb": 3,
+      "tiers": [
+        "lite",
+        "standard",
+        "power",
+        "workstation"
+      ],
+      "enrichment_priority": 4,
+      "generation": 4,
+      "architecture": "dense",
+      "supersedes": "phi3:mini",
+      "vslm_capable": true
+    },
+    {
+      "model": "phi3:mini",
+      "display": "Phi-3 Mini (3.8B)",
+      "family": "phi",
+      "size_gb": 2.3,
+      "param_b": 3.8,
+      "purpose": "Fast, lightweight reasoning — chunk enrichment, classification",
+      "category": "specialist",
+      "min_ram_gb": 6,
+      "min_vram_gb": 3,
+      "tiers": [
+        "lite",
+        "standard",
+        "power",
+        "workstation"
+      ],
+      "enrichment_priority": 5,
+      "generation": 3,
+      "architecture": "dense",
+      "deprecated": true,
+      "vslm_capable": true
+    },
+    {
+      "model": "gemma3:4b",
+      "display": "Gemma 3 (4B)",
+      "family": "gemma",
+      "size_gb": 3.3,
+      "param_b": 4,
+      "purpose": "Compact next-gen model — strong reasoning for its size",
+      "category": "specialist",
+      "min_ram_gb": 6,
+      "min_vram_gb": 3,
+      "tiers": [
+        "lite",
+        "standard",
+        "power",
+        "workstation"
+      ],
+      "enrichment_priority": 3,
+      "generation": 3,
+      "architecture": "dense",
+      "supersedes": "gemma2:2b",
+      "vslm_capable": true
+    },
+    {
+      "model": "gemma2:2b",
+      "display": "Gemma 2 (2B)",
+      "family": "gemma",
+      "size_gb": 1.6,
+      "param_b": 2,
+      "purpose": "Ultra-lightweight — quick classification and extraction",
+      "category": "specialist",
+      "min_ram_gb": 4,
+      "min_vram_gb": 2,
+      "tiers": [
+        "lite",
+        "standard",
+        "power",
+        "workstation"
+      ],
+      "enrichment_priority": 6,
+      "generation": 2,
+      "architecture": "dense",
+      "vslm_capable": true
+    },
+    {
+      "model": "qwen3:8b",
+      "display": "Qwen 3 (8B)",
+      "family": "qwen",
+      "size_gb": 4.9,
+      "param_b": 8,
+      "purpose": "Frontier multilingual reasoning, tool-calling, structured output",
+      "category": "general",
+      "min_ram_gb": 10,
+      "min_vram_gb": 6,
+      "tiers": [
+        "standard",
+        "power",
+        "workstation"
+      ],
+      "enrichment_priority": 0,
+      "generation": 3,
+      "architecture": "dense",
+      "supersedes": "qwen2.5:7b",
+      "recommended_quant": "Q4_K_M"
+    },
+    {
+      "model": "qwen3.5:9b",
+      "display": "Qwen 3.5 (9B, Dense)",
+      "family": "qwen",
+      "size_gb": 6.6,
+      "param_b": 9,
+      "purpose": "Latest Qwen dense model — strong reasoning, tool-calling, multilingual",
+      "category": "general",
+      "min_ram_gb": 12,
+      "min_vram_gb": 8,
+      "tiers": [
+        "standard",
+        "power",
+        "workstation"
+      ],
+      "enrichment_priority": 0,
+      "generation": 4,
+      "architecture": "dense",
+      "supersedes": "qwen3:8b",
+      "recommended_quant": "Q4_K_M"
+    },
+    {
+      "model": "qwen3.5:35b-a3b",
+      "display": "Qwen 3.5 35B-A3B (MoE, 3B active)",
+      "family": "qwen",
+      "size_gb": 24.0,
+      "param_b": 35,
+      "active_param_b": 3,
+      "purpose": "MoE breakthrough — 35B quality at 3B speed. Community-validated 75 tok/s on 16GB GPU",
+      "category": "general",
+      "min_ram_gb": 32,
+      "min_vram_gb": 16,
+      "tiers": [
+        "power",
+        "workstation"
+      ],
+      "enrichment_priority": 0,
+      "generation": 4,
+      "architecture": "moe",
+      "moe_experts": 64,
+      "moe_active_experts": 4,
+      "recommended_quant": "Q4_K_M",
+      "notes": "Community consensus: Q4_K_M optimal. UD-Q4_K_XL is harmful for MoE. llama.cpp gives 2-3x speed over Ollama for MoE due to expert offloading."
+    },
+    {
+      "model": "qwen3.5:27b",
+      "display": "Qwen 3.5 (27B, Dense)",
+      "family": "qwen",
+      "size_gb": 17.0,
+      "param_b": 27,
+      "purpose": "Large dense model — excellent critique and synthesis quality",
+      "category": "general",
+      "min_ram_gb": 28,
+      "min_vram_gb": 16,
+      "tiers": [
+        "power",
+        "workstation"
+      ],
+      "enrichment_priority": 8,
+      "generation": 4,
+      "architecture": "dense",
+      "supersedes": "mistral-small:24b",
+      "recommended_quant": "Q4_K_M"
+    },
+    {
+      "model": "qwen3.5:122b-a10b",
+      "display": "Qwen 3.5 122B-A10B (MoE, 10B active)",
+      "family": "qwen",
+      "size_gb": 81.0,
+      "param_b": 122,
+      "active_param_b": 10,
+      "purpose": "Frontier MoE — near-cloud quality with 10B active params",
+      "category": "general",
+      "min_ram_gb": 96,
+      "min_vram_gb": 48,
+      "tiers": [
+        "workstation"
+      ],
+      "enrichment_priority": 9,
+      "generation": 4,
+      "architecture": "moe",
+      "moe_experts": 64,
+      "moe_active_experts": 8,
+      "recommended_quant": "Q4_K_M",
+      "notes": "For llama.cpp: use --fit, -fa, -ctk q8_0, -ctv q8_0 for best throughput."
+    },
+    {
+      "model": "qwen2.5:7b",
+      "display": "Qwen 2.5 (7B)",
+      "family": "qwen",
+      "size_gb": 4.4,
+      "param_b": 7,
+      "purpose": "Excellent multilingual reasoning and coding",
+      "category": "general",
+      "min_ram_gb": 10,
+      "min_vram_gb": 6,
+      "tiers": [
+        "standard",
+        "power",
+        "workstation"
+      ],
+      "enrichment_priority": 1,
+      "generation": 2,
+      "architecture": "dense",
+      "deprecated": true
+    },
+    {
+      "model": "llama4:scout",
+      "display": "Llama 4 Scout (17B active, MoE)",
+      "family": "llama",
+      "size_gb": 67.0,
+      "param_b": 17,
+      "purpose": "Frontier MoE — excellent reasoning with efficient inference",
+      "category": "general",
+      "min_ram_gb": 72,
+      "min_vram_gb": 48,
+      "tiers": [
+        "workstation"
+      ],
+      "enrichment_priority": 2,
+      "generation": 4,
+      "architecture": "moe",
+      "supersedes": "llama3.1:8b"
+    },
+    {
+      "model": "llama3.1:8b",
+      "display": "Llama 3.1 (8B)",
+      "family": "llama",
+      "size_gb": 4.7,
+      "param_b": 8,
+      "purpose": "General chat, reasoning, and tool-calling",
+      "category": "general",
+      "min_ram_gb": 10,
+      "min_vram_gb": 6,
+      "tiers": [
+        "standard",
+        "power",
+        "workstation"
+      ],
+      "enrichment_priority": 2,
+      "generation": 3,
+      "architecture": "dense",
+      "deprecated": true
+    },
+    {
+      "model": "mistral-small:24b",
+      "display": "Mistral Small 3.1 (24B)",
+      "family": "mistral",
+      "size_gb": 14.0,
+      "param_b": 24,
+      "purpose": "Strong mid-size model — approaches 70B quality at lower cost",
+      "category": "general",
+      "min_ram_gb": 24,
+      "min_vram_gb": 16,
+      "tiers": [
+        "power",
+        "workstation"
+      ],
+      "enrichment_priority": 10,
+      "generation": 3,
+      "architecture": "dense",
+      "supersedes": "mistral:7b"
+    },
+    {
+      "model": "mistral:7b",
+      "display": "Mistral (7B)",
+      "family": "mistral",
+      "size_gb": 4.1,
+      "param_b": 7,
+      "purpose": "Strong reasoning and instruction-following",
+      "category": "general",
+      "min_ram_gb": 10,
+      "min_vram_gb": 6,
+      "tiers": [
+        "standard",
+        "power",
+        "workstation"
+      ],
+      "enrichment_priority": 4,
+      "generation": 1,
+      "architecture": "dense",
+      "deprecated": true
+    },
+    {
+      "model": "llama4:maverick-q4_K_M",
+      "display": "Llama 4 Maverick (128B MoE, Q4)",
+      "family": "llama",
+      "size_gb": 48.0,
+      "param_b": 128,
+      "purpose": "Frontier local model — near cloud quality for complex reasoning",
+      "category": "general",
+      "min_ram_gb": 64,
+      "min_vram_gb": 48,
+      "tiers": [
+        "workstation"
+      ],
+      "enrichment_priority": 10,
+      "generation": 4,
+      "architecture": "moe",
+      "supersedes": "llama3.3:70b-instruct-q4_K_M"
+    },
+    {
+      "model": "llama3.3:70b-instruct-q4_K_M",
+      "display": "Llama 3.3 (70B, Q4)",
+      "family": "llama",
+      "size_gb": 42.0,
+      "param_b": 70,
+      "purpose": "Near-cloud quality reasoning, runs on high-end hardware",
+      "category": "general",
+      "min_ram_gb": 48,
+      "min_vram_gb": 40,
+      "tiers": [
+        "workstation"
+      ],
+      "enrichment_priority": 10,
+      "generation": 3,
+      "architecture": "dense"
+    },
+    {
+      "model": "deepseek-r1:14b",
+      "display": "DeepSeek-R1 (14B)",
+      "family": "deepseek",
+      "size_gb": 9.0,
+      "param_b": 14,
+      "purpose": "Strong reasoning and chain-of-thought — critique pipeline stage",
+      "category": "specialist",
+      "min_ram_gb": 20,
+      "min_vram_gb": 10,
+      "tiers": [
+        "power",
+        "workstation"
+      ],
+      "enrichment_priority": 10,
+      "generation": 1,
+      "architecture": "dense"
+    },
+    {
+      "model": "deepseek-r1:32b",
+      "display": "DeepSeek-R1 (32B)",
+      "family": "deepseek",
+      "size_gb": 19.0,
+      "param_b": 32,
+      "purpose": "Advanced reasoning — excellent for critique and analysis",
+      "category": "specialist",
+      "min_ram_gb": 36,
+      "min_vram_gb": 20,
+      "tiers": [
+        "power",
+        "workstation"
+      ],
+      "enrichment_priority": 10,
+      "generation": 1,
+      "architecture": "dense",
+      "supersedes": "deepseek-r1:14b"
+    },
+    {
+      "model": "qwen2.5-coder:7b",
+      "display": "Qwen 2.5 Coder (7B)",
+      "family": "qwen",
+      "size_gb": 4.4,
+      "param_b": 7,
+      "purpose": "Specialist code generation — outperforms CodeLlama on benchmarks",
+      "category": "code",
+      "min_ram_gb": 10,
+      "min_vram_gb": 6,
+      "tiers": [
+        "standard",
+        "power",
+        "workstation"
+      ],
+      "enrichment_priority": 10,
+      "generation": 2,
+      "architecture": "dense",
+      "supersedes": "codellama:13b"
+    },
+    {
+      "model": "llama3.1:8b-instruct-q8_0",
+      "display": "Llama 3.1 8B (Q8, high quality)",
+      "family": "llama",
+      "size_gb": 8.5,
+      "param_b": 8,
+      "purpose": "Higher-fidelity 8B — better tool-calling accuracy",
+      "category": "general",
+      "min_ram_gb": 14,
+      "min_vram_gb": 9,
+      "tiers": [
+        "standard",
+        "power",
+        "workstation"
+      ],
+      "enrichment_priority": 10,
+      "generation": 3,
+      "architecture": "dense",
+      "deprecated": true
+    },
+    {
+      "model": "qwen2.5:32b",
+      "display": "Qwen2 32b (32.8B)",
+      "family": "qwen2",
+      "size_gb": 18.5,
+      "param_b": 32.8,
+      "purpose": "Auto-discovered qwen2 model (Q4_K_M)",
+      "category": "general",
+      "min_ram_gb": 27,
+      "min_vram_gb": 14,
+      "tiers": [
+        "power",
+        "workstation"
+      ],
+      "enrichment_priority": 5,
+      "generation": 2,
+      "auto_discovered": true
+    }
+  ],
+  "enrichment_preference_order": [
+    "qwen3.5:35b-a3b",
+    "qwen3.5:9b",
+    "qwen3:8b",
+    "qwen2.5:7b",
+    "llama4:scout",
+    "gemma3:4b",
+    "llama3.1:8b",
+    "phi4-mini",
+    "phi3:mini",
+    "mistral:7b",
+    "gemma2:2b"
+  ],
+  "upgrade_paths": {
+    "phi3:mini": "phi4-mini",
+    "gemma2:2b": "gemma3:4b",
+    "qwen2.5:7b": "qwen3.5:9b",
+    "qwen3:8b": "qwen3.5:9b",
+    "llama3.1:8b": "qwen3.5:9b",
+    "llama3.1:8b-instruct-q8_0": "qwen3.5:9b",
+    "llama3.3:70b-instruct-q4_K_M": "llama4:maverick-q4_K_M",
+    "mistral:7b": "qwen3.5:35b-a3b",
+    "mistral-small:24b": "qwen3.5:27b",
+    "codellama:13b": "qwen2.5-coder:7b",
+    "mixtral:8x7b": "qwen3.5:35b-a3b"
+  },
+  "pipeline_presets": {
+    "speed": {
+      "display": "Speed",
+      "description": "Single low-latency model, no extra stages. Best for quick questions and maximum responsiveness.",
+      "initial": {
+        "model_preference": [
+          "phi4-mini",
+          "gemma3:4b",
+          "qwen3:8b",
+          "qwen3.5:9b",
+          "qwen3.5:35b-a3b"
+        ],
+        "temperature": 0.3,
+        "max_tokens": 4000
+      },
+      "critique": {
+        "enabled": false
+      },
+      "synthesize": {
+        "enabled": false
+      }
+    },
+    "balanced": {
+      "display": "Balanced",
+      "description": "One strong default model, no extra stages. Better quality than Speed without critique/synthesis overhead.",
+      "initial": {
+        "model_preference": [
+          "qwen3:8b",
+          "qwen3.5:9b",
+          "llama4:scout",
+          "qwen3.5:35b-a3b"
+        ],
+        "temperature": 0.4,
+        "max_tokens": 4000
+      },
+      "critique": {
+        "enabled": false
+      },
+      "synthesize": {
+        "enabled": false
+      }
+    },
+    "quality": {
+      "display": "Quality",
+      "description": "Two-stage pipeline: strong draft plus dedicated review. Best accuracy without a redundant third pass.",
+      "initial": {
+        "model_preference": [
+          "qwen3.5:35b-a3b",
+          "llama4:scout",
+          "qwen3.5:9b",
+          "qwen3:8b"
+        ],
+        "temperature": 0.4,
+        "max_tokens": 4000
+      },
+      "critique": {
+        "model_preference": [
+          "deepseek-r1:14b",
+          "qwen3.5:9b",
+          "qwen3.5:27b",
+          "qwen3:8b"
+        ],
+        "temperature": 0.2,
+        "max_tokens": 4000
+      },
+      "synthesize": {
+        "enabled": false
+      }
+    },
+    "cloud_express": {
+      "display": "Cloud Express",
+      "description": "Single cloud model, no local models needed. Requires an API key.",
+      "cloud_only": true,
+      "initial": {
+        "backend": "auto_cloud",
+        "cloud_model_preference": {
+          "openai": "gpt-4o",
+          "anthropic": "claude-sonnet-4-20250514",
+          "openrouter": "anthropic/claude-sonnet-4-20250514"
+        },
+        "temperature": 0.4,
+        "max_tokens": 4000
+      },
+      "critique": {
+        "enabled": false
+      },
+      "synthesize": {
+        "enabled": false
+      }
+    },
+    "hybrid_smart": {
+      "display": "Hybrid Smart",
+      "description": "Fast local draft plus cloud review. Better separation of roles than reusing the same model repeatedly.",
+      "cloud_only": false,
+      "initial": {
+        "model_preference": [
+          "qwen3:8b",
+          "qwen3.5:9b",
+          "phi4-mini",
+          "gemma3:4b",
+          "llama4:scout",
+          "qwen3.5:35b-a3b"
+        ],
+        "temperature": 0.4,
+        "max_tokens": 4000
+      },
+      "critique": {
+        "backend": "auto_cloud",
+        "cloud_model_preference": {
+          "openai": "gpt-4o",
+          "anthropic": "claude-sonnet-4-20250514",
+          "openrouter": "anthropic/claude-sonnet-4-20250514"
+        },
+        "temperature": 0.2,
+        "max_tokens": 4000
+      },
+      "synthesize": {
+        "enabled": false
+      }
+    },
+    "privacy_first": {
+      "display": "Privacy First",
+      "description": "100% local. Uses a local draft model plus an optional different local review model when available.",
+      "cloud_only": false,
+      "initial": {
+        "model_preference": [
+          "qwen3.5:9b",
+          "qwen3:8b",
+          "phi4-mini",
+          "gemma3:4b",
+          "llama4:scout",
+          "qwen3.5:35b-a3b"
+        ],
+        "temperature": 0.4,
+        "max_tokens": 4000
+      },
+      "critique": {
+        "model_preference": [
+          "deepseek-r1:14b",
+          "qwen3.5:9b",
+          "qwen3.5:27b",
+          "qwen3:8b"
+        ],
+        "temperature": 0.2,
+        "max_tokens": 4000
+      },
+      "synthesize": {
+        "enabled": false
+      }
+    }
+  },
+  "vslm_router_models": [
+    "phi4-mini",
+    "gemma3:4b",
+    "gemma2:2b",
+    "phi3:mini"
+  ],
+  "deprecated_models": [
+    "mixtral:8x7b",
+    "codellama:13b",
+    "phi3:mini",
+    "qwen2.5:7b",
+    "mistral:7b",
+    "llama3.1:8b",
+    "llama3.1:8b-instruct-q8_0"
+  ]
+}

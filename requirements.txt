@@ -1,0 +1,13 @@
+# ============================================================
+# ROOT REQUIREMENTS - Reference file
+# ============================================================
+# 
+# CANONICAL SOURCE: LeisureLLM/requirements.txt
+# 
+# Install dependencies with:
+#   pip install -r LeisureLLM/requirements.txt
+#
+# This file includes the canonical requirements for convenience:
+# ============================================================
+
+-r LeisureLLM/requirements.txt

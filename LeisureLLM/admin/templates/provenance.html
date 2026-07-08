@@ -1,0 +1,219 @@
+{% extends "base.html" %}
+{% block title %}Provenance — {{ bot_name }}{% endblock %}
+
+{% block head %}
+<style>
+/* ── Provenance graph ────────────────────────────────────────────────────── */
+.prov-container { max-width: 64rem; margin: 0 auto; }
+.prov-graph {
+    position: relative;
+    padding: 2rem 1rem;
+    min-height: 300px;
+}
+
+/* Node */
+.prov-node {
+    display: flex; align-items: center; gap: 0.75rem;
+    padding: 0.85rem 1.1rem;
+    border-radius: 14px;
+    background: rgba(6,5,4,0.93);
+    border: 1px solid rgba(255,255,255,0.10);
+    margin-bottom: 0;
+    transition: all 0.2s;
+    position: relative;
+    cursor: pointer;
+}
+.prov-node:hover {
+    border-color: rgba(var(--a),0.3);
+    background: rgba(var(--a),0.04);
+    transform: translateX(2px);
+}
+.prov-node-icon {
+    width: 2.25rem; height: 2.25rem;
+    border-radius: 10px; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+}
+.prov-node-icon.type-meeting  { background: rgba(var(--b),0.15); color: rgb(var(--b)); }
+.prov-node-icon.type-decision { background: rgba(var(--c-light),0.15); color: rgb(var(--c-light)); }
+.prov-node-icon.type-action   { background: rgba(var(--a),0.15); color: rgb(var(--a)); }
+.prov-node-icon.type-gap      { background: rgba(168,130,255,0.15); color: #a882ff; }
+.prov-node-icon.type-default  { background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.5); }
+
+.prov-node-body { flex: 1; min-width: 0; }
+.prov-node-title { font-size: 0.88rem; font-weight: 600; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.prov-node-meta { font-size: 0.72rem; color: rgba(255,255,255,0.4); margin-top: 0.15rem; }
+.prov-node-type {
+    font-size: 0.62rem; text-transform: uppercase; letter-spacing: 0.05em;
+    padding: 0.15rem 0.45rem; border-radius: 6px; font-weight: 700; white-space: nowrap;
+    background: rgba(255,255,255,0.04); color: rgba(255,255,255,0.35);
+}
+
+/* Connector line */
+.prov-connector {
+    display: flex; align-items: center; justify-content: center;
+    padding: 0.3rem 0;
+    color: rgba(255,255,255,0.1);
+}
+.prov-connector-line {
+    width: 2px; height: 24px;
+    background: linear-gradient(180deg, rgba(var(--a),0.3), rgba(var(--a),0.08));
+    border-radius: 1px;
+}
+.prov-connector-label {
+    font-size: 0.6rem; color: rgba(255,255,255,0.2);
+    text-transform: uppercase; letter-spacing: 0.04em;
+    margin-left: 0.5rem;
+}
+
+/* Impact panel */
+.prov-impact {
+    margin-top: 1.5rem;
+    padding: 1rem 1.2rem;
+    border-radius: 14px;
+    background: rgba(255,255,255,0.02);
+    border: 1px solid rgba(255,255,255,0.05);
+}
+.prov-impact h4 { font-size: 0.82rem; color: rgba(255,255,255,0.5); margin: 0 0 0.75rem; }
+.prov-impact-item {
+    font-size: 0.78rem; color: rgba(255,255,255,0.55);
+    padding: 0.3rem 0.5rem; border-radius: 6px;
+    background: rgba(255,255,255,0.02); margin-bottom: 0.25rem;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="prov-container">
+    <header class="flex justify-between items-center mb-6 reveal">
+        <div>
+            <h2 class="text-2xl font-semibold text-white mb-1 tracking-tight">Provenance</h2>
+            <p class="text-sm text-secondary">Trace how artifacts originated — from conversation to completion</p>
+        </div>
+        <div class="flex gap-3">
+            <select id="provType" onchange="loadProvenance()" class="px-3 py-2 text-sm">
+                <option value="action">Action Items</option>
+                <option value="decision">Decisions</option>
+            </select>
+            <select id="provEntity" onchange="loadProvenanceChain()" class="px-3 py-2 text-sm">
+                <option value="">Select an item…</option>
+            </select>
+        </div>
+    </header>
+
+    <div class="glass-card p-6 reveal stagger-2">
+        <div class="prov-graph" id="provGraph">
+            <div class="text-center text-gray-500 py-8">
+                <i data-lucide="git-branch" class="w-6 h-6 mx-auto mb-2" style="color:rgba(var(--a),0.4)"></i>
+                <p class="text-sm">Select an artifact to see its origin chain</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="prov-impact reveal stagger-3" id="provImpact" style="display:none">
+        <h4><i data-lucide="git-merge" class="w-4 h-4 inline-block" style="vertical-align:-2px"></i> Impact — what depends on this</h4>
+        <div id="provImpactList"></div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const TYPE_ICONS = {
+    meeting: 'calendar',
+    decision: 'scale',
+    action: 'check-square',
+    gap: 'puzzle',
+    source: 'file-text',
+};
+
+async function loadProvenance() {
+    const type = document.getElementById('provType').value;
+    const sel = document.getElementById('provEntity');
+    sel.innerHTML = '<option value="">Loading…</option>';
+
+    try {
+        const endpoint = type === 'decision' ? '/api/v1/decisions' : '/api/v1/actions';
+        const data = await apiCall(endpoint);
+        const items = data.actions || data.decisions || data.items || [];
+        sel.innerHTML = '<option value="">Select an item…</option>' +
+            items.slice(0, 100).map(i => `<option value="${i.id}">${(i.title || i.what || '').slice(0, 60)}</option>`).join('');
+    } catch(e) { sel.innerHTML = '<option value="">Error loading</option>'; }
+}
+
+async function loadProvenanceChain() {
+    const type = document.getElementById('provType').value;
+    const id = document.getElementById('provEntity').value;
+    const graph = document.getElementById('provGraph');
+
+    if (!id) {
+        graph.innerHTML = '<div class="text-center text-gray-500 py-8"><p class="text-sm">Select an artifact to see its origin chain</p></div>';
+        return;
+    }
+
+    graph.innerHTML = '<div class="text-center py-6"><i data-lucide="loader-2" class="w-5 h-5 animate-spin mx-auto text-gray-500"></i></div>';
+
+    try {
+        const data = await apiCall(`/api/v1/graph/provenance/${type === 'decision' ? 'decisions' : 'actions'}/${id}`, { silentErrors: true });
+        const chain = data.chain || data.nodes || [];
+        if (!chain.length) {
+            graph.innerHTML = '<div class="text-center text-gray-500 py-8"><p class="text-sm">No provenance chain found for this item</p></div>';
+            return;
+        }
+
+        let html = '';
+        chain.forEach((node, idx) => {
+            const nodeType = (node.type || 'default').toLowerCase();
+            const icon = TYPE_ICONS[nodeType] || 'circle';
+            html += `
+                <div class="prov-node" onclick="navigateToNode('${nodeType}', ${node.id || 0})">
+                    <div class="prov-node-icon type-${nodeType}"><i data-lucide="${icon}" class="w-4 h-4"></i></div>
+                    <div class="prov-node-body">
+                        <div class="prov-node-title">${_esc(node.title || node.what || node.summary || '')}</div>
+                        <div class="prov-node-meta">${_esc(node.date || node.created_at || '')} ${node.actor ? '· ' + _esc(node.actor) : ''}</div>
+                    </div>
+                    <span class="prov-node-type">${_esc(nodeType)}</span>
+                </div>`;
+            if (idx < chain.length - 1) {
+                const rel = node.relation || 'led to';
+                html += `<div class="prov-connector"><div class="prov-connector-line"></div><span class="prov-connector-label">${_esc(rel)}</span></div>`;
+            }
+        });
+        graph.innerHTML = html;
+        if (typeof lucide !== 'undefined') lucide.createIcons({ root: graph });
+
+        // Load impact
+        loadImpact(type, id);
+    } catch(e) {
+        graph.innerHTML = '<div class="text-center text-gray-500 py-8"><p class="text-sm">Could not load provenance — this feature requires linked artifacts</p></div>';
+    }
+}
+
+async function loadImpact(type, id) {
+    const impact = document.getElementById('provImpact');
+    try {
+        const data = await apiCall(`/api/v1/graph/impact/${type === 'decision' ? 'decisions' : 'actions'}/${id}`, { silentErrors: true });
+        const items = data.affected || data.items || [];
+        if (items.length) {
+            document.getElementById('provImpactList').innerHTML = items.map(i =>
+                `<div class="prov-impact-item">${_esc(i.type || '')} — ${_esc(i.title || i.what || '')}</div>`
+            ).join('');
+            impact.style.display = '';
+        } else {
+            impact.style.display = 'none';
+        }
+    } catch(e) { impact.style.display = 'none'; }
+}
+
+function navigateToNode(type, id) {
+    if (type === 'action') window.location.href = '/actions';
+    else if (type === 'decision') window.location.href = '/actions'; // decisions shown on same page
+    else if (type === 'meeting') window.location.href = '/actions';
+    else if (type === 'gap') window.location.href = '/gaps';
+}
+
+function _esc(s) { const d = document.createElement('div'); d.textContent = s || ''; return d.innerHTML; }
+
+// Init
+loadProvenance();
+</script>
+{% endblock %}

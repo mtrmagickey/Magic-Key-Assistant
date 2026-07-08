@@ -1,0 +1,52 @@
+# Ruff configuration for Leisure Center Assistant
+# https://docs.astral.sh/ruff/configuration/
+
+# Line length
+line-length = 120
+
+# Target Python version
+target-version = "py312"
+
+[lint]
+# Keep CI on rules the current baseline can realistically hold green.
+# Additional bugbear/simplify families can be enabled after a dedicated
+# repo-wide cleanup pass instead of creating constant red builds.
+select = ["F", "E", "I"]
+
+# Ignore specific rules that are too noisy for this codebase
+ignore = [
+    "E501",   # Line too long (handled by formatter)
+    "E402",   # Module level import not at top (common in Discord bots)
+    "E101",   # Mixed tabs/spaces (common in SQL strings within Python code)
+    "E741",   # Ambiguous variable name (l for lead is readable)
+]
+
+# Allow autofix for all enabled rules
+fixable = ["ALL"]
+unfixable = []
+
+[lint.per-file-ignores]
+# Tests can have unused imports and assertions
+"tests/*.py" = ["F401", "F811", "F841"]
+# Config files often have unused variables for documentation
+"config.py" = ["F841"]
+"LeisureLLM/config.py" = ["F841"]
+# Init files commonly have unused imports for re-export
+"__init__.py" = ["F401"]
+# Migration files have deliberately standalone SQL
+"LeisureLLM/migrations/*.py" = ["E501", "F841"]
+# Cogs re-export setup() and use intentional namespace bindings
+"LeisureLLM/cogs/*.py" = ["F401", "F841"]
+# Service modules with intentional re-exports
+"LeisureLLM/services/*.py" = ["F841"]
+# Backup file (pre-split snapshot) — exclude from linting
+"LeisureLLM/admin/server_backup_pre_split.py" = ["E701", "E702", "F821"]
+# PyInstaller version info — uses injected names
+"version_info.py" = ["F821"]
+
+[format]
+# Use double quotes for strings
+quote-style = "double"
+
+# Indent with spaces
+indent-style = "space"

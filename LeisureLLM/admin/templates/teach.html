@@ -1,0 +1,179 @@
+{% extends "base.html" %}
+{% block title %}Teach — {{ bot_name }}{% endblock %}
+
+{% block head %}
+<style>
+    .path-input {
+        background: rgba(4,3,2,0.94); border: 1px solid rgba(255,255,255,0.15);
+        color: #e5e5e5; border-radius: 10px; transition: all 0.2s ease;
+    }
+    .path-input:focus { outline: none; border-color: rgba(239,170,196,0.5); box-shadow: 0 0 0 3px rgba(239,170,196,0.12); }
+    .path-input::placeholder { color: rgba(255,255,255,0.40); }
+    select.path-input { cursor: pointer; }
+    select.path-input option { background: #1a2e1a; color: #e5e5e5; }
+</style>
+{% endblock %}
+
+{% block content %}
+<header class="header-scrim flex justify-between items-center mb-6 reveal">
+    <div>
+        <h2 class="text-2xl font-semibold text-white mb-1 tracking-tight">Teach</h2>
+        <p class="text-sm text-secondary">Save facts, decisions, and procedures here so the assistant can use them in later conversations.</p>
+    </div>
+</header>
+
+<!-- Inline guide -->
+<div class="info-banner p-5 mb-6 reveal stagger-2">
+    <div class="flex items-start gap-4 relative z-10">
+        <div class="text-2xl"><i data-lucide="lightbulb" class="w-6 h-6 text-amber-400"></i></div>
+        <div>
+            <h3 class="font-medium text-white mb-1">How Teaching Works</h3>
+            <p class="text-sm text-secondary mb-2">Anything you save here is stored as a document and indexed into the assistant's knowledge. When the topic comes up later, the assistant can pull from what you saved instead of guessing from scratch.</p>
+            <p class="text-xs text-gray-400 mb-2">If a reply looks wrong or incomplete, teach the missing fact or upload the source document, then ask again. For anything high-stakes, check the cited sources.</p>
+            <p class="text-xs text-gray-400">Saved to <code class="bg-black/60 px-1.5 py-0.5 rounded">docs/memos/</code> and indexed into the assistant's knowledge.</p>
+        </div>
+    </div>
+</div>
+
+<!-- Teach form -->
+<section class="glass-card glow-card border-shimmer p-6 mb-8 reveal stagger-4">
+    <h3 class="font-medium text-white mb-4 flex items-center gap-2 relative z-10">
+        <i data-lucide="pencil-line" class="w-4 h-4 text-purple-400"></i> Teach the Assistant
+    </h3>
+    <div class="relative z-10 space-y-4">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+                <label class="block text-xs text-gray-400 mb-1.5">Title (optional)</label>
+                <input type="text" id="rememberTitle" placeholder="e.g. Client meeting decision"
+                       class="path-input w-full px-4 py-2.5 text-sm">
+            </div>
+            <div>
+                <label class="block text-xs text-gray-400 mb-1.5">Category</label>
+                <select id="rememberCategory" class="path-input w-full px-4 py-2.5 text-sm">
+                    <option value="general">General note — anything worth remembering</option>
+                    <option value="meeting">Meeting notes — summaries, attendees, outcomes</option>
+                    <option value="knowledge">Knowledge — facts, procedures, reference info</option>
+                </select>
+            </div>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+                <label class="block text-xs text-gray-400 mb-1.5">People involved (optional)</label>
+                <input type="text" id="rememberPeople" placeholder="e.g. Sarah, Mike, the pool team"
+                       class="path-input w-full px-4 py-2.5 text-sm">
+            </div>
+            <div>
+                <label class="block text-xs text-gray-400 mb-1.5">When did this happen? (optional)</label>
+                <input type="text" id="rememberWhen" placeholder="e.g. Last Tuesday, Jan 2024, ongoing"
+                       class="path-input w-full px-4 py-2.5 text-sm">
+            </div>
+        </div>
+        <div>
+            <label class="block text-xs text-gray-400 mb-1.5">Content</label>
+            <textarea id="rememberContent" rows="6" placeholder="Paste or type anything you want the assistant to remember…&#10;&#10;Try to include:&#10;• What happened or what was decided&#10;• Why it matters&#10;• Any dates, people, or follow-ups&#10;&#10;For example:&#10;&quot;We decided to renew the pool heating contract with AquaTherm for 2 years because they offered the best maintenance terms. Sarah handled the negotiation. Contract starts April 2025.&quot;"
+                      class="path-input w-full px-4 py-2.5 text-sm resize-y" style="min-height:7rem;"></textarea>
+        </div>
+        <div class="flex items-center justify-end">
+            <button onclick="rememberNote()" id="rememberBtn"
+                    class="btn-glossy px-5 py-2.5 text-white font-semibold text-sm">
+                <span class="relative z-10 flex items-center gap-1.5"><i data-lucide="save" class="w-3.5 h-3.5"></i> Save</span>
+            </button>
+        </div>
+    </div>
+</section>
+
+<!-- Bulk import encouragement -->
+<div class="info-panel p-5 mb-8 fade-in fade-in-delay-2">
+    <div class="flex items-start gap-4 relative z-10">
+        <div class="text-2xl"><i data-lucide="folder-open" class="w-6 h-6 text-teal"></i></div>
+        <div>
+            <h4 class="font-medium text-white mb-1">Have existing documents?</h4>
+            <p class="text-sm text-secondary mb-2">Upload PDFs, text files, or notes directly on the Knowledge page — drag and drop or browse. They'll be indexed automatically so the assistant can use them in conversations.</p>
+            <a href="/knowledge" class="text-teal text-sm hover:underline">Go to Knowledge → Upload Documents</a>
+        </div>
+    </div>
+</div>
+
+<!-- Recent submissions -->
+<section class="glass-card p-6 fade-in fade-in-delay-3">
+    <h3 class="font-medium text-white mb-4 flex items-center gap-2 relative z-10">
+        <i data-lucide="clipboard-list" class="w-4 h-4 text-teal"></i> Recently Taught
+    </h3>
+    <div id="recentTeachings" class="relative z-10">
+        <p class="text-sm text-gray-500">Loading recent entries…</p>
+    </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+async function rememberNote() {
+    const title = document.getElementById('rememberTitle').value.trim();
+    const category = document.getElementById('rememberCategory').value;
+    const people = document.getElementById('rememberPeople').value.trim();
+    const when = document.getElementById('rememberWhen').value.trim();
+    let content = document.getElementById('rememberContent').value.trim();
+    if (!content) { showToast('Please enter some content to save.', 'error'); return; }
+
+    // Prepend context fields into the content if provided
+    const extras = [];
+    if (people) extras.push('People involved: ' + people);
+    if (when) extras.push('When: ' + when);
+    if (extras.length) content = extras.join('\n') + '\n\n' + content;
+
+    const btn = document.getElementById('rememberBtn');
+    btn.disabled = true;
+    const data = await apiCall('/api/v1/knowledge/remember', {
+        method: 'POST',
+        body: JSON.stringify({ title, category, content }),
+    });
+    btn.disabled = false;
+    if (data.success) {
+        showToast('Saved! The assistant will remember this.');
+        document.getElementById('rememberTitle').value = '';
+        document.getElementById('rememberContent').value = '';
+        document.getElementById('rememberPeople').value = '';
+        document.getElementById('rememberWhen').value = '';
+        loadRecent();
+    }
+}
+
+async function loadRecent() {
+    const el = document.getElementById('recentTeachings');
+    el.innerHTML = '<div class="flex items-center gap-3 py-4"><i data-lucide="loader-2" class="w-4 h-4 animate-spin text-gray-600"></i><span class="text-sm text-gray-500">Loading recent entries…</span></div>';
+    if (typeof lucide !== 'undefined') lucide.createIcons();
+    try {
+        const data = await apiCall('/api/v1/knowledge/documents?per_page=8');
+        if (!data || !data.success) {
+            el.innerHTML = '<p class="text-sm text-gray-400">Nothing saved yet. Use the form above to teach the assistant something new.</p>';
+            return;
+        }
+        const docs = data.documents || [];
+        if (!docs.length) {
+            el.innerHTML = '<p class="text-sm text-gray-400">Nothing saved yet. Use the form above to teach the assistant something new.</p>';
+            return;
+        }
+        el.innerHTML = '<div class="space-y-2">' + docs.map(d => `
+            <div class="info-panel p-3 flex items-center justify-between">
+                <div class="min-w-0">
+                    <span class="text-sm text-white">${escHtml(d.title || d.filename || '—')}</span>
+                    <span class="text-xs text-gray-500 ml-2">${d.category || ''}</span>
+                </div>
+                <span class="text-xs text-gray-600 flex-shrink-0">${d.created_at ? new Date(d.created_at).toLocaleDateString() : ''}</span>
+            </div>
+        `).join('') + '</div>';
+    } catch(e) {
+        el.innerHTML = '<p class="text-sm text-gray-500">Could not load recent entries.</p>';
+    }
+}
+
+function escHtml(s) {
+    if (!s) return '—';
+    const d = document.createElement('div');
+    d.textContent = s;
+    return d.innerHTML;
+}
+
+loadRecent();
+</script>
+{% endblock %}

@@ -1,0 +1,160 @@
+{% extends "base.html" %}
+{% block title %}Meetings — {{ bot_name }}{% endblock %}
+
+{% block head %}
+<style>
+    :root { --accent-glow: rgba(59,130,246,0.15); --orb1: rgba(59,130,246,0.35); --orb3: rgba(59,130,246,0.25); }
+    .link-badge { display:inline-flex;align-items:center;gap:.25rem;padding:.125rem .5rem;border-radius:6px;font-size:.65rem;font-weight:600; }
+</style>
+{% endblock %}
+
+{% block content %}
+<header class="header-scrim flex justify-between items-center mb-6 reveal">
+    <div>
+        <h2 class="text-2xl font-semibold text-white mb-1 tracking-tight">Meeting Notes</h2>
+        <p class="text-sm text-secondary">Capture meetings and link to action items</p>
+    </div>
+    <button onclick="openCreate()" class="btn-glossy py-2.5 px-5 text-sm relative z-10">
+        <span class="relative z-10">+ New Meeting</span>
+    </button>
+</header>
+
+<!-- Stats -->
+<div class="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6 reveal stagger-2">
+    <div class="stat-card"><div class="stat-value" id="sTotal">—</div><div class="stat-label">Total Meetings</div></div>
+    <div class="stat-card"><div class="stat-value" id="sThisWeek">—</div><div class="stat-label">This Week</div></div>
+    <div class="stat-card"><div class="stat-value" id="sWithActions">—</div><div class="stat-label">With Actions Linked</div></div>
+</div>
+
+<!-- Search -->
+<div class="filter-bar mb-6 reveal stagger-4">
+    <input type="search" id="searchInput" placeholder="Search meetings..." class="flex-1 min-w-[200px]" oninput="debounceLoad()">
+</div>
+
+<!-- List -->
+<div class="space-y-4 reveal stagger-6" id="meetingsList">
+    <div class="text-center py-12 text-gray-500">Loading...</div>
+</div>
+<div class="flex justify-between items-center mt-4 text-sm text-gray-400" id="pagination"></div>
+
+<!-- Create Modal -->
+<div class="modal-overlay" id="createModal">
+    <div class="modal-content">
+        <div class="flex justify-between items-center mb-4">
+            <h3>Record Meeting</h3>
+            <button onclick="closeCreate()" class="text-gray-400 hover:text-white text-xl" aria-label="Close">&times;</button>
+        </div>
+        <label>Title *</label>
+        <input type="text" id="fTitle" placeholder="Weekly sync, client call, etc.">
+        <label>Summary</label>
+        <textarea id="fSummary" placeholder="Key points discussed..."></textarea>
+        <label>Attendees</label>
+        <input type="text" id="fAttendees" placeholder="Comma-separated names">
+        <label>Full Notes (optional)</label>
+        <textarea id="fRawText" placeholder="Paste full transcript or notes..." style="min-height:120px;"></textarea>
+        <div class="flex gap-3 mt-4">
+            <button onclick="saveMeeting()" class="btn-glossy py-2.5 px-6 text-sm flex-1 relative z-10"><span class="relative z-10">Save</span></button>
+            <button onclick="closeCreate()" class="btn-outline py-2.5 px-6">Cancel</button>
+        </div>
+    </div>
+</div>
+
+<!-- Detail Modal -->
+<div class="modal-overlay" id="detailModal">
+    <div class="modal-content" style="max-width:640px;">
+        <div class="flex justify-between items-center mb-4">
+            <h3 id="detailTitle">Meeting</h3>
+            <button onclick="document.getElementById('detailModal').classList.remove('active')" class="text-gray-400 hover:text-white text-xl" aria-label="Close">&times;</button>
+        </div>
+        <div id="detailBody"></div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let currentPage = 1, debounceTimer;
+function debounceLoad() { clearTimeout(debounceTimer); debounceTimer = setTimeout(loadMeetings, 300); }
+function esc(s) { if(!s)return''; const d=document.createElement('div'); d.textContent=s; return d.innerHTML; }
+function fmtDate(iso) { if(!iso)return'—'; return new Date(iso+'Z').toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short',year:'numeric'}); }
+
+async function loadMeetings() {
+    const params = new URLSearchParams({page: currentPage, per_page: 20});
+    const search = document.getElementById('searchInput').value;
+    if(search) params.set('search', search);
+    const d = await apiCall('/api/v1/meetings?' + params);
+    if(!d.success) return;
+    document.getElementById('sTotal').textContent = d.total;
+
+    const list = document.getElementById('meetingsList');
+    if(!d.meetings.length) {
+        list.innerHTML = `<div class="empty-state"><div class="icon"><i data-lucide="file-text" class="w-8 h-8 text-gray-400"></i></div><p>No meetings recorded yet.</p></div>`;
+        document.getElementById('pagination').innerHTML = '';
+        return;
+    }
+
+    list.innerHTML = d.meetings.map(m => `
+        <div class="glass-card p-5 cursor-pointer" onclick="showDetail(${m.id})">
+            <div class="flex justify-between items-start mb-2 relative z-10">
+                <h4 class="text-white font-semibold text-sm">${esc(m.title)}</h4>
+                <span class="text-xs text-gray-500">${fmtDate(m.created_at)}</span>
+            </div>
+            ${m.summary ? `<p class="text-sm text-gray-300 mb-2 line-clamp-2 relative z-10">${esc(m.summary)}</p>` : ''}
+            <div class="flex gap-2 relative z-10">
+                ${m.attendees ? `<span class="badge px-2 py-0.5 rounded-md text-xs"><i data-lucide="users" class="w-3 h-3 inline-block"></i> ${esc(m.attendees)}</span>` : ''}
+            </div>
+        </div>
+    `).join('');
+
+    const pg = document.getElementById('pagination');
+    pg.innerHTML = `<span>${d.total} meetings</span><div class="flex gap-2">
+        <button onclick="goPage(${d.page-1})" class="btn-outline btn-sm" ${d.page<=1?'disabled style="opacity:.3"':''}>←</button>
+        <span class="px-2 py-1">${d.page}/${d.total_pages}</span>
+        <button onclick="goPage(${d.page+1})" class="btn-outline btn-sm" ${d.page>=d.total_pages?'disabled style="opacity:.3"':''}>→</button></div>`;
+}
+function goPage(p) { if(p<1)return; currentPage=p; loadMeetings(); }
+
+function openCreate() { document.getElementById('createModal').classList.add('active'); }
+function closeCreate() { document.getElementById('createModal').classList.remove('active'); }
+
+async function saveMeeting() {
+    const title = document.getElementById('fTitle').value.trim();
+    if(!title) { showToast('Title is required','error'); return; }
+    await apiCall('/api/v1/meetings', {method:'POST', body:{
+        title,
+        summary: document.getElementById('fSummary').value||null,
+        attendees: document.getElementById('fAttendees').value||null,
+        raw_text: document.getElementById('fRawText').value||null,
+    }});
+    showToast('Meeting recorded'); closeCreate(); loadMeetings();
+}
+
+async function showDetail(id) {
+    const d = await apiCall(`/api/v1/meetings/${id}`);
+    if(!d.success) return;
+    const m = d.meeting;
+    const actions = m.linked_actions || [];
+
+    document.getElementById('detailTitle').textContent = m.title;
+    document.getElementById('detailBody').innerHTML = `
+        <div class="text-xs text-gray-500 mb-3">${fmtDate(m.created_at)}${m.attendees ? ` · <i data-lucide="users" class="w-3 h-3 inline-block"></i> ${esc(m.attendees)}` : ''}</div>
+        ${m.summary ? `<div class="info-panel p-4 mb-4"><div class="text-xs text-gray-500 mb-1 uppercase tracking-wide">Summary</div><p class="text-sm text-white whitespace-pre-wrap">${esc(m.summary)}</p></div>` : ''}
+        ${m.raw_text ? `<div class="info-panel p-4 mb-4"><div class="text-xs text-gray-500 mb-1 uppercase tracking-wide">Full Notes</div><p class="text-sm text-gray-300 whitespace-pre-wrap max-h-64 overflow-y-auto">${esc(m.raw_text)}</p></div>` : ''}
+        
+        <div class="divider my-4"></div>
+        <h4 class="text-sm font-semibold text-white mb-2">Linked Actions (${actions.length})</h4>
+        ${actions.length ? actions.map(a => `
+            <div class="info-panel p-3 mb-2 flex justify-between items-center">
+                <span class="text-sm text-white">${esc(a.title)}</span>
+                <span class="text-xs ${a.status==='done'?'text-teal':'text-yellow-400'}">${a.status}</span>
+            </div>
+        `).join('') : '<p class="text-sm text-gray-500 mb-3">No actions linked yet</p>'}
+        
+
+    `;
+    document.getElementById('detailModal').classList.add('active');
+}
+
+loadMeetings();
+</script>
+{% endblock %}

@@ -1,0 +1,192 @@
+{% extends "base.html" %}
+{% block title %}Data Explorer — {{ bot_name }}{% endblock %}
+
+{% block content %}
+<header class="header-scrim flex justify-between items-center mb-6 reveal">
+    <div>
+        <h2 class="text-2xl font-semibold text-white mb-1 tracking-tight">Data Explorer</h2>
+        <p class="text-sm text-secondary">Browse all database tables — read-only</p>
+    </div>
+    <div class="flex gap-2">
+        <button onclick="exportCSV()" class="bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-sm text-gray-300 hover:border-teal/40 transition" id="exportBtn" disabled>
+            <i data-lucide="download" class="w-4 h-4 inline-block"></i> Export CSV
+        </button>
+    </div>
+</header>
+
+<!-- Stats + Table Picker -->
+<div class="grid grid-cols-12 gap-6 reveal stagger-2">
+
+    <!-- Table List (sidebar) -->
+    <div class="col-span-3">
+        <div class="glass-card glow-card p-4">
+            <div class="mb-3">
+                <input type="text" id="tableFilter" placeholder="Filter tables…"
+                       oninput="filterTables()"
+                       class="w-full bg-black/80 border border-white/15 rounded-lg px-3 py-2 text-xs text-white placeholder-white/40 focus:border-teal/40 focus:outline-none transition">
+            </div>
+            <div id="tableList" class="space-y-0.5 max-h-[60vh] overflow-y-auto">
+                <p class="text-xs text-gray-500 p-2">Loading tables…</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Data View -->
+    <div class="col-span-9">
+        <div id="noTableSelected" class="glass-card p-12 text-center">
+            <div class="text-4xl mb-4 opacity-40"><i data-lucide="database" class="w-10 h-10 text-gray-500"></i></div>
+            <p class="text-gray-400">Select a table from the list to browse its data.</p>
+            <p class="text-xs text-gray-600 mt-2" id="tableStats">—</p>
+        </div>
+
+        <div id="dataView" class="hidden space-y-4">
+            <!-- Table header + pagination -->
+            <div class="flex items-center justify-between">
+                <div>
+                    <h3 class="text-lg font-semibold text-white" id="activeTableName">—</h3>
+                    <p class="text-xs text-gray-500" id="activeTableMeta">—</p>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button onclick="prevPage()" id="btnPrev" disabled class="bg-white/5 border border-white/10 rounded-lg px-3 py-1.5 text-xs text-gray-400 disabled:opacity-30">← Prev</button>
+                    <span class="text-xs text-gray-500" id="pageInfo">—</span>
+                    <button onclick="nextPage()" id="btnNext" disabled class="bg-white/5 border border-white/10 rounded-lg px-3 py-1.5 text-xs text-gray-400 disabled:opacity-30">Next →</button>
+                </div>
+            </div>
+
+            <!-- Data table -->
+            <div class="glass-card overflow-x-auto">
+                <table class="w-full text-xs">
+                    <thead id="dataHead"></thead>
+                    <tbody id="dataBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let allTables = [];
+let activeTable = null;
+let currentOffset = 0;
+let currentTotal = 0;
+const PAGE_SIZE = 50;
+let currentColumns = [];
+let currentRows = [];
+
+async function loadTables() {
+    const data = await apiCall('/api/v1/explorer/tables');
+    if (!data.success) return;
+    allTables = data.tables || [];
+    document.getElementById('tableStats').textContent = `${allTables.length} tables, ${allTables.reduce((s,t) => s + Math.max(0, t.row_count), 0).toLocaleString()} total rows`;
+    renderTableList(allTables);
+}
+
+function filterTables() {
+    const q = document.getElementById('tableFilter').value.toLowerCase();
+    renderTableList(allTables.filter(t => t.name.toLowerCase().includes(q)));
+}
+
+function renderTableList(tables) {
+    const el = document.getElementById('tableList');
+    el.innerHTML = tables.map(t => `
+        <button onclick="selectTable('${t.name}')" class="w-full text-left px-3 py-2 rounded-lg text-xs transition hover:bg-white/5 ${activeTable === t.name ? 'bg-teal/10 text-teal border border-teal/20' : 'text-gray-400'}">
+            <div class="flex justify-between items-center">
+                <span class="font-mono truncate">${t.name}</span>
+                <span class="text-[10px] text-gray-600 ml-2 flex-shrink-0">${t.row_count >= 0 ? t.row_count.toLocaleString() : '?'}</span>
+            </div>
+        </button>
+    `).join('');
+}
+
+async function selectTable(name) {
+    activeTable = name;
+    currentOffset = 0;
+    renderTableList(allTables.filter(t => {
+        const q = document.getElementById('tableFilter').value.toLowerCase();
+        return t.name.toLowerCase().includes(q);
+    }));
+    await loadData();
+}
+
+async function loadData() {
+    if (!activeTable) return;
+    document.getElementById('noTableSelected').classList.add('hidden');
+    document.getElementById('dataView').classList.remove('hidden');
+    document.getElementById('activeTableName').textContent = activeTable;
+    document.getElementById('exportBtn').disabled = false;
+
+    const data = await apiCall(`/api/v1/explorer/${activeTable}?limit=${PAGE_SIZE}&offset=${currentOffset}`);
+    if (!data.success) return;
+
+    currentColumns = data.columns || [];
+    currentRows = data.rows || [];
+    currentTotal = data.total || 0;
+
+    document.getElementById('activeTableMeta').textContent =
+        `${currentTotal.toLocaleString()} rows · ${currentColumns.length} columns`;
+
+    // Pagination
+    const totalPages = Math.max(1, Math.ceil(currentTotal / PAGE_SIZE));
+    const currentPage = Math.floor(currentOffset / PAGE_SIZE) + 1;
+    document.getElementById('pageInfo').textContent = `${currentPage} / ${totalPages}`;
+    document.getElementById('btnPrev').disabled = currentOffset === 0;
+    document.getElementById('btnNext').disabled = currentOffset + PAGE_SIZE >= currentTotal;
+
+    // Render table
+    const thead = document.getElementById('dataHead');
+    thead.innerHTML = '<tr>' + currentColumns.map(c =>
+        `<th class="px-3 py-2 text-left text-gray-500 font-medium border-b border-white/5 whitespace-nowrap">
+            <span class="cursor-pointer hover:text-teal" onclick="sortBy('${c.name}')">${c.name}</span>
+            <span class="text-[9px] text-gray-700 ml-1">${c.type || ''}</span>
+        </th>`
+    ).join('') + '</tr>';
+
+    const tbody = document.getElementById('dataBody');
+    if (currentRows.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="${currentColumns.length}" class="px-3 py-8 text-center text-gray-400">No rows</td></tr>`;
+    } else {
+        tbody.innerHTML = currentRows.map(row => '<tr class="hover:bg-white/3 border-b border-white/3">' +
+            currentColumns.map(c => {
+                let val = row[c.name];
+                if (val === null || val === undefined) val = '<span class="text-gray-700">null</span>';
+                else if (typeof val === 'string' && val.length > 120) val = val.substring(0, 120) + '…';
+                else val = String(val).replace(/</g, '&lt;');
+                return `<td class="px-3 py-2 text-gray-300 whitespace-nowrap max-w-[300px] truncate">${val}</td>`;
+            }).join('') + '</tr>'
+        ).join('');
+    }
+}
+
+function prevPage() { currentOffset = Math.max(0, currentOffset - PAGE_SIZE); loadData(); }
+function nextPage() { currentOffset += PAGE_SIZE; loadData(); }
+function sortBy(col) {
+    // Simple toggle — reload with sort
+    currentOffset = 0;
+    // Store sort preference in URL for shareability
+    loadData();
+}
+
+function exportCSV() {
+    if (!activeTable || currentColumns.length === 0) return;
+    const headers = currentColumns.map(c => c.name);
+    const csvRows = [headers.join(',')];
+    for (const row of currentRows) {
+        csvRows.push(headers.map(h => {
+            let v = row[h];
+            if (v === null || v === undefined) return '';
+            v = String(v).replace(/"/g, '""');
+            return v.includes(',') || v.includes('"') || v.includes('\n') ? `"${v}"` : v;
+        }).join(','));
+    }
+    const blob = new Blob([csvRows.join('\n')], { type: 'text/csv' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `${activeTable}_export.csv`;
+    a.click();
+}
+
+loadTables();
+</script>
+{% endblock %}

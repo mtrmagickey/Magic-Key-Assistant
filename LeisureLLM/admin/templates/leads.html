@@ -1,0 +1,267 @@
+{% extends "base.html" %}
+{% block title %}Leads — {{ bot_name }}{% endblock %}
+
+{% block head %}
+<style>
+    :root { --accent-glow: rgba(131,120,27,0.15); --orb1: rgba(131,120,27,0.35); }
+    .stage-pill { display:inline-flex;align-items:center;gap:.25rem;padding:.25rem .625rem;border-radius:20px;font-size:.7rem;font-weight:600;text-transform:uppercase;letter-spacing:.03em; }
+    .stage-cold { background:rgba(96,165,250,0.15);color:#93c5fd;border:1px solid rgba(96,165,250,0.3); }
+    .stage-warm { background:rgba(251,191,36,0.15);color:#fbbf24;border:1px solid rgba(251,191,36,0.3); }
+    .stage-hot { background:rgba(248,113,113,0.15);color:#f87171;border:1px solid rgba(248,113,113,0.3); }
+    .stage-proposal { background:rgba(167,139,250,0.15);color:#a78bfa;border:1px solid rgba(167,139,250,0.3); }
+    .stage-won { background:rgba(52,211,153,0.15);color:#34d399;border:1px solid rgba(52,211,153,0.3); }
+    .stage-lost { background:rgba(107,114,128,0.15);color:#9ca3af;border:1px solid rgba(107,114,128,0.3); }
+</style>
+{% endblock %}
+
+{% block content %}
+<header class="header-scrim flex justify-between items-center mb-6 reveal">
+    <div>
+        <h2 class="text-2xl font-semibold text-white mb-1 tracking-tight">Lead Pipeline</h2>
+        <p class="text-sm text-secondary">Track prospects from first contact to close</p>
+    </div>
+    <button onclick="openCreateModal()" class="btn-glossy py-2.5 px-5 text-sm relative z-10">
+        <span class="relative z-10">+ New Lead</span>
+    </button>
+</header>
+
+<!-- Pipeline Stages -->
+<div class="grid grid-cols-3 md:grid-cols-6 gap-3 mb-6 reveal stagger-2" id="pipelineCards">
+    <div class="stage-card" data-stage="cold"><div class="stage-count" id="pcCold">—</div><div class="stage-name">Cold</div></div>
+    <div class="stage-card" data-stage="warm"><div class="stage-count" id="pcWarm">—</div><div class="stage-name">Warm</div></div>
+    <div class="stage-card" data-stage="hot"><div class="stage-count" id="pcHot">—</div><div class="stage-name">Hot</div></div>
+    <div class="stage-card" data-stage="proposal"><div class="stage-count" id="pcProposal">—</div><div class="stage-name">Proposal</div></div>
+    <div class="stage-card" data-stage="won"><div class="stage-count" id="pcWon">—</div><div class="stage-name">Won</div></div>
+    <div class="stage-card" data-stage="lost"><div class="stage-count" id="pcLost">—</div><div class="stage-name">Lost</div></div>
+</div>
+
+<!-- Filters -->
+<div class="filter-bar mb-6 reveal stagger-4">
+    <input type="search" id="searchInput" placeholder="Search leads..." class="flex-1 min-w-[200px]" oninput="debounceLoad()">
+    <select id="filterStage" onchange="loadLeads()">
+        <option value="">All Stages</option>
+        <option value="cold">Cold</option>
+        <option value="warm">Warm</option>
+        <option value="hot">Hot</option>
+        <option value="proposal">Proposal</option>
+        <option value="won">Won</option>
+        <option value="lost">Lost</option>
+    </select>
+</div>
+
+<!-- Table -->
+<div class="glass-card glow-card p-0 overflow-hidden reveal stagger-6">
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th style="width:5%">#</th>
+                <th style="width:22%">Name</th>
+                <th style="width:12%">Stage</th>
+                <th style="width:15%">Contact</th>
+                <th style="width:10%">Value</th>
+                <th style="width:12%">Last Activity</th>
+                <th style="width:10%">Owner</th>
+                <th style="width:14%">Actions</th>
+            </tr>
+        </thead>
+        <tbody id="leadsBody">
+            <tr><td colspan="8" class="text-center py-12 text-gray-500">Loading...</td></tr>
+        </tbody>
+    </table>
+</div>
+<div class="flex justify-between items-center mt-4 text-sm text-gray-400" id="pagination"></div>
+
+<!-- Create Modal -->
+<div class="modal-overlay" id="leadModal">
+    <div class="modal-content">
+        <div class="flex justify-between items-center mb-4">
+            <h3>New Lead</h3>
+            <button onclick="closeModal()" class="text-gray-400 hover:text-white text-xl" aria-label="Close">&times;</button>
+        </div>
+        <label>Company / Lead Name *</label>
+        <input type="text" id="fName" placeholder="Acme Corp">
+        <div class="grid grid-cols-2 gap-4">
+            <div><label>Source</label><input type="text" id="fSource" placeholder="Referral, Website, etc."></div>
+            <div><label>Value Estimate</label><input type="text" id="fValue" placeholder="£5,000"></div>
+        </div>
+        <div class="grid grid-cols-2 gap-4">
+            <div><label>Contact Name</label><input type="text" id="fContactName" placeholder="Jane Smith"></div>
+            <div><label>Contact Info</label><input type="text" id="fContactInfo" placeholder="jane@acme.com"></div>
+        </div>
+        <label>Next Action</label>
+        <input type="text" id="fNextAction" placeholder="Send proposal by Friday">
+        <label>Notes</label>
+        <textarea id="fNotes" placeholder="Background info..."></textarea>
+        <label>Owner</label>
+        <input type="text" id="fOwner" placeholder="Username">
+        <div class="flex gap-3 mt-4">
+            <button onclick="saveLead()" class="btn-glossy py-2.5 px-6 text-sm flex-1 relative z-10"><span class="relative z-10">Create Lead</span></button>
+            <button onclick="closeModal()" class="btn-outline py-2.5 px-6">Cancel</button>
+        </div>
+    </div>
+</div>
+
+<!-- Advance Stage Modal -->
+<div class="modal-overlay" id="advanceModal">
+    <div class="modal-content" style="max-width:420px;">
+        <h3>Advance Stage</h3>
+        <input type="hidden" id="advanceLeadId">
+        <label>New Stage</label>
+        <select id="advanceStage">
+            <option value="cold">Cold</option>
+            <option value="warm">Warm</option>
+            <option value="hot">Hot</option>
+            <option value="proposal">Proposal</option>
+            <option value="won">Won</option>
+            <option value="lost">Lost</option>
+        </select>
+        <label>Note (optional)</label>
+        <input type="text" id="advanceNote" placeholder="Reason for stage change">
+        <div class="flex gap-3 mt-4">
+            <button onclick="doAdvance()" class="btn-glossy py-2.5 px-6 text-sm flex-1 relative z-10"><span class="relative z-10">Update</span></button>
+            <button onclick="document.getElementById('advanceModal').classList.remove('active')" class="btn-outline py-2.5 px-6">Cancel</button>
+        </div>
+    </div>
+</div>
+
+<!-- Detail Modal -->
+<div class="modal-overlay" id="detailModal">
+    <div class="modal-content" style="max-width:560px;">
+        <div class="flex justify-between items-center mb-4">
+            <h3 id="detailTitle">Lead Detail</h3>
+            <button onclick="document.getElementById('detailModal').classList.remove('active')" class="text-gray-400 hover:text-white text-xl" aria-label="Close">&times;</button>
+        </div>
+        <div id="detailBody"></div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let currentPage = 1, debounceTimer;
+function debounceLoad() { clearTimeout(debounceTimer); debounceTimer = setTimeout(loadLeads, 300); }
+function esc(s) { if(!s) return ''; const d=document.createElement('div'); d.textContent=s; return d.innerHTML; }
+function relTime(iso) { if(!iso) return '—'; const d=new Date(iso+'Z'), now=new Date(), diff=Math.floor((now-d)/86400000); return diff<1?'Today':diff===1?'Yesterday':`${diff}d ago`; }
+
+async function loadPipeline() {
+    const d = await apiCall('/api/v1/leads/pipeline');
+    if(!d.success) return;
+    const p = d.pipeline || {};
+    ['cold','warm','hot','proposal','won','lost'].forEach(s => {
+        const el = document.getElementById('pc'+s.charAt(0).toUpperCase()+s.slice(1));
+        if(el) el.textContent = p[s] || 0;
+    });
+    // Highlight active filter
+    document.querySelectorAll('.stage-card').forEach(c => {
+        c.classList.toggle('active-stage', c.dataset.stage === document.getElementById('filterStage').value);
+        c.style.cursor = 'pointer';
+        c.onclick = () => { document.getElementById('filterStage').value = c.dataset.stage; loadLeads(); loadPipeline(); };
+    });
+}
+
+async function loadLeads() {
+    const params = new URLSearchParams({page: currentPage, per_page: 30});
+    const stage = document.getElementById('filterStage').value;
+    const search = document.getElementById('searchInput').value;
+    if(stage) params.set('stage', stage);
+    if(search) params.set('search', search);
+    const d = await apiCall('/api/v1/leads?' + params);
+    if(!d.success) return;
+    const body = document.getElementById('leadsBody');
+    if(!d.leads.length) {
+        body.innerHTML = `<tr><td colspan="8"><div class="empty-state"><div class="icon"><i data-lucide="target" class="w-8 h-8 text-gray-400"></i></div><p>No leads yet. Start building your pipeline!</p></div></td></tr>`;
+        document.getElementById('pagination').innerHTML = '';
+        return;
+    }
+    body.innerHTML = d.leads.map(l => `
+        <tr>
+            <td class="text-gray-500 font-mono text-xs">${l.id}</td>
+            <td><span class="text-white font-medium text-sm cursor-pointer hover:text-teal" onclick="showDetail(${l.id})">${esc(l.name)}</span></td>
+            <td><span class="stage-pill stage-${l.status}">${l.status}</span></td>
+            <td class="text-sm">${esc(l.contact_name||'—')}</td>
+            <td class="text-sm font-mono">${esc(l.value_estimate||'—')}</td>
+            <td class="text-sm">${relTime(l.last_activity)}</td>
+            <td class="text-sm">${esc(l.owner_username||'—')}</td>
+            <td>
+                <div class="dot-menu">
+                    <button class="dot-menu-trigger" onclick="toggleDotMenu(this,event)" title="Actions">⋯</button>
+                    <div class="dot-menu-drop">
+                        <button onclick="showDetail(${l.id})"><i data-lucide="eye" class="w-3.5 h-3.5"></i> View</button>
+                        <button onclick="openAdvance(${l.id},'${l.status}')"><i data-lucide="arrow-up-circle" class="w-3.5 h-3.5"></i> Advance Stage</button>
+                    </div>
+                </div>
+            </td>
+        </tr>
+    `).join('');
+    const pg = document.getElementById('pagination');
+    pg.innerHTML = `<span>${d.total} leads</span><div class="flex gap-2">
+        <button onclick="goPage(${d.page-1})" class="btn-outline btn-sm" ${d.page<=1?'disabled style="opacity:.3"':''}>←</button>
+        <span class="px-2 py-1">${d.page}/${d.total_pages}</span>
+        <button onclick="goPage(${d.page+1})" class="btn-outline btn-sm" ${d.page>=d.total_pages?'disabled style="opacity:.3"':''}>→</button></div>`;
+    if (typeof lucide !== 'undefined') lucide.createIcons();
+    loadPipeline();
+}
+function goPage(p) { if(p<1) return; currentPage=p; loadLeads(); }
+
+function openCreateModal() { document.getElementById('leadModal').classList.add('active'); }
+function closeModal() { document.getElementById('leadModal').classList.remove('active'); }
+
+async function saveLead() {
+    const name = document.getElementById('fName').value.trim();
+    if (!name) { showToast('Name is required','error'); return; }
+    await apiCall('/api/v1/leads', {method:'POST', body: {
+        name, source: document.getElementById('fSource').value||null,
+        value_estimate: document.getElementById('fValue').value||null,
+        contact_name: document.getElementById('fContactName').value||null,
+        contact_info: document.getElementById('fContactInfo').value||null,
+        next_action: document.getElementById('fNextAction').value||null,
+        notes: document.getElementById('fNotes').value||null,
+        owner_username: document.getElementById('fOwner').value||null,
+    }});
+    showToast('Lead created'); closeModal(); loadLeads();
+}
+
+function openAdvance(id, current) {
+    document.getElementById('advanceLeadId').value = id;
+    const stages = ['cold','warm','hot','proposal','won','lost'];
+    const next = stages[Math.min(stages.indexOf(current)+1, stages.length-1)];
+    document.getElementById('advanceStage').value = next;
+    document.getElementById('advanceNote').value = '';
+    document.getElementById('advanceModal').classList.add('active');
+}
+async function doAdvance() {
+    const id = document.getElementById('advanceLeadId').value;
+    await apiCall(`/api/v1/leads/${id}/advance`, {method:'POST', body: {
+        new_stage: document.getElementById('advanceStage').value,
+        note: document.getElementById('advanceNote').value||null,
+    }});
+    showToast('Stage updated');
+    document.getElementById('advanceModal').classList.remove('active');
+    loadLeads();
+}
+
+async function showDetail(id) {
+    const d = await apiCall(`/api/v1/leads/${id}`);
+    if(!d.success) return;
+    const l = d.lead;
+    document.getElementById('detailTitle').textContent = l.name;
+    document.getElementById('detailBody').innerHTML = `
+        <div class="grid grid-cols-2 gap-4 mb-4">
+            <div class="info-panel p-3"><div class="text-xs text-gray-500 mb-1">Stage</div><span class="stage-pill stage-${l.status}">${l.status}</span></div>
+            <div class="info-panel p-3"><div class="text-xs text-gray-500 mb-1">Value</div><div class="text-white font-mono">${esc(l.value_estimate||'—')}</div></div>
+            <div class="info-panel p-3"><div class="text-xs text-gray-500 mb-1">Contact</div><div class="text-sm">${esc(l.contact_name||'—')}<br><span class="text-gray-400">${esc(l.contact_info||'')}</span></div></div>
+            <div class="info-panel p-3"><div class="text-xs text-gray-500 mb-1">Owner</div><div class="text-sm">${esc(l.owner_username||'—')}</div></div>
+        </div>
+        ${l.next_action?`<div class="info-panel p-3 mb-4"><div class="text-xs text-gray-500 mb-1">Next Action</div><div class="text-sm text-white">${esc(l.next_action)}</div></div>`:''}
+        ${l.notes?`<div class="info-panel p-3 mb-4"><div class="text-xs text-gray-500 mb-1">Notes</div><div class="text-sm">${esc(l.notes)}</div></div>`:''}
+        <h4 class="text-sm font-semibold text-white mt-4 mb-2">Activity Log</h4>
+        <div class="space-y-2">
+            ${(l.activities||[]).map(a => `<div class="info-panel p-3 flex justify-between"><span class="text-sm">${esc(a.summary)}</span><span class="text-xs text-gray-500">${relTime(a.created_at)}</span></div>`).join('') || '<p class="text-gray-500 text-sm">No activity yet</p>'}
+        </div>
+    `;
+    document.getElementById('detailModal').classList.add('active');
+}
+
+loadLeads(); loadPipeline();
+</script>
+{% endblock %}

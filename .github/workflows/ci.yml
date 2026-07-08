@@ -1,0 +1,59 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+      
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest pytest-asyncio ruff
+      
+      - name: Set up test environment
+        run: |
+          echo "DISCORD_TOKEN=test_token" >> $GITHUB_ENV
+          echo "OPENAI_API_KEY=test_key" >> $GITHUB_ENV
+      
+      - name: Lint with ruff
+        run: |
+          ruff check --output-format=github LeisureLLM/ tests/
+      
+      - name: Run tests
+        run: |
+          python -m pytest tests/ -v --tb=short
+        env:
+          DISCORD_TOKEN: test_token
+          OPENAI_API_KEY: test_key
+
+  lint:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      
+      - name: Install ruff
+        run: pip install ruff
+      
+      - name: Check linting
+        run: ruff check LeisureLLM/ tests/

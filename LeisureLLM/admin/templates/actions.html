@@ -1,0 +1,304 @@
+{% extends "base.html" %}
+{% block title %}Action Items — {{ bot_name }}{% endblock %}
+
+{% block content %}
+<header class="header-scrim flex justify-between items-center mb-6 reveal">
+    <div>
+        <h2 class="text-2xl font-semibold text-white mb-1 tracking-tight">Work from Conversations</h2>
+        <p class="text-sm text-secondary">Action items, decisions, and follow-ups extracted from conversations &mdash; each traced to its source with a timestamp</p>
+    </div>
+    <button onclick="openCreateModal()" class="btn-glossy py-2.5 px-5 text-sm relative z-10">
+        <span class="relative z-10">+ New Action Item</span>
+    </button>
+</header>
+
+<!-- Stats Row -->
+<div class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6 reveal stagger-2">
+    <div class="stat-card cursor-pointer hover:ring-2 hover:ring-white/20 hover:bg-white/5 transition" onclick="filterByStatus('')" title="Show all action items">
+        <div class="stat-value" id="statTotal">—</div>
+        <div class="stat-label">Total</div>
+    </div>
+    <div class="stat-card cursor-pointer hover:ring-2 hover:ring-yellow-400/40 hover:bg-yellow-400/5 transition" onclick="filterByStatus('todo')" title="Show to-do items">
+        <div class="stat-value text-yellow-400" id="statTodo">—</div>
+        <div class="stat-label">To Do</div>
+    </div>
+    <div class="stat-card cursor-pointer hover:ring-2 hover:ring-blue-400/40 hover:bg-blue-400/5 transition" onclick="filterByStatus('in_progress')" title="Show in-progress items">
+        <div class="stat-value text-blue-400" id="statInProgress">—</div>
+        <div class="stat-label">In Progress</div>
+    </div>
+    <div class="stat-card cursor-pointer hover:ring-2 hover:ring-teal/40 hover:bg-teal/5 transition" onclick="filterByStatus('done')" title="Show completed items">
+        <div class="stat-value text-teal" id="statDone">—</div>
+        <div class="stat-label">Done</div>
+    </div>
+    <div class="stat-card cursor-pointer hover:ring-2 hover:ring-coral/40 hover:bg-coral/5 transition" onclick="filterByStatus('overdue')" title="Show overdue items">
+        <div class="stat-value text-coral" id="statOverdue">—</div>
+        <div class="stat-label">Overdue</div>
+    </div>
+</div>
+
+<!-- Filter Bar -->
+<div class="filter-bar mb-6 reveal stagger-4">
+    <input type="search" id="searchInput" placeholder="Search action items..." class="flex-1 min-w-[200px]" oninput="debounceLoad()">
+    <select id="filterStatus" onchange="loadActions()">
+        <option value="">All Statuses</option>
+        <option value="todo">To Do</option>
+        <option value="in_progress">In Progress</option>
+        <option value="done">Done</option>
+        <option value="cancelled">Cancelled</option>
+    </select>
+    <select id="filterPriority" onchange="loadActions()">
+        <option value="">All Priorities</option>
+        <option value="critical">Critical</option>
+        <option value="high">High</option>
+        <option value="medium">Medium</option>
+        <option value="low">Low</option>
+    </select>
+</div>
+
+<!-- Inline help -->
+<div class="info-banner p-4 mb-6 reveal stagger-5" id="actionsHelp">
+    <div class="flex items-start gap-3 relative z-10">
+        <span class="text-lg"><i data-lucide="lightbulb" class="w-4 h-4 text-amber-400"></i></span>
+        <div class="flex-1">
+            <p class="text-sm text-secondary">Action items are created automatically when conversations mention work, deadlines, or owners. Each item links back to the conversation it came from. Use the checkbox to mark items done, or click a row to edit details. Overdue items show on the Dashboard.</p>
+        </div>
+        <button onclick="this.closest('#actionsHelp').style.display='none'; localStorage.setItem('mk_actions_help_dismissed','1')" class="text-gray-500 hover:text-gray-300 text-xs flex-shrink-0">✕</button>
+    </div>
+</div>
+<script>if(localStorage.getItem('mk_actions_help_dismissed')==='1'){const h=document.getElementById('actionsHelp');if(h)h.style.display='none';}</script>
+
+<!-- Data Table -->
+<div class="glass-card p-0 overflow-hidden fade-in fade-in-delay-3">
+    <div class="overflow-x-auto" id="actionsTableScroller">
+    <table class="data-table min-w-[860px]" id="actionsTable">
+        <thead>
+            <tr>
+                <th style="width:4%"></th>
+                <th style="width:38%" class="cursor-pointer select-none" onclick="toggleSort('title')" title="Sort by title">Title <span class="sort-arrow text-gray-600 text-xs" id="sort-title"></span></th>
+                <th style="width:12%" class="cursor-pointer select-none" onclick="toggleSort('status')" title="Sort by status">Status <span class="sort-arrow text-gray-600 text-xs" id="sort-status"></span></th>
+                <th style="width:10%" class="cursor-pointer select-none" onclick="toggleSort('priority')" title="Sort by priority">Priority <span class="sort-arrow text-gray-600 text-xs" id="sort-priority"></span></th>
+                <th style="width:13%">Assigned To</th>
+                <th style="width:11%" class="cursor-pointer select-none" onclick="toggleSort('due_date')" title="Sort by due date">Due Date <span class="sort-arrow text-gray-600 text-xs" id="sort-due_date"></span></th>
+                <th style="width:12%">Actions</th>
+            </tr>
+        </thead>
+        <tbody id="actionsBody">
+            <tr><td colspan="7" class="text-center py-12 text-gray-500">
+                <div class="flex flex-col items-center gap-3"><i data-lucide="loader-2" class="w-5 h-5 animate-spin text-gray-600"></i><span>Loading action items…</span></div>
+            </td></tr>
+        </tbody>
+    </table>
+    </div>
+</div>
+
+<!-- Pagination -->
+<div class="flex justify-between items-center mt-4 text-sm text-gray-400" id="pagination"></div>
+
+<!-- Create / Edit Modal -->
+<div class="modal-overlay" id="actionModal">
+    <div class="modal-content">
+        <div class="flex justify-between items-center mb-4">
+            <h3 id="modalTitle">New Action Item</h3>
+            <button onclick="closeModal()" class="text-gray-400 hover:text-white text-xl" aria-label="Close">&times;</button>
+        </div>
+        <input type="hidden" id="editId">
+        <label>Title *</label>
+        <input type="text" id="fTitle" placeholder="What needs to be done?">
+        <label>Description</label>
+        <textarea id="fDescription" placeholder="Additional details..."></textarea>
+        <div class="grid grid-cols-2 gap-4">
+            <div>
+                <label>Priority</label>
+                <select id="fPriority">
+                    <option value="low">Low</option>
+                    <option value="medium" selected>Medium</option>
+                    <option value="high">High</option>
+                    <option value="critical">Critical</option>
+                </select>
+            </div>
+            <div>
+                <label>Due Date</label>
+                <input type="date" id="fDueDate">
+            </div>
+        </div>
+        <label>Assigned To</label>
+        <input type="text" id="fAssignedTo" placeholder="Username">
+        <label>Tags</label>
+        <input type="text" id="fTags" placeholder="Comma-separated tags">
+        <div class="flex gap-3 mt-4">
+            <button onclick="saveAction()" class="btn-glossy py-2.5 px-6 text-sm flex-1 relative z-10">
+                <span class="relative z-10">Save</span>
+            </button>
+            <button onclick="closeModal()" class="btn-outline py-2.5 px-6">Cancel</button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let currentPage = 1, debounceTimer;
+let currentSort = 'created_at', currentSortDir = 'desc';
+const statusIcons = {todo:'<span class="w-2 h-2 rounded-full bg-blue-400 inline-block"></span>', in_progress:'<span class="w-2 h-2 rounded-full bg-yellow-400 inline-block"></span>', done:'<span class="w-2 h-2 rounded-full bg-green-400 inline-block"></span>', cancelled:'<span class="w-2 h-2 rounded-full bg-gray-500 inline-block"></span>', blocked:'<span class="w-2 h-2 rounded-full bg-red-400 inline-block"></span>'};
+const priorityColors = {critical:'text-red-400', high:'text-orange-400', medium:'text-yellow-300', low:'text-gray-400'};
+
+function toggleSort(col) {
+    if (currentSort === col) { currentSortDir = currentSortDir === 'asc' ? 'desc' : 'asc'; }
+    else { currentSort = col; currentSortDir = 'asc'; }
+    document.querySelectorAll('.sort-arrow').forEach(el => el.textContent = '');
+    const arrow = document.getElementById('sort-' + col);
+    if (arrow) arrow.textContent = currentSortDir === 'asc' ? '▲' : '▼';
+    loadActions();
+}
+
+function debounceLoad() { clearTimeout(debounceTimer); debounceTimer = setTimeout(loadActions, 300); }
+
+function filterByStatus(status) {
+    document.getElementById('filterStatus').value = status === 'overdue' ? '' : status;
+    loadActions();
+}
+
+async function loadStats() {
+    const d = await apiCall('/api/v1/actions/stats');
+    if (!d.success) return;
+    const s = d.stats;
+    document.getElementById('statTotal').textContent = s.total || 0;
+    document.getElementById('statTodo').textContent = (s.by_status?.todo || 0);
+    document.getElementById('statInProgress').textContent = (s.by_status?.in_progress || 0);
+    document.getElementById('statDone').textContent = (s.by_status?.done || 0);
+    document.getElementById('statOverdue').textContent = s.overdue || 0;
+}
+
+async function loadActions() {
+    const params = new URLSearchParams({page: currentPage, per_page: 30, sort_by: currentSort, sort_dir: currentSortDir});
+    const status = document.getElementById('filterStatus').value;
+    const priority = document.getElementById('filterPriority').value;
+    const search = document.getElementById('searchInput').value;
+    if (status) params.set('status', status);
+    if (priority) params.set('priority', priority);
+    if (search) params.set('search', search);
+
+    const d = await apiCall('/api/v1/actions?' + params);
+    if (!d.success) return;
+
+    const body = document.getElementById('actionsBody');
+    if (!d.actions.length) {
+        body.innerHTML = `<tr><td colspan="7"><div class="empty-state"><div class="icon"><i data-lucide="check-circle" class="w-8 h-8 text-gray-400"></i></div><p>No action items found. Create your first one!</p></div></td></tr>`;
+        document.getElementById('pagination').innerHTML = '';
+        return;
+    }
+
+    body.innerHTML = d.actions.map(a => `
+        <tr class="action-row group hover:bg-white/[0.03] transition-colors cursor-pointer" data-action-id="${a.id}">
+            <td class="text-center" onclick="event.stopPropagation()">
+                ${a.status !== 'done' && a.status !== 'cancelled'
+                    ? `<input type="checkbox" class="w-4 h-4 rounded accent-teal cursor-pointer" onchange="markDone(${a.id})" title="Mark done">`
+                    : `<span class="text-teal text-sm">✓</span>`}
+            </td>
+            <td>
+                <div class="font-medium text-sm ${a.status === 'done' || a.status === 'cancelled' ? 'line-through text-gray-400' : 'text-white'}" ${a.status === 'cancelled' ? 'style="text-decoration-color:rgba(255,255,255,0.25)"' : ''}>${esc(a.title)}</div>
+                ${a.description ? `<div class="text-xs text-gray-400 mt-0.5 line-clamp-1">${esc(a.description)}</div>` : ''}
+                ${a.tags ? `<div class="text-xs text-gray-500 mt-0.5">${esc(a.tags)}</div>` : ''}
+            </td>
+            <td><span class="text-xs">${statusIcons[a.status]||'<span class="w-2 h-2 rounded-full bg-gray-400 inline-block"></span>'} ${a.status || '—'}</span></td>
+            <td><span class="text-xs font-semibold ${priorityColors[a.priority]||''}">${(a.priority||'—').toUpperCase()}</span></td>
+            <td class="text-sm">${esc(a.assigned_to_username || '—')}</td>
+            <td class="text-sm ${isOverdue(a) ? 'text-coral font-semibold' : ''}">${a.due_date || '—'}</td>
+            <td onclick="event.stopPropagation()">
+                <div class="dot-menu">
+                    <button type="button" class="dot-menu-trigger" onclick="toggleDotMenu(this,event)" title="Actions" aria-label="Open action menu">⋯</button>
+                    <div class="dot-menu-drop">
+                        <button onclick="editAction(${a.id})"><i data-lucide="pencil" class="w-3.5 h-3.5"></i> Edit</button>
+                        ${a.status !== 'cancelled' && a.status !== 'done' ? `<button onclick="cancelAction(${a.id})" class="dot-danger"><i data-lucide="x-circle" class="w-3.5 h-3.5"></i> Cancel Task</button>` : ''}
+                    </div>
+                </div>
+            </td>
+        </tr>
+    `).join('');
+
+    // Pagination
+    const pg = document.getElementById('pagination');
+    pg.innerHTML = `
+        <span>Showing ${(d.page-1)*d.per_page+1}–${Math.min(d.page*d.per_page, d.total)} of ${d.total}</span>
+        <div class="flex gap-2">
+            <button onclick="goPage(${d.page-1})" class="btn-outline btn-sm" ${d.page<=1?'disabled style="opacity:.3"':''}>← Prev</button>
+            <span class="px-2 py-1">Page ${d.page} of ${d.total_pages}</span>
+            <button onclick="goPage(${d.page+1})" class="btn-outline btn-sm" ${d.page>=d.total_pages?'disabled style="opacity:.3"':''}>Next →</button>
+        </div>
+    `;
+    if (typeof lucide !== 'undefined') lucide.createIcons();
+}
+
+function isOverdue(a) { return a.due_date && a.status !== 'done' && a.status !== 'cancelled' && a.due_date < new Date().toISOString().slice(0,10); }
+function esc(s) { if(!s) return ''; const d=document.createElement('div'); d.textContent=s; return d.innerHTML; }
+function goPage(p) { if(p<1) return; currentPage=p; loadActions(); }
+
+document.addEventListener('click', function(e) {
+    const row = e.target.closest('tr.action-row[data-action-id]');
+    if (!row) return;
+    if (e.target.closest('button, a, input, select, textarea, label, .dot-menu, .dot-menu-drop')) return;
+    editAction(Number(row.dataset.actionId));
+});
+
+async function markDone(id) {
+    await apiCall(`/api/v1/actions/${id}/done`, {method:'POST'});
+    showToast('Action item marked done');
+    loadActions(); loadStats();
+}
+async function cancelAction(id) {
+    if(!confirm('Cancel this action?')) return;
+    await apiCall(`/api/v1/actions/${id}/cancel`, {method:'POST'});
+    showToast('Action cancelled');
+    loadActions(); loadStats();
+}
+
+function openCreateModal() {
+    document.getElementById('modalTitle').textContent = 'New Action Item';
+    document.getElementById('editId').value = '';
+    ['fTitle','fDescription','fAssignedTo','fTags','fDueDate'].forEach(id => document.getElementById(id).value = '');
+    document.getElementById('fPriority').value = 'medium';
+    document.getElementById('actionModal').classList.add('active');
+}
+function closeModal() { document.getElementById('actionModal').classList.remove('active'); }
+
+async function editAction(id) {
+    const d = await apiCall(`/api/v1/actions/${id}`);
+    if(!d.success) return;
+    const a = d.action;
+    document.getElementById('modalTitle').textContent = 'Edit Action Item #' + id;
+    document.getElementById('editId').value = id;
+    document.getElementById('fTitle').value = a.title || '';
+    document.getElementById('fDescription').value = a.description || '';
+    document.getElementById('fPriority').value = a.priority || 'medium';
+    document.getElementById('fDueDate').value = a.due_date || '';
+    document.getElementById('fAssignedTo').value = a.assigned_to_username || '';
+    document.getElementById('fTags').value = a.tags || '';
+    document.getElementById('actionModal').classList.add('active');
+}
+
+async function saveAction() {
+    const title = document.getElementById('fTitle').value.trim();
+    if (!title) { showToast('Title is required', 'error'); return; }
+    const body = {
+        title,
+        description: document.getElementById('fDescription').value || null,
+        priority: document.getElementById('fPriority').value,
+        due_date: document.getElementById('fDueDate').value || null,
+        assigned_to_username: document.getElementById('fAssignedTo').value || null,
+        tags: document.getElementById('fTags').value || null,
+    };
+    const editId = document.getElementById('editId').value;
+    if (editId) {
+        await apiCall(`/api/v1/actions/${editId}`, {method:'PATCH', body});
+        showToast('Action updated');
+    } else {
+        await apiCall('/api/v1/actions', {method:'POST', body});
+        showToast('Action created');
+    }
+    closeModal(); loadActions(); loadStats();
+}
+
+// Init
+loadStats(); loadActions();
+</script>
+{% endblock %}
