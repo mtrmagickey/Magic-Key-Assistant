@@ -14,11 +14,15 @@ By the end of setup, you should have:
 
 ## Prerequisites
 
+> **Just want to run it?** On Windows you don't need Python or Git — skip straight to [Download the Release Exe](#install--download-the-release-exe-recommended). The only thing worth installing first is **Ollama** for free local AI.
+
+The table below lists everything. Python and Git are **only required if you build from source**.
+
 | Requirement | Why | Get it |
 |-------------|-----|--------|
-| **Python 3.12+** | Runtime | [python.org/downloads](https://www.python.org/downloads/) — check "Add Python to PATH" |
-| **Git** | Clone the repo | [git-scm.com](https://git-scm.com/) |
 | **Ollama** *(recommended)* | Local LLM inference — free, no API key | [ollama.com](https://ollama.com) |
+| **Python 3.12+** *(source only)* | Runtime when running from a source checkout | [python.org/downloads](https://www.python.org/downloads/) — check "Add Python to PATH" |
+| **Git** *(source only)* | Clone the repo | [git-scm.com](https://git-scm.com/) |
 | **llama.cpp** *(optional)* | Alternative local inference — 2–3× faster for MoE models | Installed via the admin console (binary + GGUF model download) |
 | **Discord Bot Token** *(optional)* | Team mode — the bot connects to your Discord server | [discord.com/developers](https://discord.com/developers/applications) → New Application → Bot → Token |
 | **OpenAI API Key** *(optional)* | Cloud LLM fallback | [platform.openai.com/api-keys](https://platform.openai.com/api-keys) |
@@ -30,24 +34,29 @@ Desktop-class machine. 4 GB RAM minimum, 8 GB recommended. For local LLM inferen
 
 ---
 
-## Install — Windows Installer (.exe)
+## Install — Download the Release Exe (recommended)
 
-Prefer a click-to-run experience over the command line? Magic Key Assistant ships as a
-standalone Windows tray executable, `MagicKeyAssistant.exe`, plus a matching
-`MagicKeyAssistant-Setup-<version>.exe` installer.
+**This is the path most people should use.** Download `MagicKey-Beta-Release-1.0.exe` from the [latest release](https://github.com/mtrmagickey/Magic-Key-Assistant/releases) and double-click it. No Git clone and no Python install required on the target machine.
 
-- **Building or running the `.exe`:** follow the [Windows Installer Build Guide](docs/release/windows-installer.md).
-  It covers producing `dist/MagicKeyAssistant/MagicKeyAssistant.exe` with PyInstaller and packaging the
-  Inno Setup installer.
-- **What you get:** a Start Menu shortcut and a system-tray icon to start, stop, restart, open setup,
-  and launch the console — no terminal required after first run.
+The portable exe is a single self-contained launcher. On first run it:
 
-The tray app is a lightweight controller; on first run it creates the virtual environment and opens the
-setup experience, exactly like the launcher below.
+1. stages the app files beside the exe
+2. creates the virtual environment
+3. installs dependencies
+4. runs database migrations
+5. opens the Setup Wizard in your browser
+
+To start it again later, just double-click the same exe — it detects that setup is complete and launches straight into the app.
+
+> **Note:** the first launch on a clean machine still downloads the Python dependencies, so an internet connection is needed the first time. After that it runs offline (aside from any cloud LLM you choose to use).
+
+### Prefer a guided installer?
+
+A traditional Windows installer (`MagicKeyAssistant-Setup-<version>.exe`) is also available. It adds a Start Menu shortcut and a system-tray icon to start, stop, restart, open setup, and launch the console. See the [Windows Installer Build Guide](docs/release/windows-installer.md) for details.
 
 ---
 
-## Install — One-Command Launcher (recommended)
+## Install — One-Command Launcher (developer / source checkout)
 
 ```powershell
 # Repository name remains `LeisureCenterAssistant` for compatibility.

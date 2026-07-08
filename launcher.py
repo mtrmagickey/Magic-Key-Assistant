@@ -79,7 +79,9 @@ def _open_app_window(url: str) -> None:
 
 
 # ── Paths ─────────────────────────────────────────────────────────────────────
-ROOT = Path(__file__).parent.resolve()
+IS_FROZEN = getattr(sys, "frozen", False)
+ROOT = Path(sys.executable).parent.resolve() if IS_FROZEN else Path(__file__).parent.resolve()
+BUNDLE_ROOT = Path(getattr(sys, "_MEIPASS", ROOT)).resolve() if IS_FROZEN else ROOT
 VENV = ROOT / ".venv"
 LEISURELLM = ROOT / "LeisureLLM"
 DB_PATH = LEISURELLM / "assistant.db"
@@ -93,6 +95,24 @@ VENV_PIP = VENV / ("Scripts" if IS_WIN else "bin") / ("pip.exe" if IS_WIN else "
 LOG_FILE = ROOT / "launcher.log"
 PIP_LOG = ROOT / "pip_install.log"
 LOCK_FILE = ROOT / ".launcher.lock"
+
+
+def _stage_portable_payload() -> None:
+    """Copy bundled app files next to a frozen exe on first run."""
+    if not IS_FROZEN:
+        return
+
+    source = BUNDLE_ROOT / "LeisureLLM"
+    if not source.exists():
+        return
+
+    if LEISURELLM.exists() and REQUIREMENTS.exists():
+        return
+
+    if LEISURELLM.exists():
+        shutil.rmtree(LEISURELLM, ignore_errors=True)
+
+    shutil.copytree(source, LEISURELLM)
 
 
 def _exit_error(code: int = 1) -> None:
@@ -1603,6 +1623,8 @@ def main() -> None:
     _logf(f"LOG_FILE={LOG_FILE}")
     _logf("="*60)
 
+    _stage_portable_payload()
+
     # ── Returning user: skip bootstrap, go straight to running the bot ──
     already_setup = _is_setup_complete()
 
@@ -1667,7 +1689,8 @@ def main() -> None:
     print("  Admin console : http://localhost:8000")
     print("  Auth is OFF for this first-run session.")
     print("  Complete the setup wizard, then press")
-    print("  Ctrl+C and run `python launcher.py`")
+    restart_hint = "run MagicKeyAssistant-Portable.exe" if IS_FROZEN else "run `python launcher.py`"
+    print(f"  Ctrl+C and {restart_hint}")
     print("  again to start the full bot.")
     print()
     print("  Press Ctrl+C to stop the server.")

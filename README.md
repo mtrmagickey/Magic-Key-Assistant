@@ -29,7 +29,7 @@ It wraps any LLM (local or cloud) with the context, tools, memory, and control r
 - **Resilient** — circuit breakers, fallback chains, and self-correcting retrieval keep the system responsive even when backends degrade
 - **Self-improving** — feedback loops, confidence decay, and learning signals silently improve retrieval quality the more you use it
 
-**What do you need?** Python 3.12+, an LLM backend (Ollama is free and local), and 5 minutes.
+**What do you need?** On Windows, just the prebuilt release exe and an LLM backend (Ollama is free and local) — no Python or Git required. Building from source needs Python 3.12+.
 
 ---
 
@@ -182,7 +182,14 @@ See [GET_STARTED.md](GET_STARTED.md) for the current page tour.
 
 ## Quick start
 
-### 1. Install and launch
+### 1. Download and run (Windows)
+
+**Most people should use this path.** Download `MagicKey-Beta-Release-1.0.exe` from the [latest release](https://github.com/mtrmagickey/Magic-Key-Assistant/releases) and double-click it.
+
+No Python, no Git, no command line. On first run the exe sets everything up (virtual environment, dependencies, database) and opens the Setup Wizard in your browser automatically.
+
+<details>
+<summary>Prefer to run from source? (developers)</summary>
 
 ```powershell
 # Repository name remains `LeisureCenterAssistant` for compatibility.
@@ -191,7 +198,9 @@ cd LeisureCenterAssistant
 python launcher.py
 ```
 
-The launcher creates a virtual environment, installs dependencies, runs database migrations, and opens the Setup Wizard in your browser.
+The launcher creates a virtual environment, installs dependencies, runs database migrations, and opens the Setup Wizard in your browser. Requires Python 3.12+.
+
+</details>
 
 > No API keys or config files needed to start. The wizard handles everything.
 
@@ -206,15 +215,18 @@ Open **http://localhost:8000** — the wizard walks you through:
 
 ### 3. Start working
 
-After the wizard, press `Ctrl+C` in the terminal and run the launcher again:
+After the wizard, start the app again to run the full assistant:
+
+- **Exe users:** double-click `MagicKey-Beta-Release-1.0.exe` again.
+- **Source users:** press `Ctrl+C` in the terminal and run the launcher again:
 
 ```powershell
 python launcher.py
 ```
 
-On subsequent runs the launcher detects that setup is complete, starts the full bot, and **opens the admin console in your browser automatically** — no URLs to remember.
+On subsequent runs the app detects that setup is complete, starts the full bot, and **opens the admin console in your browser automatically** — no URLs to remember.
 
-Alternatively, use the lightweight start script:
+Alternatively (source install), use the lightweight start script:
 
 ```powershell
 python start.py              # normal start (opens browser)
@@ -237,11 +249,12 @@ On Windows, `pythonw tray.py` runs via a system tray icon with start/stop/browse
 
 | Method | Command | Best for |
 |--------|---------|----------|
-| **Launcher** | `python launcher.py` | First-time users — bootstraps everything |
-| **Start script** | `python start.py` | Subsequent runs — fast restart |
+| **Portable release exe** | `MagicKey-Beta-Release-1.0.exe` | **Most users** — download and double-click, no Python/Git needed |
+| **Launcher** | `python launcher.py` | Developers running from a source checkout |
+| **Start script** | `python start.py` | Subsequent runs from source — fast restart |
 | **System tray** | `pythonw tray.py` | Windows/cross-platform background operation |
 | **Docker Compose** | `docker compose up -d` | Containerised deployment (bot + admin + ChromaDB) |
-| **Windows installer** | `MagicKeyAssistant.exe` | Standalone tray executable — see the [Windows installer guide](docs/release/windows-installer.md) to build/run it |
+| **Windows installer** | `MagicKeyAssistant.exe` | Guided installer with Start Menu shortcut — see the [Windows installer guide](docs/release/windows-installer.md) |
 | **CLI inspector** | `python system_cli.py status` | Read-only system status from the terminal |
 
 > **⚠️ Security note — enable authentication before exposing the console.**

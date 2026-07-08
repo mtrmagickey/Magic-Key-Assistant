@@ -13,6 +13,7 @@ Use this guide when you need to:
 - build the Docker deployment
 - build the offline wheelhouse bundle
 - package the Windows tray app and installer
+- build the portable release exe
 
 For first-run user installation, see [INSTALLATION.md](../../INSTALLATION.md).
 
@@ -121,6 +122,8 @@ The Windows packaging flow has two layers:
 
 See [windows-installer.md](windows-installer.md) for the exact packaging sequence.
 
+For the take-and-go portable build, use [build_portable_release.ps1](../../build_portable_release.ps1).
+
 The entry points are:
 
 - [MagicKeyAssistant.spec](../../MagicKeyAssistant.spec)
@@ -133,6 +136,7 @@ The entry points are:
 - [Dockerfile](../../Dockerfile) defines the container image.
 - [docker-compose.yml](../../docker-compose.yml) defines the multi-service deployment.
 - [MagicKeyAssistant.spec](../../MagicKeyAssistant.spec) builds the tray executable.
+- [build_portable_release.ps1](../../build_portable_release.ps1) builds the portable release exe.
 - [installer.iss](../../installer.iss) builds the Windows installer.
 
 ## Related Docs

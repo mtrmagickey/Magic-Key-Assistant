@@ -10,13 +10,12 @@ If you have 15 minutes, you can go from a fresh install to a working continuity 
 
 ## Start Here
 
-After [installation](INSTALLATION.md), run:
+After [installation](INSTALLATION.md), start the app:
 
-```powershell
-python launcher.py
-```
+- **If you downloaded the release exe:** double-click `MagicKey-Beta-Release-1.0.exe`.
+- **If you're running from source:** run `python launcher.py`.
 
-Then open the web console at `http://localhost:8000`.
+Either way, the app opens the web console for you. If it doesn't, browse to `http://localhost:8000`.
 
 Your goal for the first session is not to configure everything. Your goal is to prove four things:
 
