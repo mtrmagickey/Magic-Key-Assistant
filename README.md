@@ -241,7 +241,7 @@ On Windows, `pythonw tray.py` runs via a system tray icon with start/stop/browse
 | **Start script** | `python start.py` | Subsequent runs — fast restart |
 | **System tray** | `pythonw tray.py` | Windows/cross-platform background operation |
 | **Docker Compose** | `docker compose up -d` | Containerised deployment (bot + admin + ChromaDB) |
-| **Windows installer** | `MagicKeyAssistant.exe` | Standalone executable via PyInstaller |
+| **Windows installer** | `MagicKeyAssistant.exe` | Standalone tray executable — see the [Windows installer guide](docs/release/windows-installer.md) to build/run it |
 | **CLI inspector** | `python system_cli.py status` | Read-only system status from the terminal |
 
 > **⚠️ Security note — enable authentication before exposing the console.**
