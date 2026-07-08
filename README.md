@@ -2,6 +2,17 @@
 
 > Local-first AI operations harness for solo operators and small teams — structured memory, durable records, and autonomous routines that keep work visible and moving.
 
+<p align="center">
+  <a href="https://github.com/mtrmagickey/Magic-Key-Assistant/releases/latest">
+    <img src="https://img.shields.io/badge/⬇%20Download%20for%20Windows-MagicKey%20Beta%20Release-2BA285?style=for-the-badge&logoColor=white" alt="Download Magic Key Assistant for Windows" height="48">
+  </a>
+</p>
+
+<p align="center">
+  <b>No Python. No setup. Just download and double-click.</b><br>
+  <sub><a href="https://github.com/mtrmagickey/Magic-Key-Assistant/releases/latest">Get the latest <code>MagicKey-Beta-Release-1.0.exe</code></a> → it installs everything on first run.</sub>
+</p>
+
 [![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/downloads/)
 [![SQLite WAL](https://img.shields.io/badge/sqlite-WAL_mode-blue.svg)](https://www.sqlite.org/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-admin_console-green.svg)](https://fastapi.tiangolo.com/)
